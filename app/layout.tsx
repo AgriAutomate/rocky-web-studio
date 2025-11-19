@@ -13,6 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_URL ?? "https://rockywebstudio.com.au"
+  ),
   title: "Rocky Web Studio | Bold web experiences for ambitious teams",
   description:
     "Rocky Web Studio blends strategy, design, and engineering to ship premium marketing sites, dashboards, and commerce experiences.",

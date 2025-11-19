@@ -68,54 +68,41 @@ export function BookingCalendar({
     // Ensure date is formatted as YYYY-MM-DD
     const formattedDate = date; // date is already in YYYY-MM-DD format from format()
     const url = `/api/bookings/availability?date=${formattedDate}`;
-    
-    console.log("Fetching availability for date:", formattedDate);
-    console.log("Fetch URL:", url);
 
     try {
       const response = await fetch(url);
-      
-      console.log("Response status:", response.status, response.statusText);
       
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
-          console.error("Response error data:", errorData);
           errorMessage = errorData.error || errorMessage;
         } catch {
           // If parsing fails, use default error message
-          console.error("Could not parse error response as JSON");
         }
         throw new Error(errorMessage);
       }
 
       const data: AvailabilityResponse = await response.json();
-      console.log("Availability data received:", data);
 
       // Validate response structure
       if (!data) {
-        console.error("Empty response received");
         throw new Error("Invalid response format from server");
       }
 
       // Check for error in response
       if (data.error) {
-        console.error("Error in response:", data.error);
         throw new Error(data.error);
       }
 
       // Validate slots array exists
       if (!Array.isArray(data.slots)) {
-        console.error("Invalid slots array in response:", data);
         throw new Error("Invalid response format: slots array missing");
       }
 
       // Extract and set slots
       setSlots(data.slots);
-      console.log("Slots set successfully:", data.slots.length, "slots");
     } catch (err: any) {
-      console.error("Error fetching availability:", err);
       setError(err?.message || "Failed to load available time slots");
       setSlots([]);
     } finally {

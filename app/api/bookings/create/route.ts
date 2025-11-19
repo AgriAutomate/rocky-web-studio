@@ -1,5 +1,10 @@
 import { parse, isValid } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  sendBookingConfirmation,
+  schedule24HourReminder,
+  schedule1HourReminder,
+} from "@/lib/sms/booking-helpers";
 
 interface BookingRequest {
   date: string;
@@ -9,6 +14,7 @@ interface BookingRequest {
   phone: string;
   serviceType: string;
   message?: string;
+  smsOptIn?: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -29,7 +35,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { date, time, name, email, phone, serviceType, message } = body as BookingRequest;
+    const {
+      date,
+      time,
+      name,
+      email,
+      phone,
+      serviceType,
+      message,
+      smsOptIn = false,
+    } = body as BookingRequest;
 
     // Validate date format
     try {
@@ -62,56 +77,75 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // TODO(production): replace mock ID + logging-only flow with persistent storage.
     // Generate mock bookingId
     const bookingId = `BK${Date.now()}`;
 
-    // Create booking object for logging
-    const booking = {
-      bookingId,
-      date,
-      time,
-      name,
-      email,
-      phone,
-      serviceType,
-      message: message || "",
-      createdAt: new Date().toISOString(),
-    };
-
-    // Log booking to console
-    console.log("=== BOOKING CREATED (MOCK) ===");
-    console.log("Booking ID:", bookingId);
-    console.log("Date:", date);
-    console.log("Time:", time);
-    console.log("Name:", name);
-    console.log("Email:", email);
-    console.log("Phone:", phone);
-    console.log("Service Type:", serviceType);
-    console.log("Message:", message || "(none)");
-    console.log("Created At:", booking.createdAt);
-    console.log("==============================");
-
-    // Send SMS notification (fire and forget - don't await)
+    // TODO(production): ensure SMS provider credentials are active before enabling in prod.
+    // Send SMS notifications if user opted in (fire and forget)
     // Booking succeeds regardless of SMS delivery status
-    (async () => {
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/bookings/sms`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phoneNumber: phone,
+    if (smsOptIn) {
+      (async () => {
+        try {
+          const bookingDetails = {
             bookingId,
             date,
             time,
             serviceType,
             name,
-          }),
-        });
-        console.log("✅ SMS notification sent");
-      } catch (error) {
-        console.error("⚠️ SMS failed (booking still created):", error);
-      }
-    })();
+            phoneNumber: phone,
+            bookingUrl: `${process.env.NEXT_PUBLIC_BOOKING_URL || "https://rockywebstudio.com.au/book"}/${bookingId}`,
+          };
+
+          const confirmationResult = await sendBookingConfirmation(bookingDetails);
+          if (confirmationResult.success) {
+            if (process.env.NODE_ENV !== "production") {
+              console.info("SMS confirmation sent", {
+                bookingId,
+                messageId: confirmationResult.messageId,
+              });
+            }
+          } else {
+            console.warn("SMS confirmation failed", {
+              bookingId,
+              error: confirmationResult.error,
+            });
+          }
+
+          const reminder24hResult = await schedule24HourReminder(bookingDetails);
+          if (reminder24hResult.success) {
+            if (process.env.NODE_ENV !== "production") {
+              console.info("24h reminder scheduled", {
+                bookingId,
+                messageId: reminder24hResult.messageId,
+              });
+            }
+          } else {
+            console.warn("24h reminder failed", {
+              bookingId,
+              error: reminder24hResult.error,
+            });
+          }
+
+          const reminder1hResult = await schedule1HourReminder(bookingDetails);
+          if (reminder1hResult.success) {
+            if (process.env.NODE_ENV !== "production") {
+              console.info("1h reminder scheduled", {
+                bookingId,
+                messageId: reminder1hResult.messageId,
+              });
+            }
+          } else {
+            console.warn("1h reminder failed", {
+              bookingId,
+              error: reminder1hResult.error,
+            });
+          }
+        } catch (error) {
+          console.error("SMS notifications failed", { bookingId, error });
+        }
+      })();
+    }
 
     // Return success response immediately (don't wait for SMS)
     return NextResponse.json(
@@ -123,7 +157,10 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error("Booking creation error:", error);
+    console.error("Booking creation error", {
+      message: error?.message,
+      stack: process.env.NODE_ENV !== "production" ? error?.stack : undefined,
+    });
     return NextResponse.json(
       {
         error: "Internal server error",

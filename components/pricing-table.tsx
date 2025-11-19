@@ -1,4 +1,5 @@
 ﻿import { Check, Sparkle } from "lucide-react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -109,13 +110,26 @@ export function PricingTable() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button
-                variant={plan.highlighted ? "default" : "outline"}
-                className="w-full"
-              >
-                {plan.highlighted ? <Sparkle className="mr-2 size-4" /> : null}
-                {plan.cta}
-              </Button>
+              {plan.cta === "Book discovery call" ? (
+                <Button
+                  asChild
+                  variant={plan.highlighted ? "default" : "outline"}
+                  className="w-full"
+                >
+                  <Link href="/book">
+                    {plan.highlighted ? <Sparkle className="mr-2 size-4" /> : null}
+                    {plan.cta}
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  variant={plan.highlighted ? "default" : "outline"}
+                  className="w-full"
+                >
+                  {plan.highlighted ? <Sparkle className="mr-2 size-4" /> : null}
+                  {plan.cta}
+                </Button>
+              )}
             </CardFooter>
           </Card>
         ))}

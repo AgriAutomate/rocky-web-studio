@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { format, parse } from "date-fns";
 import { CheckCircle, Loader2, Calendar, User, FileCheck } from "lucide-react";
+import {
+  validateAustralianPhone,
+  formatToE164,
+  formatForDisplay,
+} from "@/lib/phone";
 import { BookingCalendar } from "@/app/components/BookingCalendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +29,7 @@ interface FormData {
   email: string;
   phone: string;
   message: string;
+  smsOptIn: boolean;
 }
 
 interface BookingResponse {
@@ -50,6 +56,7 @@ export default function BookPage() {
     email: "",
     phone: "",
     message: "",
+    smsOptIn: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -97,6 +104,11 @@ export default function BookPage() {
       setError("Please enter your phone number");
       return false;
     }
+    // Validate Australian phone number using libphonenumber-js
+    if (!validateAustralianPhone(formData.phone.trim())) {
+      setError("Please enter a valid Australian phone number (e.g., +61412345678 or 0412345678)");
+      return false;
+    }
     return true;
   };
 
@@ -116,6 +128,9 @@ export default function BookPage() {
     setLoading(true);
 
     try {
+      // Format phone number to E.164 before sending to API
+      const formattedPhone = formatToE164(formData.phone.trim());
+
       const response = await fetch("/api/bookings/create", {
         method: "POST",
         headers: {
@@ -126,9 +141,10 @@ export default function BookPage() {
           time: selectedTime,
           name: formData.name,
           email: formData.email,
-          phone: formData.phone,
+          phone: formattedPhone,
           serviceType: formData.serviceType,
           message: formData.message || "",
+          smsOptIn: formData.smsOptIn,
         }),
       });
 
@@ -365,11 +381,41 @@ export default function BookPage() {
                     onChange={(e) =>
                       handleInputChange("phone", e.target.value)
                     }
-                    placeholder="+61 4XX XXX XXX"
+                    placeholder="+61412345678 or 0412345678"
                     required
                     aria-invalid={error.includes("phone")}
                     className="w-full"
                   />
+                  <p className="text-xs text-slate-500">
+                    Australian mobile number (any format accepted)
+                  </p>
+                </div>
+
+                {/* SMS Opt-in */}
+                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <input
+                    type="checkbox"
+                    id="smsOptIn"
+                    checked={formData.smsOptIn}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        smsOptIn: e.target.checked,
+                      }));
+                    }}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <div className="flex-1">
+                    <Label
+                      htmlFor="smsOptIn"
+                      className="text-sm font-medium text-slate-900 cursor-pointer"
+                    >
+                      Send SMS confirmations and reminders
+                    </Label>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Receive booking confirmation and reminder texts. You can opt out anytime by replying STOP.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Message */}
@@ -502,7 +548,7 @@ export default function BookPage() {
                       Your Phone
                     </dt>
                     <dd className="mt-1 text-base text-gray-900">
-                      {formData.phone}
+                      {formatForDisplay(formData.phone)}
                     </dd>
                   </div>
                 </dl>
@@ -522,6 +568,7 @@ export default function BookPage() {
                       email: "",
                       phone: "",
                       message: "",
+                      smsOptIn: false,
                     });
                   }}
                   className="bg-teal-600 text-white hover:bg-teal-700"

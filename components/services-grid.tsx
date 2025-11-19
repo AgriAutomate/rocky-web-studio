@@ -1,4 +1,5 @@
-﻿import {
+﻿import Link from "next/link";
+import {
   Bot,
   LifeBuoy,
   LineChart,
@@ -29,6 +30,7 @@ const services = [
       "Foundational SEO setup",
     ],
     accent: "bg-teal-50 text-teal-600",
+    href: "/services/website-design-development",
   },
   {
     title: "Website Redesign & Refresh",
@@ -42,6 +44,7 @@ const services = [
       "Content migration support",
     ],
     accent: "bg-cyan-50 text-cyan-600",
+    href: "/services/website-redesign-refresh",
   },
   {
     title: "Basic E-Commerce",
@@ -55,6 +58,7 @@ const services = [
       "Basic inventory workflows",
     ],
     accent: "bg-emerald-50 text-emerald-600",
+    href: "/services/ecommerce",
   },
   {
     title: "SEO & Performance Optimization",
@@ -68,6 +72,7 @@ const services = [
       "Core Web Vitals improvements",
     ],
     accent: "bg-blue-50 text-blue-600",
+    href: "/services/seo-performance",
   },
   {
     title: "Ongoing Support & Maintenance",
@@ -81,6 +86,7 @@ const services = [
       "1–2 business day response",
     ],
     accent: "bg-slate-50 text-slate-700",
+    href: "/services/support-maintenance",
   },
   {
     title: "AI & Automation Support",
@@ -94,6 +100,7 @@ const services = [
       "Partner referrals for bespoke AI",
     ],
     accent: "bg-indigo-50 text-indigo-600",
+    href: "/services/ai-automation",
   },
   {
     title: "CRM Integration",
@@ -107,6 +114,7 @@ const services = [
       "Collaboration with your ops team",
     ],
     accent: "bg-purple-50 text-purple-600",
+    href: "/services/crm-integration",
   },
 ];
 
@@ -130,34 +138,37 @@ export function ServicesGrid() {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {services.map((service) => (
-          <Card
+          <Link
             key={service.title}
-            className="border border-gray-200 bg-white shadow-lg"
+            href={service.href}
+            className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
           >
-            <CardHeader className="flex flex-row items-start gap-4">
-              <div className={`rounded-2xl p-3 ${service.accent}`}>
-                <service.icon className="size-6" />
-              </div>
-              <div>
-                <CardTitle className="text-xl font-semibold">
-                  {service.title}
-                </CardTitle>
-                <CardDescription className="text-base">
-                  {service.description}
-                </CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                {service.bullets.map((bullet) => (
-                  <li key={bullet} className="flex items-center gap-2">
-                    <span className="size-1.5 rounded-full bg-primary/60" />
-                    {bullet}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+            <Card className="border border-gray-200 bg-white shadow-lg transition-transform group-hover:-translate-y-1">
+              <CardHeader className="flex flex-row items-start gap-4">
+                <div className={`rounded-2xl p-3 ${service.accent}`}>
+                  <service.icon className="size-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-semibold">
+                    {service.title}
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    {service.description}
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                  {service.bullets.map((bullet) => (
+                    <li key={bullet} className="flex items-center gap-2">
+                      <span className="size-1.5 rounded-full bg-primary/60" />
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
       <div className="space-y-2 rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm text-muted-foreground">

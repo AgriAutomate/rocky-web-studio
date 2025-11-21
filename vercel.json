@@ -1,0 +1,15 @@
+{
+  "functions": {
+    "api/notifications/send-reminder/route.ts": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/send-reminders",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
+

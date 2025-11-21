@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import BookingConfirmation, { SmsStatus } from "@/components/BookingConfirmation";
 
 type Step = "calendar" | "details" | "confirmation";
 
@@ -61,6 +62,8 @@ export default function BookPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [bookingId, setBookingId] = useState<string>("");
+  const [smsStatus, setSmsStatus] = useState<SmsStatus>("idle");
+  const [smsError, setSmsError] = useState<string>("");
 
   const handleDateTimeSelect = (date: string, time: string) => {
     setSelectedDate(date);
@@ -112,6 +115,59 @@ export default function BookPage() {
     return true;
   };
 
+  const sendSmsNotification = async (formattedPhone: string) => {
+    if (!selectedDate || !selectedTime) {
+      return;
+    }
+
+    setSmsStatus("sending");
+    setSmsError("");
+
+    try {
+      console.info("Attempting SMS notification", {
+        phone: formattedPhone,
+        name: formData.name,
+        date: selectedDate,
+        time: selectedTime,
+      });
+
+      const response = await fetch("/api/notifications/send-sms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone: formattedPhone,
+          name: formData.name,
+          date: selectedDate,
+          time: selectedTime,
+          serviceType: formData.serviceType,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        const errorMessage = data.error || "SMS notification failed";
+        setSmsStatus("error");
+        setSmsError(errorMessage);
+        console.warn("SMS notification error", {
+          bookingDate: selectedDate,
+          bookingTime: selectedTime,
+          error: errorMessage,
+        });
+        return;
+      }
+
+      setSmsStatus("success");
+      console.info("SMS notification delivered", data.response);
+    } catch (err: any) {
+      setSmsStatus("error");
+      const message = err?.message || "SMS notification error";
+      setSmsError(message);
+      console.warn("SMS notification exception", err);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -156,8 +212,10 @@ export default function BookPage() {
 
       if (data.success && data.bookingId) {
         setBookingId(data.bookingId);
+        if (formData.smsOptIn) {
+          await sendSmsNotification(formattedPhone);
+        }
         setStep("confirmation");
-        setLoading(false);
       } else {
         throw new Error(data.error || "Booking creation failed");
       }
@@ -489,6 +547,12 @@ export default function BookPage() {
                   ✓ Your booking has been received and confirmed
                 </p>
               </div>
+
+              <BookingConfirmation
+                phone={formData.phone}
+                smsStatus={smsStatus}
+                smsError={smsError}
+              />
 
               {/* Booking Details Card */}
               <div className="mx-auto max-w-2xl rounded-lg border border-gray-200 bg-white p-8 shadow-lg text-left">

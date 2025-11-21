@@ -1,10 +1,10 @@
 import { parse, isValid } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import {
-  sendBookingConfirmation,
   schedule24HourReminder,
   schedule1HourReminder,
 } from "@/lib/sms/booking-helpers";
+import { saveBooking } from "@/lib/bookings/storage";
 
 interface BookingRequest {
   date: string;
@@ -81,6 +81,20 @@ export async function POST(request: NextRequest) {
     // Generate mock bookingId
     const bookingId = `BK${Date.now()}`;
 
+    saveBooking({
+      bookingId,
+      name,
+      email,
+      phone,
+      serviceType,
+      date,
+      time,
+      smsOptIn,
+      reminderSent24h: false,
+      reminderSent2h: false,
+      createdAt: new Date().toISOString(),
+    });
+
     // TODO(production): ensure SMS provider credentials are active before enabling in prod.
     // Send SMS notifications if user opted in (fire and forget)
     // Booking succeeds regardless of SMS delivery status
@@ -146,6 +160,7 @@ export async function POST(request: NextRequest) {
         }
       })();
     }
+
 
     // Return success response immediately (don't wait for SMS)
     return NextResponse.json(

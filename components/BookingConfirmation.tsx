@@ -1,0 +1,99 @@
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Loader2, X } from "lucide-react";
+
+export type SmsStatus = "idle" | "sending" | "success" | "error";
+
+interface BookingConfirmationProps {
+  phone: string;
+  smsStatus: SmsStatus;
+  smsError?: string;
+  onClose?: () => void;
+}
+
+const maskPhone = (phone: string): string => {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length >= 4) {
+    const last = digits.slice(-3);
+    const masked = digits.slice(0, -3).replace(/\d/g, "X");
+    // Insert spaces similar to 04XX XXX 000
+    return `${masked.slice(0, 4)} ${masked.slice(4, 7)} ${last}`;
+  }
+  return phone;
+};
+
+export default function BookingConfirmation({
+  phone,
+  smsStatus,
+  smsError,
+  onClose,
+}: BookingConfirmationProps) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (smsStatus === "success") {
+      const timer = setTimeout(() => setVisible(false), 5000);
+      return () => clearTimeout(timer);
+    }
+    setVisible(true);
+  }, [smsStatus]);
+
+  const statusContent = useMemo(() => {
+    switch (smsStatus) {
+      case "sending":
+        return {
+          icon: <Loader2 className="h-5 w-5 animate-spin text-blue-500" />,
+          text: "📱 Sending confirmation SMS...",
+          color: "text-blue-600",
+        };
+      case "success":
+        return {
+          icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />,
+          text: `✅ Confirmation SMS sent to ${maskPhone(phone)}`,
+          color: "text-emerald-600",
+        };
+      case "error":
+        return {
+          icon: <AlertTriangle className="h-5 w-5 text-amber-600" />,
+          text:
+            "⚠️ SMS couldn't be sent, but email confirmation was delivered",
+          color: "text-amber-600",
+        };
+      default:
+        return null;
+    }
+  }, [smsStatus, phone]);
+
+  if (!visible || !statusContent) {
+    return null;
+  }
+
+  return (
+    <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+      <button
+        className="absolute right-3 top-3 rounded-full border border-transparent p-1 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+        onClick={() => {
+          setVisible(false);
+          onClose?.();
+        }}
+      >
+        <X className="h-3 w-3" />
+      </button>
+      <div className="flex items-center gap-3">
+        {statusContent.icon}
+        <p className={`text-sm font-medium ${statusContent.color}`}>
+          {statusContent.text}
+        </p>
+      </div>
+      {smsStatus === "error" && (
+        <div className="mt-3 space-y-1 text-xs text-slate-600">
+          <p>Check your email for booking details.</p>
+          <p>Reply to the confirmation email if you need help.</p>
+          {smsError && (
+            <p className="text-rose-600">Details: {smsError}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+

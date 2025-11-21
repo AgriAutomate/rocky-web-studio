@@ -1,5 +1,317 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+interface SMSLog {
+  id: string;
+  timestamp: string;
+  to: string;
+  messageType: string;
+  status: "success" | "failed" | "pending";
+  error?: string;
+  response?: any;
+  customRef?: string;
+  body?: string;
+}
+
+interface Stats {
+  total: number;
+  delivered: number;
+  failed: number;
+  totalCost: number;
+  byType: Record<string, number>;
+}
+
+const maskPhone = (phone: string) => {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 4) return phone;
+  const last = digits.slice(-3);
+  const masked = digits.slice(0, -3).replace(/\d/g, "X");
+  return `${masked.slice(0, 4)} ${masked.slice(4, 7)} ${last}`;
+};
+
+export default function AdminSMSPage() {
+  const [logs, setLogs] = useState<SMSLog[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    status: "all",
+    search: "",
+    from: "",
+    to: "",
+  });
+  const [credits, setCredits] = useState<string>("Loading...");
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filters.status !== "all") params.set("status", filters.status);
+      if (filters.search) {
+        params.set("phoneNumber", filters.search);
+        params.set("bookingId", filters.search);
+      }
+      if (filters.from) params.set("startDate", filters.from);
+      if (filters.to) params.set("endDate", filters.to);
+
+      const res = await fetch(`/api/admin/sms/stats?${params.toString()}`);
+      const data = await res.json();
+      setLogs(data.messages || []);
+      setStats(data.stats);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, [filters]);
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const res = await fetch("/api/mobile-message/credits");
+        const data = await res.json();
+        if (data.success) {
+          setCredits(`${data.balance ?? "N/A"} credits remaining`);
+        } else {
+          setCredits("Unable to fetch credits");
+        }
+      } catch (err) {
+        setCredits("Unable to fetch credits");
+      }
+    };
+    fetchCredits();
+  }, []);
+
+  const filteredLogs = useMemo(() => {
+    return logs;
+  }, [logs]);
+
+  const exportCSV = () => {
+    const header = [
+      "timestamp",
+      "recipient",
+      "messageType",
+      "status",
+      "error",
+      "customRef",
+    ];
+    const rows = filteredLogs.map((log) => [
+      log.timestamp,
+      log.to,
+      log.messageType,
+      log.status,
+      log.error || "",
+      log.customRef || "",
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [header, ...rows].map((row) => row.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    window.open(encodedUri);
+  };
+
+  const handleRetry = async (log: SMSLog) => {
+    try {
+      await fetch("/api/notifications/send-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: log.to,
+          name: "Customer",
+          date: "",
+          time: "",
+          serviceType: log.messageType,
+          customRef: log.customRef,
+        }),
+      });
+      fetchStats();
+    } catch (err) {
+      console.warn("Retry failed", err);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 py-10">
+      <div className="mx-auto max-w-6xl space-y-6 px-4">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow">
+          <h1 className="text-2xl font-semibold text-slate-900">
+            SMS Activity
+          </h1>
+          <p className="text-sm text-slate-500">
+            Monitor booking confirmation and reminder deliveries
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow">
+            <p className="text-sm text-slate-500">Total Today</p>
+            <p className="text-3xl font-bold">
+              {stats?.total ?? "—"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow">
+            <p className="text-sm text-slate-500">Success Rate</p>
+            <p className="text-3xl font-bold">
+              {stats
+                ? `${Math.round(
+                    (stats.delivered / Math.max(1, stats.total)) * 100
+                  )}%`
+                : "—"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow">
+            <p className="text-sm text-slate-500">Failed Attempts</p>
+            <p className="text-3xl font-bold">
+              {stats?.failed ?? "—"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow">
+            <p className="text-sm text-slate-500">Credits Remaining</p>
+            <p className="text-3xl font-bold">{credits}</p>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow">
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="text-xs text-slate-500">From</label>
+              <Input
+                type="date"
+                value={filters.from}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, from: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500">To</label>
+              <Input
+                type="date"
+                value={filters.to}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, to: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500">Status</label>
+              <select
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                value={filters.status}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, status: e.target.value }))
+                }
+              >
+                <option value="all">All</option>
+                <option value="success">Success</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="text-xs text-slate-500">Search</label>
+              <Input
+                placeholder="Booking ID or phone"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    search: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <Button
+              onClick={fetchStats}
+              className="flex items-center gap-2 text-sm"
+            >
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">SMS Logs</h2>
+            <Button variant="outline" size="sm" onClick={exportCSV}>
+              Export CSV
+            </Button>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="text-xs uppercase text-slate-500">
+                  <th className="px-3 py-2">Timestamp</th>
+                  <th className="px-3 py-2">Recipient</th>
+                  <th className="px-3 py-2">Type</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Error</th>
+                  <th className="px-3 py-2">Booking</th>
+                  <th className="px-3 py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-3 py-6 text-center">
+                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-500" />
+                    </td>
+                  </tr>
+                ) : (
+                  filteredLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50">
+                      <td className="px-3 py-2">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2">{maskPhone(log.to)}</td>
+                      <td className="px-3 py-2">{log.messageType}</td>
+                      <td className="px-3 py-2 text-sm">
+                        {log.status === "success" ? (
+                          <span className="text-emerald-600">Success</span>
+                        ) : (
+                          <span className="text-rose-600">Failed</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-rose-600">
+                        {log.error || "—"}
+                      </td>
+                      <td className="px-3 py-2">{log.customRef || "—"}</td>
+                      <td className="px-3 py-2 space-x-2">
+                        {log.status === "failed" && (
+                          <Button
+                            size="xs"
+                            onClick={() => handleRetry(log)}
+                          >
+                            Retry
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() =>
+                            alert(log.body || "Message body unavailable")
+                          }
+                        >
+                          View content
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+"use client";
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {

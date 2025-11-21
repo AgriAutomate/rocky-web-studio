@@ -24,6 +24,7 @@ interface AvailabilityResponse {
   date: string;
   slots: TimeSlot[];
   totalSlots: number;
+  error?: string;
 }
 
 export function BookingCalendar({
@@ -102,8 +103,9 @@ export function BookingCalendar({
 
       // Extract and set slots
       setSlots(data.slots);
-    } catch (err: any) {
-      setError(err?.message || "Failed to load available time slots");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to load available time slots";
+      setError(message);
       setSlots([]);
     } finally {
       setLoading(false);

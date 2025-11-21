@@ -123,48 +123,40 @@ export default function BookPage() {
     setSmsStatus("sending");
     setSmsError("");
 
+    const payload = {
+      to: formattedPhone,
+      customerName: formData.name,
+      date: selectedDate,
+      time: selectedTime,
+      service: formData.serviceType,
+    };
+
     try {
-      console.info("Attempting SMS notification", {
-        phone: formattedPhone,
-        name: formData.name,
-        date: selectedDate,
-        time: selectedTime,
-      });
+      console.log("[SMS] Attempting SMS notification", payload);
 
       const response = await fetch("/api/notifications/send-sms", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          phone: formattedPhone,
-          name: formData.name,
-          date: selectedDate,
-          time: selectedTime,
-          serviceType: formData.serviceType,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        const errorMessage = data.error || "SMS notification failed";
-        setSmsStatus("error");
-        setSmsError(errorMessage);
-        console.warn("SMS notification error", {
-          bookingDate: selectedDate,
-          bookingTime: selectedTime,
-          error: errorMessage,
-        });
-        return;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("SMS API error:", errorText);
+        throw new Error(`SMS failed: ${response.status} - ${errorText}`);
       }
 
+      const data = await response.json();
+      console.log("SMS sent successfully:", data);
+
       setSmsStatus("success");
-      console.info("SMS notification delivered", data.response);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSmsStatus("error");
-      const message = err?.message || "SMS notification error";
+      const message = err instanceof Error ? err.message : "Unknown error";
       setSmsError(message);
-      console.warn("SMS notification exception", err);
+      console.error("SMS notification exception", err);
     }
   };
 

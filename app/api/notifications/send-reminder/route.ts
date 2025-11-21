@@ -1,73 +1,107 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parse, isValid, format } from "date-fns";
-import { getAllBookings, markReminderSent } from "@/lib/bookings/storage";
+import { Booking, getAllBookings, markReminderSent } from "@/lib/bookings/storage";
 import { sendSMS } from "@/lib/sms";
+
+type ReminderFlag = "reminderSent24h" | "reminderSent2h";
 
 interface ReminderConfig {
   hoursBefore: number;
-  template: (booking: ReturnType<typeof getAllBookings>[number]) => string;
-  flag: "reminderSent24h" | "reminderSent2h";
+  flag: ReminderFlag;
+  template: (booking: Booking) => string;
+}
+
+interface ReminderResult {
+  bookingId: string;
+  flag: ReminderFlag;
+  success: boolean;
+  error?: string;
 }
 
 const reminderConfigs: ReminderConfig[] = [
   {
     hoursBefore: 24,
+    flag: "reminderSent24h",
     template: (booking) => {
       const [hour, minute] = booking.time.split(":");
-      return `Reminder: Your Rocky Web Studio appointment is tomorrow at ${hour}:${minute}. Service: ${booking.serviceType}. See you soon!`;
+      return `👋 Reminder: Your ${booking.service} is tomorrow at ${hour}:${minute}. 📱 Reply RESCHEDULE if needed.`;
     },
-    flag: "reminderSent24h",
   },
   {
     hoursBefore: 2,
+    flag: "reminderSent2h",
     template: (booking) => {
       const [hour, minute] = booking.time.split(":");
-      return `Your appointment with Rocky Web Studio starts in 2 hours at ${hour}:${minute}. Location: Rocky Web Studio. Looking forward to it!`;
+      return `⏰ Your ${booking.service} appointment starts in 2 hours at ${hour}:${minute}. Running late? Reply RESCHEDULE.`;
     },
-    flag: "reminderSent2h",
   },
 ];
 
-const sendReminder = async (booking: ReturnType<typeof getAllBookings>[number], config: ReminderConfig) => {
-  const message = config.template(booking);
-  const result = await sendSMS(booking.phone, message, `${booking.bookingId}-${config.flag}`);
-  if (result.success) {
-    markReminderSent(booking.bookingId, config.flag === "reminderSent24h" ? "24h" : "2h");
-  }
-  return { booking, config, result };
+const calculateAppointmentDate = (booking: Booking): Date => {
+  const [year, month, day] = booking.date.split("-").map(Number);
+  const [hour, minute] = booking.time.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute);
 };
 
-export async function GET(request: NextRequest) {
-  const now = new Date();
-  const due: any[] = [];
-
-  reminderConfigs.forEach((config) => {
-    const candidates = getAllBookings().filter((booking) => {
-      if (!booking.smsOptIn) return false;
-      if (booking[config.flag]) return false;
-      const [hourStr, minuteStr] = booking.time.split(":");
-      const [year, month, day] = booking.date.split("-").map(Number);
-      const appointment = new Date(year, month - 1, day, Number(hourStr), Number(minuteStr));
-      const diffHours = (appointment.getTime() - now.getTime()) / (1000 * 60 * 60);
-      return diffHours <= config.hoursBefore && diffHours > config.hoursBefore - 1;
-    });
-    due.push(...candidates.map((booking) => ({ booking, config })));
-  });
-
-  const responses = [];
-  for (const entry of due) {
-    const res = await sendReminder(entry.booking, entry.config);
-    responses.push(res);
+const sendReminder = async (
+  booking: Booking,
+  config: ReminderConfig
+): Promise<ReminderResult> => {
+  try {
+    const message = config.template(booking);
+    const result = await sendSMS(booking.phone, message, `${booking.bookingId}-${config.flag}`);
+    if (result.success) {
+      markReminderSent(booking.id, config.flag === "reminderSent24h" ? "24h" : "2h");
+    }
+    return {
+      bookingId: booking.bookingId,
+      flag: config.flag,
+      success: result.success,
+      error: result.error,
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "SMS reminder error";
+    return {
+      bookingId: booking.bookingId,
+      flag: config.flag,
+      success: false,
+      error: message,
+    };
   }
+};
 
-  return NextResponse.json({
-    success: true,
-    sent: responses.length,
-    details: responses.map((r) => ({
-      bookingId: r.booking.bookingId,
-      config: r.config.flag,
-      result: r.result,
-    })),
-  });
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  try {
+    const now = new Date();
+    const dueReminders: Array<{ booking: Booking; config: ReminderConfig }> = [];
+
+    reminderConfigs.forEach((config) => {
+      const eligibleBookings = getAllBookings().filter((booking) => {
+        if (!booking.smsOptIn) return false;
+        if (booking[config.flag]) return false;
+        const appointment = calculateAppointmentDate(booking);
+        const diffHours = (appointment.getTime() - now.getTime()) / (1000 * 60 * 60);
+        return diffHours <= config.hoursBefore && diffHours > config.hoursBefore - 1;
+      });
+      eligibleBookings.forEach((booking) => dueReminders.push({ booking, config }));
+    });
+
+    const outcomes: ReminderResult[] = [];
+    for (const entry of dueReminders) {
+      const outcome = await sendReminder(entry.booking, entry.config);
+      outcomes.push(outcome);
+    }
+
+    return NextResponse.json({
+      success: true,
+      total: outcomes.length,
+      outcomes,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unexpected reminder error";
+    console.error("Reminder job failed:", message);
+    return NextResponse.json(
+      { success: false, error: message },
+      { status: 500 }
+    );
+  }
 }
-

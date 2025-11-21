@@ -1,104 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parse, isValid, format } from "date-fns";
 import { sendSMS } from "@/lib/sms";
 
-interface SMSNotificationRequest {
-  phone: string;
-  name: string;
-  date: string; // yyyy-MM-dd
-  time: string; // HH:mm
-  serviceType: string;
-  customRef?: string;
-}
-
 export async function POST(request: NextRequest) {
-  try {
-    const body: SMSNotificationRequest = await request.json();
+  console.log("=== SMS API Called ===");
 
-    const requiredFields = ["phone", "name", "date", "time", "serviceType"];
-    const missing = requiredFields.filter((field) => !body[field as keyof SMSNotificationRequest]);
+  try {
+    // Parse request body
+    const body = await request.json();
+    console.log("Received body:", JSON.stringify(body, null, 2));
+
+    // Extract fields
+    const { to, customerName, date, time, service } = body;
+
+    // Log each field
+    console.log("Extracted fields:");
+    console.log("  to:", to);
+    console.log("  customerName:", customerName);
+    console.log("  date:", date);
+    console.log("  time:", time);
+    console.log("  service:", service);
+
+    // Validate required fields
+    const missing: string[] = [];
+    if (!to) missing.push("to");
+    if (!customerName) missing.push("customerName");
+    if (!date) missing.push("date");
+    if (!time) missing.push("time");
+    if (!service) missing.push("service");
+
     if (missing.length > 0) {
-      return NextResponse.json({
-        success: false,
-        error: `Missing required fields: ${missing.join(", ")}`,
-      });
-    }
-
-    const parsedDate = parse(body.date, "yyyy-MM-dd", new Date());
-    const displayDate = isValid(parsedDate)
-      ? format(parsedDate, "EEEE, MMMM d")
-      : body.date;
-
-    const message = `Hi ${body.name}! Your booking with Rocky Web Studio is confirmed for ${displayDate} at ${body.time}. Service: ${body.serviceType}. Questions? Reply to this SMS or call us. Thanks!`;
-
-    const result = await sendSMS(body.phone, message, body.customRef);
-
-    if (!result.success) {
-      console.warn("Mobile Message SMS failed", {
-        phone: body.phone,
-        serviceType: body.serviceType,
-        error: result.error,
-      });
-      return NextResponse.json({
-        success: false,
-        error: result.error || "SMS dispatch failed",
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      response: result.response,
-    });
-  } catch (error: any) {
-    console.error("SMS notification error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error?.message || "Unexpected error sending SMS",
-    });
-  }
-}
-import { NextRequest, NextResponse } from "next/server";
-import { sendSMS } from "@/lib/sms";
-
-interface NotificationRequest {
-  phone: string;
-  name: string;
-  date: string;
-  time: string;
-  serviceType: string;
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body: NotificationRequest = await request.json();
-
-    if (!body.phone || !body.name || !body.date || !body.time || !body.serviceType) {
+      const error = `Missing required fields: ${missing.join(", ")}`;
+      console.error("Validation failed:", error);
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required fields for SMS notification.",
+          error,
+          received: { to, customerName, date, time, service },
         },
         { status: 400 }
       );
     }
 
-    const message = `Hi ${body.name}! Your booking with Rocky Web Studio is confirmed for ${body.date} at ${body.time}. Service: ${body.serviceType}. Questions? Reply to this SMS or call us. Thanks!`;
-    const result = await sendSMS(body.phone, message, body.serviceType);
+    // Build SMS message
+    const message = `Hi ${customerName}! Your Rocky Web Studio booking is confirmed for ${date} at ${time}. Service: ${service}. Questions? Reply to this SMS. Thanks!`;
 
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error || "SMS provider error." },
-        { status: 502 }
-      );
-    }
+    console.log("Sending SMS:", {
+      to,
+      messageLength: message.length,
+      message: message.substring(0, 50) + "...",
+    });
 
-    return NextResponse.json({ success: true, response: result.response }, { status: 200 });
-  } catch (error: any) {
-    console.error("SMS notification route error", { error: error?.message });
+    // Send SMS
+    const result = await sendSMS(to, message, `booking_${Date.now()}`);
+
+    console.log("SMS API Success:", result);
+    console.log("===================");
+
+    return NextResponse.json({
+      success: true,
+      message: "SMS sent successfully",
+      data: result,
+    });
+  } catch (error: unknown) {
+    console.error("=== SMS API ERROR ===");
+    console.error("Error type:", (error as Error)?.constructor?.name);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Full error:", error);
+    console.error("====================");
+
+    const errorMessage = error instanceof Error ? error.message : "Failed to send SMS";
+
     return NextResponse.json(
-      { success: false, error: error?.message || "Unexpected error" },
+      {
+        success: false,
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : String(error),
+      },
       { status: 500 }
     );
   }
 }
-

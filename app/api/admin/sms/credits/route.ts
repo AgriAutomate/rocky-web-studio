@@ -6,4 +6,3 @@ export async function GET(): Promise<NextResponse<CreditsResult>> {
   return NextResponse.json(result, { status: result.success ? 200 : 502 });
 }
 
-

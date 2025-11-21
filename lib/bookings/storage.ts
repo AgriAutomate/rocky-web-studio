@@ -1,52 +1,54 @@
-export interface BookingRecord {
+export interface Booking {
+  id: string;
   bookingId: string;
-  name: string;
-  email: string;
+  customerName: string;
   phone: string;
-  serviceType: string;
+  email: string;
+  service: string;
   date: string; // yyyy-MM-dd
   time: string; // HH:mm
-  smsOptIn: boolean;
+  createdAt: Date;
   reminderSent24h: boolean;
   reminderSent2h: boolean;
-  createdAt: string;
+  smsOptIn: boolean;
 }
 
-const bookings: BookingRecord[] = [];
+const bookings = new Map<string, Booking>();
 
-export function saveBooking(record: BookingRecord) {
-  bookings.push(record);
+export function saveBooking(record: Booking): Booking {
+  bookings.set(record.id, record);
+  return record;
 }
 
-export function getAllBookings() {
-  return bookings;
+export function getAllBookings(): Booking[] {
+  return Array.from(bookings.values());
 }
 
-export function getDueBookings(hoursBefore: number) {
-  const now = new Date();
-  return bookings.filter((booking) => {
-    if (!booking.smsOptIn) return false;
-    const [hourStr, minuteStr] = booking.time.split(":");
-    const [year, month, day] = booking.date.split("-").map(Number);
-    const reminderDate = new Date(year, month - 1, day, Number(hourStr), Number(minuteStr));
-    const diffMs = reminderDate.getTime() - now.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    return Math.abs(diffHours - hoursBefore) < 0.5; // within 30 mins
-  });
+export function getBooking(id: string): Booking | undefined {
+  return bookings.get(id);
 }
 
-export function markReminderSent(bookingId: string, type: "24h" | "2h") {
-  const booking = bookings.find((b) => b.bookingId === bookingId);
-  if (booking) {
-    if (type === "24h") {
-      booking.reminderSent24h = true;
-    } else {
-      booking.reminderSent2h = true;
-    }
+export function markReminderSent(id: string, type: "24h" | "2h"): boolean {
+  const record = bookings.get(id);
+  if (!record) return false;
+  if (type === "24h") {
+    record.reminderSent24h = true;
+  } else {
+    record.reminderSent2h = true;
   }
+  bookings.set(id, record);
+  return true;
 }
 
-export function getBooking(bookingId: string) {
-  return bookings.find((b) => b.bookingId === bookingId);
+export function getDueBookings(hoursBefore: number): Booking[] {
+  const now = new Date();
+  return Array.from(bookings.values()).filter((booking) => {
+    if (!booking.smsOptIn) return false;
+    const [year, month, day] = booking.date.split("-").map(Number);
+    const [hour, minute] = booking.time.split(":").map(Number);
+    const reminderDate = new Date(year, month - 1, day, hour, minute);
+    const diffHours = (reminderDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return Math.abs(diffHours - hoursBefore) < 0.5;
+  });
 }
 

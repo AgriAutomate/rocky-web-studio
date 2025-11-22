@@ -541,7 +541,12 @@ export default function BookPage() {
               </div>
 
               <BookingConfirmation
+                smsOptIn={formData.smsOptIn}
                 phone={formData.phone}
+                customerName={formData.name}
+                date={selectedDate || ""}
+                time={selectedTime || ""}
+                service={formData.service}
                 smsStatus={smsStatus}
                 smsError={smsError}
               />

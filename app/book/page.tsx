@@ -546,7 +546,7 @@ export default function BookPage() {
                 customerName={formData.name}
                 date={selectedDate || ""}
                 time={selectedTime || ""}
-                service={formData.service}
+                service={formData.serviceType}
                 smsStatus={smsStatus}
                 smsError={smsError}
               />

@@ -308,7 +308,7 @@ export default function AdminSMSPage() {
                       <td className="px-3 py-2 text-xs font-mono text-gray-500">{log.customRef || "—"}</td>
                       <td className="px-3 py-2 space-x-2">
                         {log.status === "failed" && (
-                          <Button size="xs" onClick={() => handleRetry(log)}>
+                                    <Button size="sm" onClick={() => handleRetry(log)}>
                             Retry
                           </Button>
                         )}

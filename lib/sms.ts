@@ -20,6 +20,23 @@ const authHeader = () => {
   return `Basic ${auth}`;
 };
 
+const logCredentialDiagnostics = (auth: string) => {
+  if (!username || !password) {
+    console.warn("[SMS] Missing username or password for Mobile Message API");
+    return;
+  }
+
+  const usernamePreview = username.slice(0, 3);
+  const passwordSpecialChars = /[^A-Za-z0-9]/.test(password);
+  const passwordLength = password.length || 0;
+
+  console.log("[SMS] Credential diagnostics:");
+  console.log("[SMS]   Username (first 3 chars):", usernamePreview);
+  console.log("[SMS]   Password exists:", true, ", length:", passwordLength);
+  console.log("[SMS]   Password contains special chars:", passwordSpecialChars);
+  console.log("[SMS]   Auth header (first 20 chars):", auth.substring(0, 20));
+};
+
 interface MobileMessagePayload {
   enable_unicode: boolean;
   messages: Array<{
@@ -80,12 +97,16 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
     const auth = authHeader();
     console.log("[SMS] Auth header (first 10 chars):", auth.substring(0, 10));
 
+    const headers = {
+      Authorization: auth,
+      "Content-Type": "application/json",
+    };
+    logCredentialDiagnostics(auth);
+    console.log("[SMS] Full request headers:", headers);
+
     const response = await fetch(apiUrl, {
       method: "POST",
-      headers: {
-        Authorization: auth,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 

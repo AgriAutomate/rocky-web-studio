@@ -314,7 +314,7 @@ export default function AdminSMSPage() {
                         )}
                         <Button
                           variant="ghost"
-                          size="xs"
+                          size="sm"
                           onClick={() => alert(log.body || "Message body unavailable")}
                         >
                           View content

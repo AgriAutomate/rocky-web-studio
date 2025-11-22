@@ -33,9 +33,11 @@ interface StatsSuccessResponse {
   stats: StatsSummary;
 }
 
-interface StatsErrorResponse extends StatsSuccessResponse {
+interface StatsErrorResponse {
   success: false;
   error: string;
+  messages: StatsMessage[];
+  stats: StatsSummary;
 }
 
 const defaultStats: StatsSummary = {

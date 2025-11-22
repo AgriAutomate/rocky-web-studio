@@ -1,6 +1,8 @@
-import { parse, isValid } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import { Booking, saveBooking } from "@/lib/bookings/storage";
+
+const resendApiKey = process.env.RESEND_API_KEY;
 
 interface BookingRequest {
   date: string;
@@ -11,6 +13,88 @@ interface BookingRequest {
   serviceType: string;
   message?: string;
   smsOptIn?: boolean;
+}
+
+interface BookingEmailDetails {
+  bookingId: string;
+  customerName: string;
+  email: string;
+  serviceType: string;
+  appointmentDate: Date;
+  appointmentTime: string;
+}
+
+async function sendBookingConfirmationEmail(details: BookingEmailDetails) {
+  if (!resendApiKey) {
+    console.warn(
+      "Skipping confirmation email — RESEND_API_KEY is not configured."
+    );
+    return;
+  }
+
+  const formattedDate = format(details.appointmentDate, "EEEE, MMMM d, yyyy");
+  const subject = "Booking Confirmation - Rocky Web Studio";
+  const textBody = `
+Hi ${details.customerName},
+
+Your booking with Rocky Web Studio has been confirmed.
+
+Booking details
+• Date: ${formattedDate}
+• Time: ${details.appointmentTime}
+• Service: ${details.serviceType}
+• Booking ID: ${details.bookingId}
+
+Location & contact
+Rocky Web Studio HQ
+bookings@rockywebstudio.com.au
+
+Thanks,
+The Rocky Web Studio Team
+  `.trim();
+
+  const htmlBody = `
+    <p>Hi ${details.customerName},</p>
+    <p>Thank you for booking with Rocky Web Studio. Here are the confirmed details:</p>
+    <ul>
+      <li><strong>Date:</strong> ${formattedDate}</li>
+      <li><strong>Time:</strong> ${details.appointmentTime}</li>
+      <li><strong>Service:</strong> ${details.serviceType}</li>
+      <li><strong>Booking ID:</strong> ${details.bookingId}</li>
+    </ul>
+    <p>Location & contact:<br/>Rocky Web Studio HQ<br/>bookings@rockywebstudio.com.au</p>
+    <p>Looking forward to talking soon.<br/>– The Rocky Web Studio Team</p>
+  `;
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Rocky Web Studio <bookings@rockywebstudio.com.au>",
+        to: details.email,
+        subject,
+        text: textBody,
+        html: htmlBody,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        "Resend email failed",
+        response.status,
+        response.statusText,
+        errorText
+      );
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Resend email error", message, error);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -49,13 +133,8 @@ export async function POST(request: NextRequest) {
       smsOptIn = false,
     } = body as BookingRequest;
 
-    // Validate date format
-    try {
-      const parsedDate = parse(date, "yyyy-MM-dd", new Date());
-      if (!isValid(parsedDate)) {
-        throw new Error("Invalid date");
-      }
-    } catch (error) {
+    const appointmentDate = parse(date, "yyyy-MM-dd", new Date());
+    if (!isValid(appointmentDate)) {
       return NextResponse.json(
         { error: "Invalid date format. Use YYYY-MM-DD" },
         { status: 400 }
@@ -98,6 +177,15 @@ export async function POST(request: NextRequest) {
       reminderSent2h: false,
       createdAt: new Date(),
     } satisfies Booking);
+
+    await sendBookingConfirmationEmail({
+      bookingId,
+      customerName: name,
+      email,
+      serviceType,
+      appointmentDate,
+      appointmentTime: time,
+    });
 
     // Return success response immediately (don't wait for SMS)
     return NextResponse.json(

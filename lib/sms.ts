@@ -1,5 +1,3 @@
-import type { FetchError } from "ofetch";
-
 const username = process.env.MOBILE_MESSAGE_API_USERNAME;
 const password = process.env.MOBILE_MESSAGE_API_PASSWORD;
 const baseURL =
@@ -106,12 +104,13 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
     const normalized: SMSError = {
       message: error instanceof Error ? error.message : "Unknown error",
     };
-    if (error instanceof FetchError) {
-      if ("code" in error && typeof error.code === "string") {
-        normalized.code = error.code;
+    if (error instanceof Error) {
+      const errorWithMeta = error as Error & { code?: string; data?: unknown };
+      if (errorWithMeta.code && typeof errorWithMeta.code === "string") {
+        normalized.code = errorWithMeta.code;
       }
-      if (error.data) {
-        normalized.details = JSON.stringify(error.data);
+      if (errorWithMeta.data) {
+        normalized.details = JSON.stringify(errorWithMeta.data);
       }
     }
     return {

@@ -83,15 +83,18 @@ const authHeader = () => {
   return auth;
 };
 
-const logCredentialDiagnostics = (auth: string) => {
-  if (!username || !password) {
+const logCredentialDiagnostics = (auth: string, runtimeUsername?: string, runtimePassword?: string) => {
+  const user = runtimeUsername || username;
+  const pass = runtimePassword || password;
+  
+  if (!user || !pass) {
     console.warn("[SMS] Missing username or password for Mobile Message API");
     return;
   }
 
-  const usernamePreview = username.slice(0, 3);
-  const passwordSpecialChars = /[^A-Za-z0-9]/.test(password);
-  const passwordLength = password.length || 0;
+  const usernamePreview = user.slice(0, 3);
+  const passwordSpecialChars = /[^A-Za-z0-9]/.test(pass);
+  const passwordLength = pass.length || 0;
 
   console.log("[SMS] Credential diagnostics:");
   console.log("[SMS]   Username (first 3 chars):", usernamePreview);
@@ -141,22 +144,52 @@ export interface SMSError {
   details?: string;
 }
 
-const buildPayload = (messages: SMSMessage[]): MobileMessagePayload => ({
-  enable_unicode: true,
-  messages: messages.map((message) => ({
-    to: message.to,
-    message: message.message,
-    sender: senderId || "RockyWeb",
-    custom_ref: message.customRef,
-  })),
-});
+const buildPayload = (messages: SMSMessage[]): MobileMessagePayload => {
+  const runtimeSenderId = process.env.MOBILE_MESSAGE_SENDER_ID;
+  
+  if (!runtimeSenderId) {
+    throw new Error("MOBILE_MESSAGE_SENDER_ID is required. Set it in your environment variables.");
+  }
+
+  return {
+    enable_unicode: true,
+    messages: messages.map((message) => ({
+      to: message.to,
+      message: message.message,
+      sender: runtimeSenderId,
+      custom_ref: message.customRef,
+    })),
+  };
+};
 
 async function post(payload: MobileMessagePayload): Promise<MobileMessageResponse> {
   try {
-    const apiUrl = `${baseURL}/messages`;
+    // Use runtime environment variables consistently
+    const runtimeBaseURL = process.env.MOBILE_MESSAGE_API_URL || "https://api.mobilemessage.com.au/v1";
+    const runtimeUsername = process.env.MOBILE_MESSAGE_API_USERNAME;
+    const runtimePassword = process.env.MOBILE_MESSAGE_API_PASSWORD;
+    
+    // Construct API URL: remove trailing slashes and ensure proper path
+    const baseURL = runtimeBaseURL.trim().replace(/\/+$/, ""); // Remove trailing slashes
+    const apiUrl = `${baseURL}/messages`; // Append /messages endpoint
+    console.log("[SMS] Base URL:", baseURL);
     console.log("[SMS] API URL:", apiUrl);
-    console.log("[SMS] Username exists:", !!username);
-    console.log("[SMS] Password exists:", !!password);
+    console.log("[SMS] Username exists:", !!runtimeUsername);
+    console.log("[SMS] Password exists:", !!runtimePassword);
+    
+    // Log the exact payload structure being sent
+    console.log("[SMS] Payload structure verification:");
+    console.log("[SMS]   enable_unicode:", payload.enable_unicode, "(type:", typeof payload.enable_unicode, ")");
+    console.log("[SMS]   messages array length:", payload.messages.length);
+    payload.messages.forEach((msg, idx) => {
+      console.log(`[SMS]   Message ${idx + 1}:`);
+      console.log(`[SMS]     to: "${msg.to}" (type: ${typeof msg.to})`);
+      console.log(`[SMS]     message: "${msg.message.substring(0, 50)}..." (length: ${msg.message.length})`);
+      console.log(`[SMS]     sender: "${msg.sender}" (type: ${typeof msg.sender})`);
+      console.log(`[SMS]     custom_ref: ${msg.custom_ref ? `"${msg.custom_ref}"` : "undefined"} (type: ${typeof msg.custom_ref})`);
+    });
+    console.log("[SMS] Full payload JSON:", JSON.stringify(payload, null, 2));
+    
     const auth = authHeader();
     console.log("[SMS] Auth header (first 10 chars):", auth.substring(0, 10));
 
@@ -164,8 +197,12 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
       Authorization: auth,
       "Content-Type": "application/json",
     };
-    logCredentialDiagnostics(auth);
+    logCredentialDiagnostics(auth, runtimeUsername, runtimePassword);
     console.log("[SMS] Full request headers:", headers);
+    console.log("[SMS] Final API URL (before fetch):", apiUrl);
+    console.log("[SMS] URL verification - Expected: https://api.mobilemessage.com.au/v1/messages");
+    console.log("[SMS] URL verification - Actual:", apiUrl);
+    console.log("[SMS] URL match:", apiUrl === "https://api.mobilemessage.com.au/v1/messages" ? "✅ CORRECT" : "❌ MISMATCH");
 
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -175,6 +212,26 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
 
     if (!response.ok) {
       const text = await response.text();
+      
+      // Specific handling for authentication errors
+      if (response.status === 401) {
+        return {
+          success: false,
+          status: 401,
+          error: "Authentication failed. Please verify MOBILE_MESSAGE_API_USERNAME and MOBILE_MESSAGE_API_PASSWORD are correct.",
+        };
+      }
+      
+      // Specific handling for rate limit errors
+      if (response.status === 429) {
+        return {
+          success: false,
+          status: 429,
+          error: "Rate limit exceeded. Mobile Message API allows max 5 concurrent requests. Please retry after a moment.",
+        };
+      }
+      
+      // Generic error handling for other status codes
       return {
         success: false,
         status: response.status,

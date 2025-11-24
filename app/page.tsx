@@ -22,6 +22,8 @@ export default function Home() {
           </p>
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <span>Rockhampton, QLD</span>
+                        <span className="hidden h-4 w-px bg-slate-700 sm:block" />
+            <span>ABN 62 948 405 693</span>
             <span className="hidden h-4 w-px bg-slate-700 sm:block" />
             <a href="mailto:hello@rockywebstudio.com.au" className="text-white hover:text-teal-300">
               hello@rockywebstudio.com.au

@@ -91,6 +91,37 @@ export default function CustomSongsPage() {
 
       <ServiceFeatures features={features} />
 
+            {/* Portfolio Section */}
+      <section id="portfolio" className="py-16 px-6 bg-slate-50">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-600 mb-2">Portfolio</p>
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">Hear Our Work</h2>
+          <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+            Sample songs from Diamonds McFly. Each custom song is uniquely crafted to capture your special moment.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {[
+              { title: "Forever Yours", occasion: "Wedding", genre: "Romantic Ballad" },
+              { title: "Cheers to You", occasion: "Birthday", genre: "Upbeat Pop" },
+              { title: "Through the Years", occasion: "Anniversary", genre: "Nostalgic Folk" },
+            ].map((song, index) => (
+              <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🎵</span>
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-1">{song.title}</h3>
+                <p className="text-sm text-teal-600 mb-1">{song.occasion}</p>
+                <p className="text-xs text-slate-500">{song.genre}</p>
+                <p className="text-xs text-slate-400 mt-3 italic">Sample coming soon</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm text-slate-500">
+            Want to hear more? <Link href="/services/custom-songs/order" className="text-teal-600 hover:underline">Contact us</Link> for additional samples or a personalized demo.
+          </p>
+        </div>
+      </section>
+
       <section className="py-16 px-6 bg-gray-50">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>

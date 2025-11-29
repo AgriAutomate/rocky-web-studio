@@ -117,7 +117,7 @@ export default function CustomSongsPage() {
           <h2 className="text-3xl font-bold mb-4">Ready to Create Your Custom Song?</h2>
           <p className="text-xl mb-8 opacity-90">Tell us about your special moment and we will craft a song you will treasure forever.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/#contact" className="inline-block bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">Create Your Song</Link>
+            <Link href="/services/custom-songs/order" className="inline-block bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">Create Your Song</Link>
             <Link href="#portfolio" className="inline-block border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors">Hear Our Work</Link>
           </div>
         </div>

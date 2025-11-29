@@ -40,7 +40,7 @@ export default function CustomSongsPage() {
   const pricingTiers = [
     {
       name: "Express Personal",
-      price: "$149",
+      price: "$49",
       description: "24-48 hour delivery",
       features: [
         "Single custom song",
@@ -53,7 +53,7 @@ export default function CustomSongsPage() {
     },
     {
       name: "Standard Occasion",
-      price: "$99",
+      price: "$29",
       description: "3-5 day delivery",
       features: [
         "Single custom song",
@@ -67,7 +67,7 @@ export default function CustomSongsPage() {
     },
     {
       name: "Wedding Trio",
-      price: "$349",
+      price: "$149",
       description: "5-7 day delivery",
       features: [
         "3 custom songs",

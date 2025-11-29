@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/hero-section";
 import { PricingTable } from "@/components/pricing-table";
 import { ServicesGrid } from "@/components/services-grid";
 import { TestimonialsCarousel } from "@/components/testimonials-carousel";
+import { CustomSongsBanner } from "@/components/custom-songs-banner";
 
 export default function Home() {
   const currentYear = new Date().getFullYear();
@@ -10,6 +11,7 @@ export default function Home() {
     <div className="min-h-screen bg-slate-100">
       <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-12 sm:px-6 md:gap-20 md:py-16 lg:px-12">
         <HeroSection />
+                <CustomSongsBanner />
         <ServicesGrid />
         <TestimonialsCarousel />
         <PricingTable />

@@ -6,6 +6,7 @@ import {
   RefreshCw,
   Share2,
   ShoppingBag,
+    Music,
   Sparkles,
 } from "lucide-react";
 
@@ -115,6 +116,20 @@ const services = [
     ],
     accent: "bg-purple-50 text-purple-600",
     href: "/services/crm-integration",
+  },
+    {
+    title: "Custom AI Songs",
+    description:
+      "AI-crafted, personally curated songs for weddings, birthdays, and special moments in Central Queensland.",
+    icon: Music,
+    bullets: [
+      "Fast 24-48 hour turnaround available",
+      "AI-generated with human creative direction",
+      "Multiple formats (MP3, WAV, video)",
+      "Wedding, birthday, anniversary packages",
+    ],
+    accent: "bg-teal-50 text-teal-600",
+    href: "/services/custom-songs",
   },
 ];
 

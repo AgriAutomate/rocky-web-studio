@@ -51,9 +51,9 @@ const occasionOptions = [
 ];
 
 const packageOptions = [
-  { value: "express", label: "Express Personal - $149 (24-48 hours)", price: 149 },
-  { value: "standard", label: "Standard Occasion - $99 (3-5 days)", price: 99 },
-  { value: "wedding", label: "Wedding Trio - $349 (5-7 days)", price: 349 },
+  { value: "express", label: "Express Personal - $49 (24-48 hours)", price: 49 },
+  { value: "standard", label: "Standard Occasion - $29 (3-5 days)", price: 29 },
+  { value: "wedding", label: "Wedding Trio - $149 (5-7 days)", price: 149 },
 ];
 
 const moodOptions = [

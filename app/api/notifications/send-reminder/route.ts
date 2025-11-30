@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Booking, getAllBookings, markReminderSent } from "@/lib/bookings/storage";
 import { sendSMS } from "@/lib/sms";
+import {
+  generate24HourReminder,
+  generate2HourReminder,
+  validateMessageLength,
+} from "@/lib/sms/messages";
 
 type ReminderFlag = "reminderSent24h" | "reminderSent2h";
 
@@ -22,16 +27,24 @@ const reminderConfigs: ReminderConfig[] = [
     hoursBefore: 24,
     flag: "reminderSent24h",
     template: (booking) => {
-      const [hour, minute] = booking.time.split(":");
-      return `👋 Reminder: Your ${booking.service} is tomorrow at ${hour}:${minute}. 📱 Reply RESCHEDULE if needed.`;
+      const message = generate24HourReminder(booking);
+      const validation = validateMessageLength(message);
+      if (!validation.valid && validation.warning) {
+        console.warn("[SMS] 24h reminder length warning:", validation.warning);
+      }
+      return message;
     },
   },
   {
     hoursBefore: 2,
     flag: "reminderSent2h",
     template: (booking) => {
-      const [hour, minute] = booking.time.split(":");
-      return `⏰ Your ${booking.service} appointment starts in 2 hours at ${hour}:${minute}. Running late? Reply RESCHEDULE.`;
+      const message = generate2HourReminder(booking);
+      const validation = validateMessageLength(message);
+      if (!validation.valid && validation.warning) {
+        console.warn("[SMS] 2h reminder length warning:", validation.warning);
+      }
+      return message;
     },
   },
 ];

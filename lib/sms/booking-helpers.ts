@@ -80,8 +80,9 @@ See you soon! - Alex`;
     messageId: result.messageId || "",
     bookingId: booking.bookingId,
     phoneNumber: booking.phoneNumber,
+    messagePreview: message.substring(0, 100),
     messageType: "confirmation",
-    status: result.success ? "pending" : "failed",
+    status: result.success ? "sent" : "failed", // Use "sent" for successfully sent to API
     cost: calculateSMSCost(message),
     sentAt: new Date(),
     error: result.error,

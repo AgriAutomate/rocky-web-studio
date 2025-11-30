@@ -113,7 +113,7 @@ export function ContactForm() {
             <Input
               id="email"
               type="email"
-              placeholder="hello@rocky.studio"
+              placeholder="martin@rockywebstudio.com.au"
               aria-invalid={!!errors.email}
               {...register('email')}
             />
@@ -199,7 +199,7 @@ export function ContactForm() {
         ) : null}
         {status === 'error' ? (
           <p className="text-sm text-destructive">
-            Something went wrong. Please email hello@rocky.studio.
+            Something went wrong. Please email martin@rockywebstudio.com.au.
           </p>
         ) : null}
       </form>

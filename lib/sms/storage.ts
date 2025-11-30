@@ -3,15 +3,16 @@
  */
 export interface SMSRecord {
   id: string;
-  messageId: string; // Provider message ID
+  messageId: string; // Provider message ID (Mobile Message API message_id)
   bookingId: string;
   phoneNumber: string;
+  messagePreview: string; // First 100 characters of message for tracking
   messageType: "confirmation" | "24hr_reminder" | "1hr_reminder";
-  status: "pending" | "delivered" | "failed";
+  status: "sent" | "pending" | "delivered" | "failed"; // 'sent' = successfully sent to API, 'delivered' = confirmed delivery
   cost: number; // Cost in AUD
   sentAt: Date;
   scheduledFor?: Date; // For scheduled messages
-  error?: string;
+  error?: string; // Error message if status is 'failed'
   createdAt: Date;
 }
 
@@ -36,6 +37,7 @@ export interface SMSStorage {
     delivered: number;
     failed: number;
     pending: number;
+    sent: number;
     totalCost: number;
     byType: Record<string, number>;
   }>;
@@ -126,6 +128,7 @@ class InMemorySMSStorage implements SMSStorage {
       delivered: monthRecords.filter((r) => r.status === "delivered").length,
       failed: monthRecords.filter((r) => r.status === "failed").length,
       pending: monthRecords.filter((r) => r.status === "pending").length,
+      sent: monthRecords.filter((r) => r.status === "sent").length,
       totalCost: monthRecords.reduce((sum, r) => sum + r.cost, 0),
       byType: {} as Record<string, number>,
     };
@@ -166,5 +169,37 @@ export function calculateSMSCost(message: string): number {
   );
   const messages = Math.ceil(message.length / 160);
   return messages * costPerMessage;
+}
+
+/**
+ * Log SMS attempt to storage
+ * Creates a record for tracking and debugging
+ */
+export async function logSMSAttempt(params: {
+  bookingId: string;
+  phoneNumber: string;
+  message: string;
+  messageType: SMSRecord["messageType"];
+  status: SMSRecord["status"];
+  messageId?: string; // Mobile Message API message_id
+  error?: string;
+}): Promise<SMSRecord> {
+  const storage = getSMSStorage();
+  const record: SMSRecord = {
+    id: `sms-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+    messageId: params.messageId || "",
+    bookingId: params.bookingId,
+    phoneNumber: params.phoneNumber,
+    messagePreview: params.message.substring(0, 100),
+    messageType: params.messageType,
+    status: params.status,
+    cost: calculateSMSCost(params.message),
+    sentAt: new Date(),
+    error: params.error,
+    createdAt: new Date(),
+  };
+
+  await storage.save(record);
+  return record;
 }
 

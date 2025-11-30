@@ -1,36 +1,189 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rocky Web Studio - Booking Platform
+
+A Next.js booking platform with SMS notifications, email confirmations, and admin dashboard.
+
+## Features
+
+- 📅 Interactive booking calendar
+- 📱 SMS confirmation notifications (Mobile Message API)
+- ✉️ Email confirmations (Resend API)
+- 🔔 Automated SMS reminders (24h and 2h before)
+- 📊 Admin dashboard for SMS monitoring
+- 🔒 Privacy-compliant (masked phone numbers, opt-in/opt-out)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ and npm
+- Mobile Message API account (for SMS)
+- Resend API account (for email, optional)
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/your-org/rocky-web-studio.git
+cd rocky-web-studio
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Fill in your environment variables in `.env.local` (see Configuration below)
 
-## Learn More
+5. Run the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Configuration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and configure:
+
+#### Mobile Message SMS API (Required)
+
+Get credentials from [Mobile Message Dashboard](https://app.mobilemessage.com.au):
+
+```bash
+MOBILE_MESSAGE_API_USERNAME=your_username
+MOBILE_MESSAGE_API_PASSWORD=your_password
+MOBILE_MESSAGE_API_URL=https://api.mobilemessage.com.au/v1
+MOBILE_MESSAGE_SENDER_ID=your_sender_id
+```
+
+**Important:**
+- Sender ID must be registered and active in Mobile Message dashboard
+- Ensure minimum 50 credits available for production
+- Verify credentials work using `/api/test/mobile-message-auth` endpoint
+
+#### Resend Email API (Optional)
+
+Get API key from [Resend](https://resend.com):
+
+```bash
+RESEND_API_KEY=your_resend_api_key
+```
+
+#### Public URL
+
+```bash
+NEXT_PUBLIC_URL=https://rockywebstudio.com.au
+```
+
+### Production Deployment
+
+1. **Set Environment Variables in Vercel:**
+   - Go to Vercel Dashboard → Project → Settings → Environment Variables
+   - Add all variables from `.env.example`
+   - Verify `MOBILE_MESSAGE_API_URL` has no trailing slash
+
+2. **Verify Sender ID:**
+   - Login to Mobile Message dashboard
+   - Confirm sender ID is active
+   - Check credit balance (minimum 50 recommended)
+
+3. **Test SMS Delivery:**
+   - Submit test booking with real phone number
+   - Verify SMS received within 30 seconds
+   - Check Vercel logs for any errors
+
+## SMS System
+
+### Features
+
+- **Confirmation SMS:** Sent immediately after booking
+- **24h Reminder:** Sent 24 hours before appointment
+- **2h Reminder:** Sent 2 hours before appointment
+- **Opt-in/Opt-out:** Users must explicitly opt-in, can reply STOP to opt-out
+- **Privacy:** Phone numbers masked in logs and UI
+
+### Message Templates
+
+Messages are optimized to stay under 160 characters (single SMS):
+- Service-specific personalization
+- Calendar link support (via email)
+- Location/meeting link support
+- Opt-out instructions included
+
+### Admin Dashboard
+
+Access SMS logs and statistics at `/admin/sms-logs`:
+- View all SMS attempts
+- Filter by status, date, booking ID
+- Retry failed SMS
+- Monitor success rates and credits
+
+### Troubleshooting
+
+See `SMS_DEBUGGING_GUIDE.md` for comprehensive troubleshooting:
+- Common error codes (401, 404, 429)
+- Authentication issues
+- URL construction problems
+- Carrier compatibility
+
+## Project Structure
+
+```
+app/
+  api/
+    bookings/          # Booking creation and availability
+    notifications/      # SMS notifications and reminders
+    admin/              # Admin endpoints
+  admin/
+    sms-logs/          # SMS monitoring dashboard
+  book/                # Booking form page
+lib/
+  sms/                 # SMS utilities and templates
+  bookings/            # Booking storage
+  phone.ts             # Phone number formatting
+```
+
+## Documentation
+
+- `SMS_DEBUGGING_GUIDE.md` - Troubleshooting SMS issues
+- `SMS_MESSAGE_OPTIMIZATION.md` - Message template optimization
+- `ADMIN_SMS_LOGS_DASHBOARD.md` - Admin dashboard guide
+- `PRODUCTION_READINESS_CHECKLIST.md` - Pre-launch checklist
+- `DEPLOYMENT.md` - Deployment guide
+
+## Compliance
+
+- ✅ **ACMA Compliant:** Explicit opt-in, opt-out instructions
+- ✅ **Privacy:** Phone numbers masked in logs
+- ✅ **GDPR Ready:** User consent required
+
+## Support
+
+For issues or questions:
+1. Check `SMS_DEBUGGING_GUIDE.md` for common issues
+2. Review Vercel function logs
+3. Test authentication endpoint: `/api/test/mobile-message-auth`
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The easiest way to deploy is using [Vercel](https://vercel.com):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+vercel --prod
+```
+
+See `DEPLOYMENT.md` for detailed deployment instructions.
+
+## Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Mobile Message API Docs](https://mobilemessage.com.au/api-docs)
+- [Resend API Docs](https://resend.com/docs)

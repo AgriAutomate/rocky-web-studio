@@ -9,6 +9,7 @@ interface StatsSummary {
   delivered: number;
   failed: number;
   pending: number;
+  sent: number;
   totalCost: number;
   byType: Record<string, number>;
 }
@@ -45,6 +46,7 @@ const defaultStats: StatsSummary = {
   delivered: 0,
   failed: 0,
   pending: 0,
+  sent: 0,
   totalCost: 0,
   byType: {},
 };

@@ -1,6 +1,13 @@
 import { format, parse, isValid } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import { Booking, saveBooking } from "@/lib/bookings/storage";
+import { sendSMS } from "@/lib/sms";
+import { logSMSAttempt } from "@/lib/sms/storage";
+import {
+  generateServiceSpecificMessage,
+  validateMessageLength,
+  getServiceSpecificInfo,
+} from "@/lib/sms/messages";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 
@@ -187,12 +194,118 @@ export async function POST(request: NextRequest) {
       appointmentTime: time,
     });
 
-    // Return success response immediately (don't wait for SMS)
+    // Send SMS confirmation if customer opted in
+    let smsStatus: "sent" | "failed" | "pending" | null = null;
+    let smsError: string | undefined = undefined;
+    let smsMessageId: string | undefined = undefined;
+
+    if (smsOptIn && phone) {
+      try {
+        // Get service-specific info
+        const serviceInfo = getServiceSpecificInfo(serviceType);
+        
+        // Generate optimized SMS message
+        const smsMessage = generateServiceSpecificMessage({
+          name,
+          serviceType,
+          date,
+          time,
+          bookingId,
+          isVideoCall: serviceInfo.isVideoCall,
+          location: serviceInfo.location,
+        });
+
+        // Validate message length
+        const validation = validateMessageLength(smsMessage);
+        if (!validation.valid && validation.warning) {
+          console.warn("[SMS] Message length warning:", validation.warning);
+        }
+
+        // Log SMS attempt before sending
+        await logSMSAttempt({
+          bookingId,
+          phoneNumber: phone,
+          message: smsMessage,
+          messageType: "confirmation",
+          status: "pending", // Will update after API call
+        });
+
+        const smsResult = await sendSMS(phone, smsMessage, bookingId);
+
+        if (smsResult.success) {
+          smsMessageId = smsResult.data?.messages?.[0]?.message_id || "";
+          smsStatus = "sent";
+          
+          // Log successful SMS send
+          await logSMSAttempt({
+            bookingId,
+            phoneNumber: phone,
+            message: smsMessage,
+            messageType: "confirmation",
+            status: "sent",
+            messageId: smsMessageId,
+          });
+
+          console.log("[SMS] ✓ Sent successfully", {
+            bookingId,
+            messageId: smsMessageId,
+            phone: phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
+          });
+        } else {
+          smsStatus = "failed";
+          smsError = smsResult.error || `HTTP ${smsResult.status}`;
+          
+          // Log failed SMS attempt
+          await logSMSAttempt({
+            bookingId,
+            phoneNumber: phone,
+            message: smsMessage,
+            messageType: "confirmation",
+            status: "failed",
+            error: smsError,
+          });
+
+          console.error("[SMS] ✗ Failed to send", {
+            bookingId,
+            status: smsResult.status,
+            error: smsError,
+            phone: phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
+          });
+        }
+      } catch (smsException: unknown) {
+        // Log exception as failed SMS attempt
+        const errorMessage = smsException instanceof Error ? smsException.message : String(smsException);
+        smsStatus = "failed";
+        smsError = errorMessage;
+        
+        await logSMSAttempt({
+          bookingId,
+          phoneNumber: phone,
+          message: `Hi ${name}! Your Rocky Web Studio booking is confirmed...`, // Partial message for logging
+          messageType: "confirmation",
+          status: "failed",
+          error: errorMessage,
+        });
+
+        console.error("[SMS] ✗ Failed to send", {
+          bookingId,
+          error: errorMessage,
+          phone: phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
+        });
+      }
+    }
+
+    // Return success response with SMS status
     return NextResponse.json(
       {
         success: true,
         bookingId,
         message: "Booking created successfully",
+        sms: smsOptIn && phone ? {
+          status: smsStatus,
+          messageId: smsMessageId,
+          error: smsError,
+        } : undefined,
       },
       { status: 201 }
     );

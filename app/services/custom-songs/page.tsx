@@ -101,10 +101,9 @@ export default function CustomSongsPage() {
           </p>
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {[
-                          { title: "Wheel of Fortune (McFly's Vindication)", occasion: "Personal", genre: "Liquid DnB" }, videoUrl: "/Wheel of Fortune (McFly's Vindication).mp4",
-                          { title: "Loved Out Loud (Portia's Bday DnB Assault)", occasion: "Birthday", genre: "Heavy DnB" }, videoUrl: "/Loved Out Loud (Portia's DnB Assault).mp4",
-                          { title: "Home, Downunder (Poetry into Music)", occasion: "Poetry", genre: "Spoken Word" }, videoUrl: "/Home, Down Under.mp4",115
-            
+            { title: "Wheel of Fortune (McFly's Vindication)", occasion: "Personal", genre: "Liquid DnB", videoUrl: "/Wheel of Fortune (McFly's Vindication).mp4" },  
+                  { title: "Loved Out Loud (Portia's Bday DnB Assault)", occasion: "Birthday", genre: "Heavy DnB", videoUrl: "/Loved Out Loud (Portia's DnB Assault).mp4" },{ title: "Loved Out Loud (Portia's Bday DnB Assault)", occasion: "Birthday", genre: "Heavy DnB" }, videoUrl: "/Loved Out Loud (Portia's DnB Assault).mp4",
+            { title: "Home, Downunder (Poetry into Music)", occasion: "Poetry", genre: "Spoken Word", videoUrl: "/Home, Down Under.mp4" },            
             ].map((song, index) => (
               <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
                 <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">

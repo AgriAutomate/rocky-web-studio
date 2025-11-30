@@ -101,9 +101,10 @@ export default function CustomSongsPage() {
           </p>
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {[
-                          { title: "Wheel of Fortune (McFly's Vindication)", occasion: "Personal", genre: "Liquid DnB" },
-                          { title: "Loved Out Loud (Portia's Bday DnB Assault)", occasion: "Birthday", genre: "Heavy DnB" },
-                          { title: "Home, Downunder (Poetry into Music)", occasion: "Poetry", genre: "Spoken Word" },
+                          { title: "Wheel of Fortune (McFly's Vindication)", occasion: "Personal", genre: "Liquid DnB" }, videoUrl: "/Wheel of Fortune (McFly's Vindication).mp4",
+                          { title: "Loved Out Loud (Portia's Bday DnB Assault)", occasion: "Birthday", genre: "Heavy DnB" }, videoUrl: "/Loved Out Loud (Portia's DnB Assault).mp4",
+                          { title: "Home, Downunder (Poetry into Music)", occasion: "Poetry", genre: "Spoken Word" }, videoUrl: "/Home, Down Under.mp4",115
+            
             ].map((song, index) => (
               <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
                 <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -112,7 +113,18 @@ export default function CustomSongsPage() {
                 <h3 className="font-semibold text-slate-900 mb-1">{song.title}</h3>
                 <p className="text-sm text-teal-600 mb-1">{song.occasion}</p>
                 <p className="text-xs text-slate-500">{song.genre}</p>
-                <p className="text-xs text-slate-400 mt-3 italic">Sample coming soon</p>
+                                {song.videoUrl && (
+                  <video 
+                    className="w-full rounded-lg mb-3" 
+                    controls 
+                    preload="metadata"
+                  >
+                    <source src={song.videoUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+                
+                </p>
               </div>
             ))}
           </div>
@@ -138,7 +150,8 @@ export default function CustomSongsPage() {
               </div>
             ))}
           </div>
-        </div>
+        </di116
+          v>
       </section>
 
       <ServicePricing tiers={pricingTiers} />

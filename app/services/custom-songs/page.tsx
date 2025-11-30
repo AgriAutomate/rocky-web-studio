@@ -101,8 +101,8 @@ export default function CustomSongsPage() {
           </p>
           <div className="grid md:grid-cols-3 gap-6 mb-8">
               [
-                { title: "Wheel of Fortune (McFly's Vindication)", occasion: "Personal", genre: "Liquid DnB", videoUrl: "/wheel-of-fortune.mp4" },
-                { title: "Loved Out Loud (Portia's Bday DnB Assault)", occasion: "Birthday", genre: "Heavy DnB", videoUrl: "/loved-out-loud.mp4" },
+                { title: "Wheel of Fortune (McFlys Vindication)", occasion: "Personal", genre: "Liquid DnB", videoUrl: "/wheel-of-fortune.mp4" },
+                { title: "Loved Out Loud (Portia' Bday DnB Assault)", occasion: "Birthday", genre: "Heavy DnB", videoUrl: "/loved-out-loud.mp4" },
                 { title: "Home, Downunder (Poetry into Music)", occasion: "Poetry", genre: "Spoken Word", videoUrl: "/home-down-under.mp4" },
                 <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
                 <h3 className="font-semibold text-slate-900 mb-1">{song.title}</h3>

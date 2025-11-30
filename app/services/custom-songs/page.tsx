@@ -101,9 +101,9 @@ export default function CustomSongsPage() {
           </p>
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {[
-              { title: "Forever Yours", occasion: "Wedding", genre: "Romantic Ballad" },
-              { title: "Cheers to You", occasion: "Birthday", genre: "Upbeat Pop" },
-              { title: "Through the Years", occasion: "Anniversary", genre: "Nostalgic Folk" },
+                          { title: "Wheel of Fortune (McFly's Vindication)", occasion: "Personal", genre: "Liquid DnB" },
+                          { title: "Loved Out Loud (Portia's Bday DnB Assault)", occasion: "Birthday", genre: "Heavy DnB" },
+                          { title: "Home, Downunder (Poetry into Music)", occasion: "Poetry", genre: "Spoken Word" },
             ].map((song, index) => (
               <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
                 <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">

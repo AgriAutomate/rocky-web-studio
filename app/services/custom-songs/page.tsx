@@ -26,24 +26,35 @@ export default function CustomSongsPage() {
 
   const pricingTiers = [
     {
-      name: "Basic Song",
-      price: "Custom",
-      description: "Perfect for personal occasions",
+      name: "Standard Occasion",
+      price: "$29",
+      description: "Perfect for personal occasions (3-5 days)",
       features: [
-        "Original composition",
-        "One revision round",
-        "Audio file delivery",
+        "Single custom song",
+        "MP3 + lyric sheet",
+        "2 revision rounds",
         "Basic consultation",
       ],
     },
     {
-      name: "Premium Package",
-      price: "Custom",
-      description: "Full production with video",
+      name: "Express Personal",
+      price: "$49",
+      description: "Fast delivery for urgent needs (24-48 hours)",
       features: [
-        "Complete composition",
-        "Multiple revisions",
-        "High-quality audio + video",
+        "Single custom song",
+        "MP3 format",
+        "1 revision round",
+        "Priority processing",
+      ],
+    },
+    {
+      name: "Wedding Trio",
+      price: "$149",
+      description: "Complete wedding package (5-7 days)",
+      features: [
+        "3 custom songs",
+        "MP3 + WAV formats",
+        "3 revision rounds",
         "Extended consultation",
       ],
       highlighted: true,

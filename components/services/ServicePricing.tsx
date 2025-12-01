@@ -31,7 +31,18 @@ export default function ServicePricing({ tiers }: ServicePricingProps) {
               }`}
             >
               <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
-              <div className="text-4xl font-bold mb-2">{tier.price}</div>
+              <div className="mb-2">
+                <div className={`text-4xl font-bold ${
+                  tier.highlighted ? "text-white" : "text-teal-600"
+                }`}>
+                  {tier.price}
+                </div>
+                <div className={`text-sm mt-1 ${
+                  tier.highlighted ? "text-blue-100" : "text-gray-500"
+                }`}>
+                  AUD
+                </div>
+              </div>
               <p
                 className={`mb-6 ${
                   tier.highlighted ? "text-blue-100" : "text-gray-600"

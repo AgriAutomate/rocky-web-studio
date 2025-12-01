@@ -146,7 +146,10 @@ const buildPayload = (messages: SMSMessage[]): MobileMessagePayload => {
   const runtimeSenderId = process.env.MOBILE_MESSAGE_SENDER_ID;
   
   if (!runtimeSenderId) {
-    throw new Error("MOBILE_MESSAGE_SENDER_ID is required. Set it in your environment variables.");
+    throw new Error(
+      "MOBILE_MESSAGE_SENDER_ID environment variable is required. " +
+      "Please set it to a registered Sender ID in your Mobile Message account."
+    );
   }
 
   return {
@@ -154,7 +157,7 @@ const buildPayload = (messages: SMSMessage[]): MobileMessagePayload => {
     messages: messages.map((message) => ({
       to: message.to,
       message: message.message,
-      sender: runtimeSenderId,
+      sender: runtimeSenderId,  // No fallback
       custom_ref: message.customRef,
     })),
   };

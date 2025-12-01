@@ -28,6 +28,7 @@ interface OrderFormData {
   mood: string;
   genre: string;
   additionalInfo: string;
+  promoCode?: string;
 }
 
 interface OrderResponse {
@@ -80,6 +81,8 @@ export default function CustomSongOrderPage() {
   const [step, setStep] = useState<Step>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string>("");
+  const [promoError, setPromoError] = useState<string>("");
   const [formData, setFormData] = useState<OrderFormData>({
     name: "",
     email: "",
@@ -91,11 +94,43 @@ export default function CustomSongOrderPage() {
     mood: "",
     genre: "",
     additionalInfo: "",
+    promoCode: "",
   });
 
   const handleInputChange = (field: keyof OrderFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear promo error when user types
+    if (field === "promoCode") {
+      setPromoError("");
+      setAppliedPromoCode("");
+    }
   };
+
+  const handleApplyPromoCode = () => {
+    const code = formData.promoCode?.trim().toUpperCase() || "";
+    if (!code) {
+      setPromoError("Please enter a promo code");
+      setAppliedPromoCode("");
+      return;
+    }
+
+    if (code === "LAUNCH20") {
+      setAppliedPromoCode("LAUNCH20");
+      setPromoError("");
+    } else {
+      setPromoError("Invalid promo code");
+      setAppliedPromoCode("");
+    }
+  };
+
+  // Calculate pricing
+  const selectedPackage = formData.package
+    ? packageOptions.find((p) => p.value === formData.package)
+    : null;
+  const basePrice = selectedPackage?.price || 0;
+  const discountApplied = appliedPromoCode === "LAUNCH20";
+  const discountAmount = discountApplied ? basePrice * 0.2 : 0;
+  const finalPrice = basePrice - discountAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +140,10 @@ export default function CustomSongOrderPage() {
       const response = await fetch("/api/custom-songs/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          promoCode: appliedPromoCode || formData.promoCode,
+        }),
       });
 
       const data: OrderResponse = await response.json();
@@ -331,6 +369,93 @@ export default function CustomSongOrderPage() {
               />
             </div>
           </div>
+
+          {/* Order Summary & Discount Code */}
+          {selectedPackage && (
+            <div className="mb-8 border-t pt-6">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">Order Summary</h2>
+              <div className="bg-slate-50 rounded-lg p-6 mb-4 border border-slate-200">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600">
+                      {selectedPackage.label.split(" - ")[0]}
+                    </span>
+                    <span className="font-semibold text-slate-900">
+                      ${basePrice.toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  {discountApplied && (
+                    <div className="flex justify-between items-center text-green-600">
+                      <span className="flex items-center gap-2">
+                        <span>Discount (20% off)</span>
+                        <span className="text-xs bg-green-100 px-2 py-0.5 rounded-full">
+                          {appliedPromoCode}
+                        </span>
+                      </span>
+                      <span className="font-semibold">
+                        -${discountAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-300">
+                    <span className="font-semibold text-lg text-slate-900">Total</span>
+                    <span className="text-2xl font-bold text-teal-600">
+                      ${finalPrice.toFixed(2)} AUD
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Promo Code Section */}
+              <div className="bg-white border border-slate-200 rounded-lg p-4">
+                <Label htmlFor="promoCode" className="text-base font-medium text-slate-900 mb-2 block">
+                  Promo Code (optional)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="promoCode"
+                    placeholder="Enter promo code"
+                    value={formData.promoCode || ""}
+                    onChange={(e) => handleInputChange("promoCode", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleApplyPromoCode();
+                      }
+                    }}
+                    className="flex-1"
+                    aria-invalid={!!promoError}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleApplyPromoCode}
+                    variant="outline"
+                    className="whitespace-nowrap"
+                  >
+                    Apply
+                  </Button>
+                </div>
+                {discountApplied && (
+                  <div className="mt-2 flex items-center gap-2 text-green-600 text-sm font-medium">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>20% discount applied with code {appliedPromoCode}</span>
+                  </div>
+                )}
+                {promoError && (
+                  <div className="mt-2 text-red-600 text-sm">
+                    {promoError}
+                  </div>
+                )}
+                {!discountApplied && !promoError && formData.promoCode && (
+                  <div className="mt-2 text-slate-500 text-sm">
+                    Enter "LAUNCH20" for 20% off
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Terms & Submit */}
           <div className="border-t pt-6">

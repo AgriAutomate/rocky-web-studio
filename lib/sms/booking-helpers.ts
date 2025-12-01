@@ -1,4 +1,4 @@
-import { format, parse, addHours, subHours } from "date-fns";
+import { format, parse, subHours } from "date-fns";
 import { sendSMS, scheduleSMS } from "./index";
 import type { SMSResponse } from "./types";
 import {
@@ -23,7 +23,7 @@ interface BookingDetails {
  */
 function extractDuration(serviceType: string): string {
   const match = serviceType.match(/(\d+)\s*(hour|min|minute)/i);
-  if (match) {
+  if (match && match[1] && match[2]) {
     const value = parseInt(match[1], 10);
     const unit = match[2].toLowerCase();
     if (unit.startsWith("hour")) {
@@ -142,6 +142,7 @@ Running late? Reply RESCHEDULE`;
       messageId: result.messageId || "",
       bookingId: booking.bookingId,
       phoneNumber: booking.phoneNumber,
+      messagePreview: message.substring(0, 100),
       messageType: "24hr_reminder",
       status: result.success ? "pending" : "failed",
       cost: calculateSMSCost(message),
@@ -209,6 +210,7 @@ Join now: ${bookingUrl}`;
       messageId: result.messageId || "",
       bookingId: booking.bookingId,
       phoneNumber: booking.phoneNumber,
+      messagePreview: message.substring(0, 100),
       messageType: "1hr_reminder",
       status: result.success ? "pending" : "failed",
       cost: calculateSMSCost(message),

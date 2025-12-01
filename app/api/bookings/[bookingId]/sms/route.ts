@@ -7,11 +7,11 @@ import { getSMSStorage } from "@/lib/sms/storage";
  * Used for tracking, debugging, and customer service
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { bookingId: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ bookingId: string }> }
 ): Promise<NextResponse> {
   try {
-    const { bookingId } = params;
+    const { bookingId } = await params;
 
     if (!bookingId) {
       return NextResponse.json(
@@ -53,6 +53,7 @@ export async function GET(
     );
   }
 }
+
 
 
 

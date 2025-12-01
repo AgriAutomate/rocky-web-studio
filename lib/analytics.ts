@@ -95,7 +95,7 @@ export function trackConversion(
  * Package price mapping for value tracking
  */
 export const packagePrices: Record<PackageType, number> = {
-  express: 149,
-  standard: 99,
-  wedding: 349,
+  express: 49,
+  standard: 29,
+  wedding: 149,
 };

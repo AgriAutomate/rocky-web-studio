@@ -46,6 +46,7 @@ export function getDueBookings(hoursBefore: number): Booking[] {
     if (!booking.smsOptIn) return false;
     const [year, month, day] = booking.date.split("-").map(Number);
     const [hour, minute] = booking.time.split(":").map(Number);
+    if (!year || !month || !day || hour === undefined || minute === undefined) return false;
     const reminderDate = new Date(year, month - 1, day, hour, minute);
     const diffHours = (reminderDate.getTime() - now.getTime()) / (1000 * 60 * 60);
     return Math.abs(diffHours - hoursBefore) < 0.5;

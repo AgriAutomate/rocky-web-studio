@@ -52,6 +52,9 @@ const reminderConfigs: ReminderConfig[] = [
 const calculateAppointmentDate = (booking: Booking): Date => {
   const [year, month, day] = booking.date.split("-").map(Number);
   const [hour, minute] = booking.time.split(":").map(Number);
+  if (!year || !month || !day || hour === undefined || minute === undefined) {
+    throw new Error("Invalid booking date or time format");
+  }
   return new Date(year, month - 1, day, hour, minute);
 };
 
@@ -82,7 +85,7 @@ const sendReminder = async (
   }
 };
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
     const now = new Date();
     const dueReminders: Array<{ booking: Booking; config: ReminderConfig }> = [];

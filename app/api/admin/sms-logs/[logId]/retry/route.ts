@@ -11,11 +11,11 @@ interface RetryResponse {
 }
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: { logId: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ logId: string }> }
 ): Promise<NextResponse<RetryResponse>> {
   try {
-    const { logId } = params;
+    const { logId } = await params;
 
     if (!logId) {
       return NextResponse.json(
@@ -112,6 +112,7 @@ export async function POST(
     );
   }
 }
+
 
 
 

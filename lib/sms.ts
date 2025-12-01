@@ -1,7 +1,5 @@
 const username = process.env.MOBILE_MESSAGE_API_USERNAME;
 const password = process.env.MOBILE_MESSAGE_API_PASSWORD;
-const baseURL =
-  process.env.MOBILE_MESSAGE_API_URL || "https://api.mobilemessage.com.au/v1";
 const senderId = process.env.MOBILE_MESSAGE_SENDER_ID;
 
 if (!username || !password || !senderId) {

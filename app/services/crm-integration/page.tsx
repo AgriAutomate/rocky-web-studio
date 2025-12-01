@@ -155,6 +155,4 @@ export default function CrmIntegrationPage() {
     </>
   );
 }
-import { Cable, MailCheck, PlugZap, Share2 } from "lucide-react";
-import type { Metadata } from "next";
 

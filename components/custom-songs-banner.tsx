@@ -27,7 +27,7 @@ export function CustomSongsBanner() {
             </span>
             <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <span className="size-1.5 rounded-full bg-teal-500" />
-              From $99
+              From $29
             </span>
             <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <span className="size-1.5 rounded-full bg-teal-500" />

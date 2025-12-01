@@ -1,5 +1,3 @@
-import { History, Layers, LineChart, Smartphone } from "lucide-react";
-import type { Metadata } from "next";
 import ServiceHero from "@/components/services/ServiceHero";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";

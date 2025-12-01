@@ -128,6 +128,7 @@ export function BookingCalendar({
 
   const formatTimeDisplay = (time: string): string => {
     const [hours] = time.split(":");
+    if (!hours) return time;
     const hour = parseInt(hours, 10);
     const period = hour >= 12 ? "PM" : "AM";
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;

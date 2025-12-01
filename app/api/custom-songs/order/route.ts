@@ -1,7 +1,16 @@
 import { format } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 
 const resendApiKey = process.env.RESEND_API_KEY;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: "2025-11-17.clover",
+      typescript: true,
+    })
+  : null;
 
 interface CustomSongOrderRequest {
   name: string;
@@ -14,6 +23,7 @@ interface CustomSongOrderRequest {
   mood?: string;
   genre?: string;
   additionalInfo?: string;
+  promoCode?: string;
 }
 
 interface OrderEmailDetails {
@@ -216,8 +226,84 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get package price
+    const packageInfo = packagePrices[body.package];
+    if (!packageInfo) {
+      return NextResponse.json(
+        { success: false, error: "Invalid package selected" },
+        { status: 400 }
+      );
+    }
+
+    // Calculate price with discount if applicable
+    const originalPriceInDollars = packageInfo.price;
+    let finalAmountInDollars = originalPriceInDollars;
+    let discountApplied = false;
+    const promoCode = body.promoCode?.trim().toUpperCase() || "";
+    
+    if (promoCode === "LAUNCH20") {
+      finalAmountInDollars = originalPriceInDollars * 0.8; // 20% discount
+      discountApplied = true;
+    }
+
+    // Convert to cents for Stripe (prices are stored in dollars, convert to cents)
+    const originalPriceInCents = Math.round(originalPriceInDollars * 100);
+    const finalAmountInCents = Math.round(finalAmountInDollars * 100);
+
     // Generate order ID
     const orderId = generateOrderId();
+
+    // Create Stripe PaymentIntent if Stripe is configured
+    let paymentIntentId: string | null = null;
+    let clientSecret: string | null = null;
+    let stripeError: Error | null = null;
+
+    if (stripe) {
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: finalAmountInCents,
+          currency: "aud",
+          automatic_payment_methods: { enabled: true },
+          metadata: {
+            orderId,
+            customerName: body.name,
+            customerEmail: body.email,
+            package: body.package,
+            occasion: body.occasion,
+            promoCode: promoCode || "none",
+            discountApplied: discountApplied.toString(),
+            originalPrice: originalPriceInCents.toString(), // Store in cents
+            finalPrice: finalAmountInCents.toString(), // Store in cents
+          },
+          description: `Custom Song - ${packageInfo.name} - ${body.occasion}`,
+          receipt_email: body.email,
+        });
+
+        paymentIntentId = paymentIntent.id;
+        clientSecret = paymentIntent.client_secret;
+      } catch (error) {
+        stripeError = error instanceof Error ? error : new Error("Unknown Stripe error");
+        console.error("Error creating Stripe PaymentIntent:", stripeError);
+        // Return error if Stripe fails (don't continue without payment)
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to create payment intent",
+            details: stripeError.message,
+          },
+          { status: 500 }
+        );
+      }
+    } else {
+      // If Stripe is not configured, return error
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Payment processing is not configured",
+        },
+        { status: 500 }
+      );
+    }
 
     // Prepare email details
     const emailDetails: OrderEmailDetails = {
@@ -242,6 +328,11 @@ export async function POST(request: NextRequest) {
       success: true,
       orderId,
       message: "Order received successfully",
+      paymentIntentId,
+      clientSecret,
+      discountApplied,
+      finalAmount: finalAmountInCents, // Return in cents as specified
+      originalAmount: originalPriceInCents, // Return in cents
     });
   } catch (error) {
     console.error("Error processing custom song order:", error);

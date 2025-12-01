@@ -109,6 +109,7 @@ class InMemorySMSStorage implements SMSStorage {
     delivered: number;
     failed: number;
     pending: number;
+    sent: number;
     totalCost: number;
     byType: Record<string, number>;
   }> {
@@ -153,7 +154,7 @@ export function getSMSStorage(): SMSStorage {
   if (!storageInstance) {
     storageInstance = new InMemorySMSStorage();
   }
-  return storageInstance;
+  return storageInstance as SMSStorage;
 }
 
 /**

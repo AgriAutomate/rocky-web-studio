@@ -201,21 +201,6 @@ export default function AdminSMSLogsPage() {
   }, []);
 
   const calculateStats = (logsData: SMSLog[]) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    const todayLogs = logsData.filter(
-      (log) => new Date(log.createdAt) >= today
-    );
-    const weekLogs = logsData.filter(
-      (log) => new Date(log.createdAt) >= weekAgo
-    );
-    const monthLogs = logsData.filter(
-      (log) => new Date(log.createdAt) >= monthAgo
-    );
-
     const total = logsData.length;
     const sent = logsData.filter((log) => log.status === "sent").length;
     const failed = logsData.filter((log) => log.status === "failed").length;

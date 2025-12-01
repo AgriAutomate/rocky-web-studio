@@ -44,10 +44,10 @@ export default function CustomSongsTermsPage() {
             <h2 className="text-xl font-semibold text-slate-900 mb-3">2. Ordering & Pricing</h2>
             <p className="text-slate-600 mb-3">Our packages include:</p>
             <ul className="list-disc list-inside text-slate-600 space-y-2 mb-3">
-              <li><strong>Express Personal ($149):</strong> 24-48 hour delivery, single custom song, MP3 format, 1 revision round</li>
-              <li><strong>Standard Occasion ($99):</strong> 3-5 day delivery, single custom song, MP3 + lyric sheet, 2 revision rounds</li>
-              <li><strong>Wedding Trio ($349):</strong> 5-7 day delivery, 3 custom songs, MP3 + WAV formats, 3 revision rounds</li>
-              <li><strong>Commercial License Add-on (+$200):</strong> For YouTube monetization, business use, or extended rights</li>
+              <li><strong>Express Personal ($49):</strong> 24-48 hour delivery, single custom song, MP3 format, 1 revision round</li>
+              <li><strong>Standard Occasion ($29):</strong> 3-5 day delivery, single custom song, MP3 + lyric sheet, 2 revision rounds</li>
+              <li><strong>Wedding Trio ($149):</strong> 5-7 day delivery, 3 custom songs, MP3 + WAV formats, 3 revision rounds</li>
+              <li><strong>Commercial License Add-on (+$49):</strong> For YouTube monetization, business use, or extended rights</li>
             </ul>
             <p className="text-slate-600">Payment is due in full at the time of order. Prices are in Australian Dollars (AUD).</p>
           </section>

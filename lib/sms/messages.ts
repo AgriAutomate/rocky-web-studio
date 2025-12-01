@@ -23,6 +23,9 @@ export function generateCalendarLink(options: SMSMessageOptions): string {
   const { date, time, serviceType, bookingId } = options;
   const [year, month, day] = date.split("-").map(Number);
   const [hour, minute] = time.split(":").map(Number);
+  if (!year || !month || !day || hour === undefined || minute === undefined) {
+    throw new Error("Invalid date or time format");
+  }
   
   const startDate = new Date(year, month - 1, day, hour, minute);
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour default
@@ -53,7 +56,8 @@ function shortenServiceName(serviceType: string): string {
  * Format date for SMS (DD/MM)
  */
 function formatDateShort(date: string): string {
-  const [year, month, day] = date.split("-").map(Number);
+  const [, month, day] = date.split("-").map(Number);
+  if (!day || !month) return date;
   return `${day.toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}`;
 }
 
@@ -173,7 +177,7 @@ export function generateServiceSpecificMessage(options: SMSMessageOptions): stri
  * Generate 24-hour reminder message
  */
 export function generate24HourReminder(booking: Booking): string {
-  const { customerName, service, time, bookingId } = booking;
+  const { service, time } = booking;
   const shortService = shortenServiceName(service);
   const [hour, minute] = time.split(":");
   const timeFormatted = `${hour}:${minute}`;

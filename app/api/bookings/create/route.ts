@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
       email,
       phone,
       serviceType,
-      message,
+      message: _message,
       smsOptIn = false,
     } = body as BookingRequest;
 

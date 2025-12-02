@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import {
+  sendOrderConfirmationEmail,
+  sendInternalNotificationEmail,
+  OrderEmailDetails,
+} from '@/lib/email/customSongs';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+if (!stripeSecretKey) {
+  console.error('STRIPE_SECRET_KEY is not set');
+}
+
+if (!webhookSecret) {
+  console.error('STRIPE_WEBHOOK_SECRET is not set');
+}
 
 // Initialize Stripe instance (matching the pattern from order route)
 const stripe = stripeSecretKey
@@ -52,38 +65,57 @@ export async function POST(req: NextRequest) {
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
 
-      // Extract metadata from paymentIntent
       const metadata = paymentIntent.metadata;
-      const orderId = metadata.orderId;
-      const customerName = metadata.customerName;
-      const customerEmail = metadata.customerEmail;
-      const packageType = metadata.package;
-      const occasion = metadata.occasion;
-      const promoCode = metadata.promoCode || 'none';
-      const discountApplied = metadata.discountApplied === 'true';
-      const originalPrice = metadata.originalPrice;
-      const finalPrice = metadata.finalPrice;
 
-      // Log order details
+      // Validate required metadata fields
+      if (!metadata.orderId || !metadata.customerName || !metadata.customerEmail || !metadata.occasion || !metadata.package || !metadata.storyDetails) {
+        console.error('Missing required metadata in payment intent:', {
+          orderId: metadata.orderId,
+          customerName: metadata.customerName,
+          customerEmail: metadata.customerEmail,
+          occasion: metadata.occasion,
+          package: metadata.package,
+          storyDetails: metadata.storyDetails,
+        });
+        // Still return success to Stripe to avoid retries
+        return NextResponse.json({ received: true }, { status: 200 });
+      }
+
+      // Log the payment success
       console.log('✅ Payment succeeded - Processing order:', {
-        orderId,
-        customerName,
-        customerEmail,
-        package: packageType,
-        occasion,
-        promoCode,
-        discountApplied,
-        originalPrice: originalPrice ? `${(parseInt(originalPrice) / 100).toFixed(2)} AUD` : 'N/A',
-        finalPrice: finalPrice ? `${(parseInt(finalPrice) / 100).toFixed(2)} AUD` : 'N/A',
+        orderId: metadata.orderId,
+        customerName: metadata.customerName,
+        customerEmail: metadata.customerEmail,
+        package: metadata.package,
+        occasion: metadata.occasion,
         paymentIntentId: paymentIntent.id,
         amount: `${(paymentIntent.amount / 100).toFixed(2)} AUD`,
       });
 
-      // TODO: Call sendEmail function here
-      // Example: await sendOrderConfirmationEmail({ orderId, customerEmail, ... });
+      // Build email details from metadata
+      const emailDetails: OrderEmailDetails = {
+        orderId: metadata.orderId,
+        customerName: metadata.customerName,
+        email: metadata.customerEmail,
+        phone: metadata.phone || undefined,
+        occasion: metadata.occasion,
+        packageType: metadata.package,
+        eventDate: metadata.eventDate || undefined,
+        storyDetails: metadata.storyDetails,
+        mood: metadata.mood || undefined,
+        genre: metadata.genre || undefined,
+        additionalInfo: metadata.additionalInfo || undefined,
+      };
 
-      // TODO: Store order in database
-      // Example: await saveOrderToDatabase({ orderId, paymentIntentId: paymentIntent.id, ... });
+      // Send confirmation emails (non-blocking - don't await)
+      sendOrderConfirmationEmail(emailDetails).catch(err =>
+        console.error('Failed to send order confirmation:', err)
+      );
+      sendInternalNotificationEmail(emailDetails).catch(err =>
+        console.error('Failed to send internal notification:', err)
+      );
+
+      console.log('✅ Email notifications triggered for order:', metadata.orderId);
     }
 
     // 4. Return success response for all webhook events
@@ -98,4 +130,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
 

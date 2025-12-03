@@ -1,13 +1,15 @@
 import type { SMSProvider, SendSMSParams, SMSResponse } from "./types";
-import { KudosityProvider } from "./providers/kudosity";
 import { TwilioProvider } from "./providers/twilio";
 
 /**
  * Get the SMS provider based on environment configuration
- * Defaults to Kudosity for Rocky Web Studio
+ * NOTE: This provider abstraction is legacy/unused. The active SMS implementation
+ * uses Mobile Message API directly via lib/sms.ts
+ * 
+ * Defaults to Twilio if SMS_PROVIDER is set to "twilio"
  */
 export function getSMSProvider(): SMSProvider {
-  const provider = process.env.SMS_PROVIDER || "kudosity";
+  const provider = process.env.SMS_PROVIDER || "twilio";
 
   switch (provider.toLowerCase()) {
     case "twilio":
@@ -17,12 +19,12 @@ export function getSMSProvider(): SMSProvider {
         defaultFrom: process.env.TWILIO_FROM_NUMBER,
       });
 
-    case "kudosity":
     default:
-      return new KudosityProvider({
-        apiKey: process.env.KUDOSITY_API_KEY || "",
-        apiSecret: process.env.KUDOSITY_API_SECRET || "",
-        defaultFrom: process.env.KUDOSITY_FROM_NAME || "RockyWeb",
+      // Fallback to Twilio if unknown provider specified
+      return new TwilioProvider({
+        accountSid: process.env.TWILIO_ACCOUNT_SID || "",
+        authToken: process.env.TWILIO_AUTH_TOKEN || "",
+        defaultFrom: process.env.TWILIO_FROM_NUMBER,
       });
   }
 }
@@ -49,6 +51,5 @@ export async function scheduleSMS(
 
 // Export types for use in other modules
 export type { SMSProvider, SendSMSParams, SMSResponse } from "./types";
-export { KudosityProvider } from "./providers/kudosity";
 export { TwilioProvider } from "./providers/twilio";
 

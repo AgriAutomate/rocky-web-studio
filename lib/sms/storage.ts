@@ -45,7 +45,8 @@ export interface SMSStorage {
 
 /**
  * In-Memory SMS Storage (for development/testing)
- * Replace with KV or database implementation for production
+ * KV-backed storage is provided separately in `lib/kv/sms.ts` and is used
+ * automatically when KV environment variables are configured.
  */
 class InMemorySMSStorage implements SMSStorage {
   private records: SMSRecord[] = [];
@@ -143,14 +144,30 @@ class InMemorySMSStorage implements SMSStorage {
   }
 }
 
-// Singleton instance
+// Singleton instance (used as a fallback when KV is not configured)
 let storageInstance: SMSStorage | null = null;
 
 /**
- * Get SMS storage instance
- * In production, this would return KV or database implementation
+ * Get SMS storage instance.
+ *
+ * If Vercel KV is configured (KV_REST_API_URL + KV_REST_API_TOKEN),
+ * use the KV-backed implementation. Otherwise, fall back to in-memory
+ * storage which is suitable only for local development.
  */
 export function getSMSStorage(): SMSStorage {
+  const hasKV =
+    !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
+
+  if (hasKV) {
+    // Import lazily to avoid runtime cycles and allow type-only imports
+    // from `lib/kv/sms`.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { kvSMSStorage } = require("@/lib/kv/sms") as {
+      kvSMSStorage: SMSStorage;
+    };
+    return kvSMSStorage;
+  }
+
   if (!storageInstance) {
     storageInstance = new InMemorySMSStorage();
   }

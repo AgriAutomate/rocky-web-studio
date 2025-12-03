@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanks for Your Time</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 40px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; line-height: 1.2;">
+                                🙏 Thanks for Your Time
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px 40px 30px;">
+                            <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                                Hi <strong>{{companyName}}</strong>,
+                            </p>
+                            
+                            <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                                Thank you for taking the time to speak with us about your project. We understand that making decisions about your digital presence is important, and we appreciate you considering Rocky Web Studio.
+                            </p>
+
+                            <p style="margin: 0 0 30px; color: #333333; font-size: 16px; line-height: 1.6;">
+                                We know you need time to think things over, and that's completely understandable. To help with your decision-making process, we've put together some additional resources that might be helpful.
+                            </p>
+
+                            <!-- Resources Section -->
+                            <h2 style="margin: 30px 0 15px; color: #333333; font-size: 20px; font-weight: 600;">
+                                📚 Additional Resources
+                            </h2>
+
+                            <!-- Case Studies -->
+                            <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                                <h3 style="margin: 0 0 15px; color: #667eea; font-size: 18px; font-weight: 600;">
+                                    Case Studies Relevant to Your Project
+                                </h3>
+                                <ul style="margin: 0; padding-left: 20px; color: #333333; font-size: 15px; line-height: 1.8;">
+                                    {{#each relevantCaseStudies}}
+                                    <li style="margin-bottom: 10px;">
+                                        <strong>{{title}}:</strong> {{description}}
+                                        <a href="{{link}}" style="color: #667eea; text-decoration: none; margin-left: 5px;">View Case Study →</a>
+                                    </li>
+                                    {{/each}}
+                                </ul>
+                            </div>
+
+                            <!-- FAQ Section -->
+                            <div style="background-color: #fff7ed; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                                <h3 style="margin: 0 0 15px; color: #92400e; font-size: 18px; font-weight: 600;">
+                                    💡 Answers to Your Questions
+                                </h3>
+                                {{#if openQuestions}}
+                                <div style="margin-bottom: 15px;">
+                                    {{#each openQuestions}}
+                                    <div style="margin-bottom: 15px;">
+                                        <p style="margin: 0 0 5px; color: #333333; font-size: 15px; font-weight: 600;">
+                                            Q: {{question}}
+                                        </p>
+                                        <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.6;">
+                                            A: {{answer}}
+                                        </p>
+                                    </div>
+                                    {{/each}}
+                                </div>
+                                {{else}}
+                                <p style="margin: 0; color: #666666; font-size: 14px;">
+                                    We've compiled answers to common questions about our process, pricing, and timeline. 
+                                    <a href="{{faqLink}}" style="color: #667eea; text-decoration: none;">View FAQ →</a>
+                                </p>
+                                {{/if}}
+                            </div>
+
+                            <!-- Proposal Reminder -->
+                            <div style="background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 20px; margin: 30px 0; border-radius: 8px;">
+                                <h3 style="margin: 0 0 10px; color: #0d9488; font-size: 18px; font-weight: 600;">
+                                    📄 Your Proposal
+                                </h3>
+                                <p style="margin: 0 0 15px; color: #333333; font-size: 15px; line-height: 1.6;">
+                                    Your custom proposal is still available for review. Take your time to go through it, and feel free to reach out if you have any questions.
+                                </p>
+                                <a href="{{proposalLink}}" style="display: inline-block; color: #667eea; text-decoration: none; font-weight: 600; font-size: 15px;">
+                                    View Proposal →
+                                </a>
+                            </div>
+
+                            <!-- What to Consider -->
+                            <h2 style="margin: 30px 0 15px; color: #333333; font-size: 20px; font-weight: 600;">
+                                Things to Consider
+                            </h2>
+                            
+                            <ul style="margin: 0 0 30px; padding-left: 20px; color: #333333; font-size: 15px; line-height: 1.8;">
+                                <li style="margin-bottom: 10px;">Does the proposed solution align with your business goals?</li>
+                                <li style="margin-bottom: 10px;">Is the timeline realistic for your needs?</li>
+                                <li style="margin-bottom: 10px;">Does the budget fit within your financial planning?</li>
+                                <li style="margin-bottom: 10px;">Do you feel confident in our ability to deliver?</li>
+                                <li style="margin-bottom: 10px;">Are there any concerns or questions we haven't addressed?</li>
+                            </ul>
+
+                            <!-- Follow-Up -->
+                            <div style="background-color: #f8f9fa; padding: 20px; margin: 30px 0; border-radius: 8px; border: 2px dashed #667eea;">
+                                <h3 style="margin: 0 0 10px; color: #667eea; font-size: 18px; font-weight: 600;">
+                                    🤝 Let's Stay Connected
+                                </h3>
+                                <p style="margin: 0 0 15px; color: #333333; font-size: 15px; line-height: 1.6;">
+                                    We'd love to reconnect in a few days to discuss your decision and answer any additional questions you might have.
+                                </p>
+                                <p style="margin: 0; color: #666666; font-size: 14px;">
+                                    <strong>Suggested follow-up:</strong> {{followUpDate}} (3 days from now)
+                                </p>
+                            </div>
+
+                            <!-- CTA -->
+                            <div style="text-align: center; margin: 40px 0;">
+                                <p style="margin: 0 0 20px; color: #333333; font-size: 16px;">
+                                    Ready to discuss further or have questions?
+                                </p>
+                                <a href="mailto:hello@rockywebstudio.com.au?subject=Follow-up%20Discussion%20-%20{{companyName}}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; margin-right: 10px;">
+                                    Let's Reconnect
+                                </a>
+                                <a href="{{proposalLink}}" style="display: inline-block; background: #f0f0f0; color: #333333; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                    Review Proposal
+                                </a>
+                            </div>
+
+                            <!-- Support Message -->
+                            <div style="background-color: #f8f9fa; padding: 20px; margin: 30px 0 0; border-radius: 8px;">
+                                <p style="margin: 0; color: #333333; font-size: 14px; line-height: 1.6;">
+                                    <strong>Remember:</strong> There's no pressure. Take the time you need to make the right decision for your business. We're here whenever you're ready to move forward, and we're happy to answer any questions along the way.
+                                </p>
+                            </div>
+
+                            <p style="margin: 30px 0 0; color: #666666; font-size: 14px; text-align: center; font-style: italic;">
+                                We look forward to hearing from you soon!
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #1e293b; padding: 30px 40px; text-align: center;">
+                            <p style="margin: 0 0 15px; color: #94a3b8; font-size: 16px; font-weight: 600;">
+                                Rocky Web Studio
+                            </p>
+                            <p style="margin: 0 0 20px; color: #64748b; font-size: 14px;">
+                                Custom AI Songs & Web Solutions for Central Queensland
+                            </p>
+                            
+                            <!-- Contact Info -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 20px auto;">
+                                <tr>
+                                    <td style="padding: 0 15px;">
+                                        <a href="mailto:hello@rockywebstudio.com.au" style="color: #94a3b8; text-decoration: none; font-size: 14px;">
+                                            📧 hello@rockywebstudio.com.au
+                                        </a>
+                                    </td>
+                                    <td style="padding: 0 15px;">
+                                        <a href="https://rockywebstudio.com.au" style="color: #94a3b8; text-decoration: none; font-size: 14px;">
+                                            🌐 rockywebstudio.com.au
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Social Links -->
+                            <div style="margin: 20px 0;">
+                                <a href="https://facebook.com/rockywebstudio" style="display: inline-block; margin: 0 10px; color: #94a3b8; text-decoration: none; font-size: 14px;">Facebook</a>
+                                <a href="https://linkedin.com/company/rockywebstudio" style="display: inline-block; margin: 0 10px; color: #94a3b8; text-decoration: none; font-size: 14px;">LinkedIn</a>
+                                <a href="https://instagram.com/rockywebstudio" style="display: inline-block; margin: 0 10px; color: #94a3b8; text-decoration: none; font-size: 14px;">Instagram</a>
+                            </div>
+
+                            <!-- Unsubscribe -->
+                            <p style="margin: 30px 0 0; padding-top: 20px; border-top: 1px solid #334155; color: #64748b; font-size: 12px;">
+                                You're receiving this email because you had a consultation with Rocky Web Studio.<br>
+                                <a href="{{unsubscribeLink}}" style="color: #94a3b8; text-decoration: underline;">Unsubscribe</a> | 
+                                <a href="https://rockywebstudio.com.au/privacy" style="color: #94a3b8; text-decoration: underline;">Privacy Policy</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+
+

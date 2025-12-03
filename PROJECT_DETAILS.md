@@ -157,15 +157,7 @@ MOBILE_MESSAGE_SENDER_ID=your_sender_id
 
 #### SMS Service - Alternative Providers
 
-**Option 1: Kudosity**
-```bash
-SMS_PROVIDER=kudosity
-KUDOSITY_API_KEY=your_api_key
-KUDOSITY_API_SECRET=your_api_secret
-KUDOSITY_FROM_NAME=RockyWeb
-```
-
-**Option 2: Twilio**
+**Option 1: Twilio**
 ```bash
 SMS_PROVIDER=twilio
 TWILIO_ACCOUNT_SID=your_account_sid
@@ -261,8 +253,7 @@ rocky-web-studio/
 │   │   ├── storage.ts            # SMS log storage
 │   │   ├── messages.ts           # Message templates
 │   │   ├── booking-helpers.ts    # Booking SMS helpers
-│   │   └── providers/            # SMS providers
-│   │       ├── kudosity.ts
+│   │   └── providers/            # SMS providers (legacy - not currently used)
 │   │       └── twilio.ts
 │   ├── phone.ts                  # Phone number formatting
 │   ├── sms.ts                    # Legacy SMS utilities
@@ -371,7 +362,7 @@ rocky-web-studio/
   - Configured in Vercel with 1024MB memory and 30s max duration
 
 ### 3. SMS System
-- Provider abstraction (Mobile Message, Kudosity, Twilio)
+- Mobile Message API (primary provider)
 - SMS logging and tracking
 - Admin dashboard (`/admin/sms-logs`)
 - Credit monitoring
@@ -552,12 +543,9 @@ export const packagePrices: Record<PackageType, number> = {
 - Promo code support (LAUNCH20 = 20% discount)
 - Metadata includes order details and promo code
 
-### SMS Provider Priority
-1. Mobile Message API (primary)
-2. Kudosity (alternative)
-3. Twilio (alternative)
-
-Set `SMS_PROVIDER` environment variable to switch providers.
+### SMS Provider
+- Mobile Message API (primary and active provider)
+- Twilio available as alternative (requires configuration)
 
 ---
 

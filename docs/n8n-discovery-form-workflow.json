@@ -1,0 +1,321 @@
+{
+  "name": "Client Discovery Form Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discovery-form",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "discovery-form-webhook",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse form data from webhook payload\nconst body = $input.item.json.body || $input.item.json;\n\n// Extract all form fields\nconst formData = {\n  // Company Info\n  companyName: body.companyName || body['Company Name'] || '',\n  email: body.email || body.Email || '',\n  companySize: body.companySize || body['Company Size'] || '',\n  industry: body.industry || body.Industry || '',\n  \n  // Business Goals\n  mainProblem: body.mainProblem || body['Main Problem'] || '',\n  successMetric: body.successMetric || body['Success Metric'] || '',\n  targetCustomer: body.targetCustomer || body['Target Customer'] || '',\n  \n  // Brand\n  brandPersonality: Array.isArray(body.brandPersonality) ? body.brandPersonality : (body['Brand Personality'] ? [body['Brand Personality']] : []),\n  contentReadiness: body.contentReadiness || body['Content Readiness'] || '',\n  inspiration1: body.inspiration1 || body['Inspiration 1'] || '',\n  inspiration2: body.inspiration2 || body['Inspiration 2'] || '',\n  \n  // Features\n  features: Array.isArray(body.features) ? body.features : (body.Features ? [body.Features] : []),\n  integrations: Array.isArray(body.integrations) ? body.Integrations : (body.Integrations ? [body.Integrations] : []),\n  aiFeatures: Array.isArray(body.aiFeatures) ? body.aiFeatures : (body['AI Features'] ? [body['AI Features']] : []),\n  \n  // Budget & Timeline\n  budget: body.budget || body.Budget || '',\n  launchDate: body.launchDate || body['Launch Date'] || '',\n  additionalNotes: body.additionalNotes || body['Additional Notes'] || '',\n  \n  // Metadata\n  submittedAt: body.submittedAt || new Date().toISOString(),\n  formSource: body.formSource || 'discovery-form'\n};\n\n// Format for display\nconst formattedData = {\n  ...formData,\n  featuresList: formData.features.join(', ') || 'None',\n  aiFeaturesList: formData.aiFeatures.join(', ') || 'None',\n  brandPersonalityList: formData.brandPersonality.join(', ') || 'None',\n  integrationsList: formData.integrations.join(', ') || 'None'\n};\n\nreturn formattedData;"
+      },
+      "id": "parse-form-data",
+      "name": "Parse Form Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#projects",
+        "text": "={{ '🎯 *New Client Discovery Form Submission*\\n\\n' +\n'*Company:* ' + $json.companyName + '\\n' +\n'*Contact Email:* ' + $json.email + '\\n' +\n'*Industry:* ' + $json.industry + '\\n' +\n'*Company Size:* ' + $json.companySize + '\\n' +\n'*Budget:* ' + $json.budget + '\\n' +\n'*Features:* ' + $json.featuresList + '\\n' +\n'*AI Interests:* ' + $json.aiFeaturesList + '\\n' +\n'*Main Problem:* ' + $json.mainProblem.substring(0, 100) + '...' + '\\n\\n' +\n'📋 *Full Response:* ' + 'https://your-notion-link.com/' + $json.companyName.replace(/\\s+/g, '-').toLowerCase() + '\\n' +\n'📅 *Book Consultation:* https://calendly.com/rockywebstudio/consultation' }}",
+        "options": {}
+      },
+      "id": "slack-notification",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1.2,
+      "position": [650, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.submittedAt }}",
+            "Company": "={{ $json.companyName }}",
+            "Contact": "={{ $json.email }}",
+            "Email": "={{ $json.email }}",
+            "Budget": "={{ $json.budget }}",
+            "Features": "={{ $json.featuresList }}",
+            "AI Interests": "={{ $json.aiFeaturesList }}",
+            "Form Link": "={{ 'https://your-form-link.com/' + $json.companyName.replace(/\\s+/g, '-').toLowerCase() }}",
+            "Status": "Received"
+          }
+        },
+        "options": {}
+      },
+      "id": "google-sheets",
+      "name": "Append to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [650, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-credentials",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate formatted PDF content (HTML)\nconst data = $input.item.json;\n\nconst htmlContent = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; color: #333; }\n    h1 { color: #667eea; border-bottom: 3px solid #764ba2; padding-bottom: 10px; }\n    h2 { color: #764ba2; margin-top: 30px; }\n    .section { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; }\n    .label { font-weight: bold; color: #667eea; }\n    .value { margin-left: 10px; }\n    .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; text-align: center; color: #666; }\n  </style>\n</head>\n<body>\n  <h1>🎯 Client Discovery Form Summary</h1>\n  \n  <div class=\"section\">\n    <h2>Company Information</h2>\n    <p><span class=\"label\">Company Name:</span> <span class=\"value\">${data.companyName}</span></p>\n    <p><span class=\"label\">Email:</span> <span class=\"value\">${data.email}</span></p>\n    <p><span class=\"label\">Company Size:</span> <span class=\"value\">${data.companySize}</span></p>\n    <p><span class=\"label\">Industry:</span> <span class=\"value\">${data.industry}</span></p>\n  </div>\n  \n  <div class=\"section\">\n    <h2>Business Goals</h2>\n    <p><span class=\"label\">Main Problem:</span></p>\n    <p class=\"value\">${data.mainProblem}</p>\n    <p><span class=\"label\">Success Metric:</span></p>\n    <p class=\"value\">${data.successMetric}</p>\n    <p><span class=\"label\">Target Customer:</span> <span class=\"value\">${data.targetCustomer}</span></p>\n  </div>\n  \n  <div class=\"section\">\n    <h2>Design & Brand</h2>\n    <p><span class=\"label\">Brand Personality:</span> <span class=\"value\">${data.brandPersonalityList}</span></p>\n    <p><span class=\"label\">Content Readiness:</span> <span class=\"value\">${data.contentReadiness}</span></p>\n  </div>\n  \n  <div class=\"section\">\n    <h2>Features & Technology</h2>\n    <p><span class=\"label\">Features:</span> <span class=\"value\">${data.featuresList}</span></p>\n    <p><span class=\"label\">Integrations:</span> <span class=\"value\">${data.integrationsList || 'None'}</span></p>\n    <p><span class=\"label\">AI Features:</span> <span class=\"value\">${data.aiFeaturesList}</span></p>\n  </div>\n  \n  <div class=\"section\">\n    <h2>Budget & Timeline</h2>\n    <p><span class=\"label\">Budget Range:</span> <span class=\"value\">${data.budget}</span></p>\n    <p><span class=\"label\">Target Launch Date:</span> <span class=\"value\">${data.launchDate || 'Not specified'}</span></p>\n    ${data.additionalNotes ? `<p><span class=\"label\">Additional Notes:</span></p><p class=\"value\">${data.additionalNotes}</p>` : ''}\n  </div>\n  \n  <div class=\"footer\">\n    <p><strong>Rocky Web Studio</strong></p>\n    <p>Submitted: ${new Date(data.submittedAt).toLocaleString()}</p>\n  </div>\n</body>\n</html>\n`;\n\nreturn { html: htmlContent };"
+      },
+      "id": "generate-pdf-content",
+      "name": "Generate PDF Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "htmlToPdf",
+        "html": "={{ $json.html }}",
+        "options": {
+          "format": "A4",
+          "margin": {
+            "top": "20mm",
+            "right": "20mm",
+            "bottom": "20mm",
+            "left": "20mm"
+          }
+        }
+      },
+      "id": "convert-to-pdf",
+      "name": "Convert to PDF",
+      "type": "n8n-nodes-base.htmlToPdf",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@rockywebstudio.com.au",
+        "toEmail": "={{ $('Parse Form Data').item.json.email }}",
+        "subject": "Your Discovery Form Received – Consultation Summary Inside",
+        "emailType": "html",
+        "message": "={{ '<html><body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">' +\n'<div style=\"max-width: 600px; margin: 0 auto; padding: 20px;\">' +\n'<h1 style=\"color: #667eea;\">Thank You for Your Submission!</h1>' +\n'<p>Hi ' + $('Parse Form Data').item.json.companyName + ',</p>' +\n'<p>We\'ve received your discovery form and are excited to learn more about your project. Your consultation summary is attached below.</p>' +\n'<div style=\"background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;\">' +\n'<h2 style=\"color: #764ba2; margin-top: 0;\">📅 Schedule Your Consultation</h2>' +\n'<p>Let\'s discuss your project in detail. Book a time that works for you:</p>' +\n'<p style=\"text-align: center; margin: 20px 0;\">' +\n'<a href=\"https://calendly.com/rockywebstudio/consultation\" style=\"background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;\">Book Consultation</a>' +\n'</p>' +\n'<p style=\"font-size: 12px; color: #666;\">Need to reschedule? <a href=\"https://calendly.com/rockywebstudio/consultation\">Click here</a></p>' +\n'</div>' +\n'<p>We\'ll review your submission and prepare a tailored proposal for our consultation call.</p>' +\n'<p>Looking forward to speaking with you!</p>' +\n'<p><strong>Diamonds McFly & The Rocky Web Studio Team</strong><br>' +\n'hello@rockywebstudio.com.au</p>' +\n'</div></body></html>' }}",
+        "attachments": "={{ [{ name: 'discovery-form-summary.pdf', data: $('Convert to PDF').binary.data.data }] }}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Auto-Response Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 300],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-credentials",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.companyName }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Contact",
+              "type": "richText",
+              "textValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Email",
+              "type": "email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Budget",
+              "type": "select",
+              "selectValue": "={{ $json.budget }}"
+            },
+            {
+              "key": "Features",
+              "type": "multiSelect",
+              "multiSelectValue": "={{ $json.features }}"
+            },
+            {
+              "key": "Submission Date",
+              "type": "date",
+              "dateValue": "={{ $json.submittedAt }}"
+            }
+          ]
+        }
+      },
+      "id": "notion-create",
+      "name": "Create Notion Entry",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.1,
+      "position": [650, 400],
+      "credentials": {
+        "notionApi": {
+          "id": "notion-credentials",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "schedule-24h",
+      "name": "Schedule 24h Reminder",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 48
+            }
+          ]
+        }
+      },
+      "id": "schedule-48h",
+      "name": "Schedule 48h Reminder",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 600]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Form Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Form Data": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate PDF Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Notion Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PDF Content": {
+      "main": [
+        [
+          {
+            "node": "Convert to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to PDF": {
+      "main": [
+        [
+          {
+            "node": "Send Auto-Response Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Auto-Response Email": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+
+

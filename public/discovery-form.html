@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocky Web Studio - Client Discovery Form</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .form-header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .form-header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .progress-container {
+            padding: 30px 40px 20px;
+            background: #f8f9fa;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .form-body {
+            padding: 40px;
+        }
+
+        .form-section {
+            display: none;
+            animation: fadeIn 0.4s ease-in;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .section-title {
+            font-size: 24px;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .section-description {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+            margin-left: 4px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="date"],
+        .form-group input[type="url"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group.error input,
+        .form-group.error select,
+        .form-group.error textarea {
+            border-color: #e74c3c;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .form-group.error .error-message {
+            display: block;
+        }
+
+        .checkbox-group,
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-item,
+        .radio-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover,
+        .radio-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .checkbox-item input[type="checkbox"],
+        .radio-item input[type="radio"] {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item.checked,
+        .radio-item.checked {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .consent-group {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .consent-group label {
+            display: flex;
+            align-items: flex-start;
+            cursor: pointer;
+        }
+
+        .consent-group input[type="checkbox"] {
+            margin-right: 12px;
+            margin-top: 4px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .form-header {
+                padding: 30px 20px;
+            }
+
+            .form-header h1 {
+                font-size: 24px;
+            }
+
+            .form-body {
+                padding: 30px 20px;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .progress-container {
+                padding: 20px;
+            }
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .success-message.active {
+            display: block;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="form-header">
+            <h1>🎯 Client Discovery Form</h1>
+            <p>Help us understand your business and create the perfect solution</p>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 16.67%"></div>
+            </div>
+            <div class="progress-text" id="progressText">Step 1 of 6</div>
+        </div>
+
+        <div class="form-body">
+            <form id="discoveryForm">
+                <!-- Section 1: Company Info -->
+                <div class="form-section active" id="section1">
+                    <h2 class="section-title">Company Information</h2>
+                    <p class="section-description">Let's start with the basics about your company</p>
+
+                    <div class="form-group">
+                        <label>Company Name <span class="required">*</span></label>
+                        <input type="text" name="companyName" required>
+                        <div class="error-message">Please enter your company name</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Your Email <span class="required">*</span></label>
+                        <input type="email" name="email" required>
+                        <div class="error-message">Please enter a valid email address</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Company Size <span class="required">*</span></label>
+                        <select name="companySize" required>
+                            <option value="">Select size...</option>
+                            <option value="1-5">1-5 employees</option>
+                            <option value="6-20">6-20 employees</option>
+                            <option value="21-50">21-50 employees</option>
+                            <option value="51-200">51-200 employees</option>
+                            <option value="200+">200+ employees</option>
+                        </select>
+                        <div class="error-message">Please select company size</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Industry <span class="required">*</span></label>
+                        <select name="industry" required>
+                            <option value="">Select industry...</option>
+                            <option value="retail">Retail/E-commerce</option>
+                            <option value="healthcare">Healthcare</option>
+                            <option value="finance">Finance</option>
+                            <option value="education">Education</option>
+                            <option value="technology">Technology</option>
+                            <option value="real-estate">Real Estate</option>
+                            <option value="hospitality">Hospitality</option>
+                            <option value="manufacturing">Manufacturing</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <div class="error-message">Please select an industry</div>
+                    </div>
+
+                    <div class="form-actions">
+                        <div></div>
+                        <button type="button" class="btn btn-primary" onclick="nextSection()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Section 2: Business Goals -->
+                <div class="form-section" id="section2">
+                    <h2 class="section-title">Business Goals</h2>
+                    <p class="section-description">What challenges are you looking to solve?</p>
+
+                    <div class="form-group">
+                        <label>Main Problem or Challenge <span class="required">*</span></label>
+                        <textarea name="mainProblem" required placeholder="Describe the primary problem you're trying to solve..."></textarea>
+                        <div class="error-message">Please describe your main challenge</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Success Metric <span class="required">*</span></label>
+                        <textarea name="successMetric" required placeholder="How will you measure success? (e.g., increase sales by 30%, reduce bounce rate, etc.)"></textarea>
+                        <div class="error-message">Please describe how you'll measure success</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Customer <span class="required">*</span></label>
+                        <input type="text" name="targetCustomer" required placeholder="Who is your ideal customer?">
+                        <div class="error-message">Please describe your target customer</div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="prevSection()">← Back</button>
+                        <button type="button" class="btn btn-primary" onclick="nextSection()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Section 3: Design & Brand -->
+                <div class="form-section" id="section3">
+                    <h2 class="section-title">Design & Brand</h2>
+                    <p class="section-description">Tell us about your brand personality and style</p>
+
+                    <div class="form-group">
+                        <label>Brand Personality <span class="required">*</span></label>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Select all that apply:</p>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="brandPersonality" value="professional">
+                                <span>Professional</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="brandPersonality" value="creative">
+                                <span>Creative</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="brandPersonality" value="modern">
+                                <span>Modern</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="brandPersonality" value="friendly">
+                                <span>Friendly</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="brandPersonality" value="luxury">
+                                <span>Luxury</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="brandPersonality" value="minimalist">
+                                <span>Minimalist</span>
+                            </div>
+                        </div>
+                        <div class="error-message">Please select at least one brand personality trait</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Design Inspiration Links</label>
+                        <input type="url" name="inspiration1" placeholder="Website or design you like (optional)">
+                        <input type="url" name="inspiration2" placeholder="Another inspiration (optional)" style="margin-top: 12px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Content Readiness <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" name="contentReadiness" value="ready" required>
+                                <span>We have all content ready</span>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="contentReadiness" value="partial">
+                                <span>We have some content</span>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="contentReadiness" value="need-help">
+                                <span>We need help creating content</span>
+                            </div>
+                        </div>
+                        <div class="error-message">Please select content readiness</div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="prevSection()">← Back</button>
+                        <button type="button" class="btn btn-primary" onclick="nextSection()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Section 4: Features & Tech -->
+                <div class="form-section" id="section4">
+                    <h2 class="section-title">Features & Technology</h2>
+                    <p class="section-description">What features and integrations do you need?</p>
+
+                    <div class="form-group">
+                        <label>Required Features <span class="required">*</span></label>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Select all that apply:</p>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="features" value="ecommerce">
+                                <span>E-commerce / Online Store</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="features" value="blog">
+                                <span>Blog / Content Management</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="features" value="booking">
+                                <span>Booking System</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="features" value="forms">
+                                <span>Contact Forms</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="features" value="membership">
+                                <span>Membership / User Accounts</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="features" value="analytics">
+                                <span>Analytics Integration</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="features" value="seo">
+                                <span>SEO Optimization</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="features" value="mobile">
+                                <span>Mobile App</span>
+                            </div>
+                        </div>
+                        <div class="error-message">Please select at least one feature</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Integrations Needed</label>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Select all that apply:</p>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="integrations" value="payment">
+                                <span>Payment Gateway (Stripe, PayPal, etc.)</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="integrations" value="crm">
+                                <span>CRM Integration</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="integrations" value="email">
+                                <span>Email Marketing (Mailchimp, etc.)</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="integrations" value="social">
+                                <span>Social Media Integration</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="integrations" value="api">
+                                <span>Third-party API Integration</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>AI Features Interest</label>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Select all that apply:</p>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="aiFeatures" value="chatbot">
+                                <span>AI Chatbot</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="aiFeatures" value="content">
+                                <span>AI Content Generation</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="aiFeatures" value="personalization">
+                                <span>AI Personalization</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="aiFeatures" value="analytics">
+                                <span>AI Analytics</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="prevSection()">← Back</button>
+                        <button type="button" class="btn btn-primary" onclick="nextSection()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Section 5: Budget & Timeline -->
+                <div class="form-section" id="section5">
+                    <h2 class="section-title">Budget & Timeline</h2>
+                    <p class="section-description">Help us understand your budget and timeline expectations</p>
+
+                    <div class="form-group">
+                        <label>Budget Range <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" name="budget" value="under-5k" required>
+                                <span>Under $5,000</span>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="budget" value="5k-10k">
+                                <span>$5,000 - $10,000</span>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="budget" value="10k-25k">
+                                <span>$10,000 - $25,000</span>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="budget" value="25k-50k">
+                                <span>$25,000 - $50,000</span>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" name="budget" value="50k+">
+                                <span>$50,000+</span>
+                            </div>
+                        </div>
+                        <div class="error-message">Please select a budget range</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Launch Date</label>
+                        <input type="date" name="launchDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Additional Notes or Requirements</label>
+                        <textarea name="additionalNotes" placeholder="Any other information that would help us understand your project..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="prevSection()">← Back</button>
+                        <button type="button" class="btn btn-primary" onclick="nextSection()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Section 6: Review & Submit -->
+                <div class="form-section" id="section6">
+                    <h2 class="section-title">Review & Submit</h2>
+                    <p class="section-description">Please review your information before submitting</p>
+
+                    <div id="reviewContent" style="background: #f8f9fa; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                        <!-- Review content will be populated by JavaScript -->
+                    </div>
+
+                    <div class="consent-group">
+                        <label>
+                            <input type="checkbox" name="consent" required>
+                            <span>I consent to Rocky Web Studio using this information to prepare a proposal and contact me regarding my project. <span class="required">*</span></span>
+                        </label>
+                        <div class="error-message">Please provide consent to proceed</div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="prevSection()">← Back</button>
+                        <button type="button" class="btn btn-success" onclick="submitForm()">Submit & Download</button>
+                    </div>
+                </div>
+
+                <!-- Success Message -->
+                <div class="success-message" id="successMessage">
+                    <div class="success-icon">✅</div>
+                    <h2 style="color: #4CAF50; margin-bottom: 16px;">Form Submitted Successfully!</h2>
+                    <p style="color: #666; margin-bottom: 24px;">Your discovery form has been downloaded as JSON.</p>
+                    <button type="button" class="btn btn-primary" onclick="resetForm()">Start New Form</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentSection = 1;
+        const totalSections = 6;
+
+        // Initialize checkbox/radio styling
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeForm();
+            loadProgress();
+        });
+
+        function initializeForm() {
+            // Checkbox styling
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const item = this.closest('.checkbox-item');
+                    if (this.checked) {
+                        item.classList.add('checked');
+                    } else {
+                        item.classList.remove('checked');
+                    }
+                });
+            });
+
+            // Radio styling
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    document.querySelectorAll(`input[name="${this.name}"]`).forEach(r => {
+                        r.closest('.radio-item').classList.remove('checked');
+                    });
+                    this.closest('.radio-item').classList.add('checked');
+                });
+            });
+
+            // Auto-save progress (optional - clears on refresh for MVP)
+            const form = document.getElementById('discoveryForm');
+            form.addEventListener('input', debounce(saveProgress, 500));
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function saveProgress() {
+            const formData = new FormData(document.getElementById('discoveryForm'));
+            const data = Object.fromEntries(formData.entries());
+            
+            // Get all checkbox values
+            const checkboxes = {
+                brandPersonality: Array.from(document.querySelectorAll('input[name="brandPersonality"]:checked')).map(cb => cb.value),
+                features: Array.from(document.querySelectorAll('input[name="features"]:checked')).map(cb => cb.value),
+                integrations: Array.from(document.querySelectorAll('input[name="integrations"]:checked')).map(cb => cb.value),
+                aiFeatures: Array.from(document.querySelectorAll('input[name="aiFeatures"]:checked')).map(cb => cb.value)
+            };
+            
+            const progressData = {
+                ...data,
+                ...checkboxes,
+                currentSection: currentSection
+            };
+            
+            localStorage.setItem('discoveryFormProgress', JSON.stringify(progressData));
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('discoveryFormProgress');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    // Restore form values
+                    Object.keys(data).forEach(key => {
+                        if (key === 'currentSection') {
+                            currentSection = data[key];
+                            showSection(currentSection);
+                        } else if (Array.isArray(data[key])) {
+                            // Handle checkbox arrays
+                            data[key].forEach(value => {
+                                const checkbox = document.querySelector(`input[name="${key}"][value="${value}"]`);
+                                if (checkbox) {
+                                    checkbox.checked = true;
+                                    checkbox.dispatchEvent(new Event('change'));
+                                }
+                            });
+                        } else {
+                            const input = document.querySelector(`[name="${key}"]`);
+                            if (input && input.type !== 'checkbox' && input.type !== 'radio') {
+                                input.value = data[key];
+                            } else if (input && input.type === 'radio') {
+                                input.checked = input.value === data[key];
+                                if (input.checked) input.dispatchEvent(new Event('change'));
+                            }
+                        }
+                    });
+                    updateProgress();
+                } catch (e) {
+                    console.error('Error loading progress:', e);
+                }
+            }
+        }
+
+        function validateSection(section) {
+            const sectionElement = document.getElementById(`section${section}`);
+            const requiredFields = sectionElement.querySelectorAll('[required]');
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                const formGroup = field.closest('.form-group');
+                formGroup.classList.remove('error');
+
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    const name = field.name;
+                    const checked = sectionElement.querySelectorAll(`input[name="${name}"]:checked`).length > 0;
+                    if (!checked) {
+                        isValid = false;
+                        formGroup.classList.add('error');
+                    }
+                } else if (field.type === 'email') {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!field.value || !emailRegex.test(field.value)) {
+                        isValid = false;
+                        formGroup.classList.add('error');
+                    }
+                } else if (!field.value.trim()) {
+                    isValid = false;
+                    formGroup.classList.add('error');
+                }
+            });
+
+            return isValid;
+        }
+
+        function nextSection() {
+            if (!validateSection(currentSection)) {
+                return;
+            }
+
+            if (currentSection < totalSections) {
+                currentSection++;
+                showSection(currentSection);
+                updateProgress();
+            }
+        }
+
+        function prevSection() {
+            if (currentSection > 1) {
+                currentSection--;
+                showSection(currentSection);
+                updateProgress();
+            }
+        }
+
+        function showSection(section) {
+            document.querySelectorAll('.form-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById(`section${section}`).classList.add('active');
+
+            // Populate review section
+            if (section === 6) {
+                populateReview();
+            }
+        }
+
+        function updateProgress() {
+            const percentage = (currentSection / totalSections) * 100;
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = `Step ${currentSection} of ${totalSections}`;
+        }
+
+        function populateReview() {
+            const formData = new FormData(document.getElementById('discoveryForm'));
+            const data = Object.fromEntries(formData.entries());
+            
+            // Get checkbox arrays
+            const brandPersonality = Array.from(document.querySelectorAll('input[name="brandPersonality"]:checked')).map(cb => cb.value);
+            const features = Array.from(document.querySelectorAll('input[name="features"]:checked')).map(cb => cb.value);
+            const integrations = Array.from(document.querySelectorAll('input[name="integrations"]:checked')).map(cb => cb.value);
+            const aiFeatures = Array.from(document.querySelectorAll('input[name="aiFeatures"]:checked')).map(cb => cb.value);
+
+            const reviewHTML = `
+                <div style="line-height: 1.8;">
+                    <p><strong>Company:</strong> ${data.companyName || 'N/A'}</p>
+                    <p><strong>Email:</strong> ${data.email || 'N/A'}</p>
+                    <p><strong>Company Size:</strong> ${data.companySize || 'N/A'}</p>
+                    <p><strong>Industry:</strong> ${data.industry || 'N/A'}</p>
+                    <hr style="margin: 16px 0; border: none; border-top: 1px solid #ddd;">
+                    <p><strong>Main Problem:</strong> ${data.mainProblem || 'N/A'}</p>
+                    <p><strong>Success Metric:</strong> ${data.successMetric || 'N/A'}</p>
+                    <p><strong>Target Customer:</strong> ${data.targetCustomer || 'N/A'}</p>
+                    <hr style="margin: 16px 0; border: none; border-top: 1px solid #ddd;">
+                    <p><strong>Brand Personality:</strong> ${brandPersonality.join(', ') || 'N/A'}</p>
+                    <p><strong>Content Readiness:</strong> ${data.contentReadiness || 'N/A'}</p>
+                    <hr style="margin: 16px 0; border: none; border-top: 1px solid #ddd;">
+                    <p><strong>Features:</strong> ${features.join(', ') || 'N/A'}</p>
+                    <p><strong>Integrations:</strong> ${integrations.join(', ') || 'N/A'}</p>
+                    <p><strong>AI Features:</strong> ${aiFeatures.join(', ') || 'None'}</p>
+                    <hr style="margin: 16px 0; border: none; border-top: 1px solid #ddd;">
+                    <p><strong>Budget:</strong> ${data.budget || 'N/A'}</p>
+                    <p><strong>Launch Date:</strong> ${data.launchDate || 'Not specified'}</p>
+                </div>
+            `;
+
+            document.getElementById('reviewContent').innerHTML = reviewHTML;
+        }
+
+        function submitForm() {
+            if (!validateSection(6)) {
+                return;
+            }
+
+            const formData = new FormData(document.getElementById('discoveryForm'));
+            const data = Object.fromEntries(formData.entries());
+            
+            // Collect all checkbox values
+            const brandPersonality = Array.from(document.querySelectorAll('input[name="brandPersonality"]:checked')).map(cb => cb.value);
+            const features = Array.from(document.querySelectorAll('input[name="features"]:checked')).map(cb => cb.value);
+            const integrations = Array.from(document.querySelectorAll('input[name="integrations"]:checked')).map(cb => cb.value);
+            const aiFeatures = Array.from(document.querySelectorAll('input[name="aiFeatures"]:checked')).map(cb => cb.value);
+
+            const submissionData = {
+                ...data,
+                brandPersonality,
+                features,
+                integrations,
+                aiFeatures,
+                submittedAt: new Date().toISOString()
+            };
+
+            // Download as JSON
+            const jsonString = JSON.stringify(submissionData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rocky-web-studio-discovery-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Show success message
+            document.querySelectorAll('.form-section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById('successMessage').classList.add('active');
+            
+            // Clear saved progress
+            localStorage.removeItem('discoveryFormProgress');
+        }
+
+        function resetForm() {
+            document.getElementById('discoveryForm').reset();
+            currentSection = 1;
+            showSection(1);
+            updateProgress();
+            document.getElementById('successMessage').classList.remove('active');
+            document.querySelectorAll('.checkbox-item, .radio-item').forEach(item => {
+                item.classList.remove('checked');
+            });
+            document.querySelectorAll('.form-group').forEach(group => {
+                group.classList.remove('error');
+            });
+        }
+    </script>
+</body>
+</html>
+
+

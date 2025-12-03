@@ -99,3 +99,205 @@ export const packagePrices: Record<PackageType, number> = {
   standard: 29,
   wedding: 149,
 };
+
+/**
+ * Package name mapping for display
+ */
+export const packageNames: Record<PackageType, string> = {
+  express: "Express Personal",
+  standard: "Standard Occasion",
+  wedding: "Wedding Trio",
+};
+
+// ============================================================================
+// GA4 E-commerce Tracking Functions
+// ============================================================================
+
+/**
+ * Track begin_checkout event (when user lands on order page)
+ */
+export function trackBeginCheckout(items: Array<{
+  item_id: string;
+  item_name: string;
+  price: number;
+  quantity?: number;
+}>): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: begin_checkout", items);
+    return;
+  }
+
+  window.gtag("event", "begin_checkout", {
+    currency: "AUD",
+    value: items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0),
+    items: items,
+  });
+}
+
+/**
+ * Track add_payment_info event (when package is selected)
+ */
+export function trackAddPaymentInfo(
+  packageType: PackageType,
+  packagePrice: number
+): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: add_payment_info", { packageType, packagePrice });
+    return;
+  }
+
+  window.gtag("event", "add_payment_info", {
+    currency: "AUD",
+    value: packagePrice,
+    items: [
+      {
+        item_id: packageType,
+        item_name: packageNames[packageType] || packageType,
+        price: packagePrice,
+        quantity: 1,
+        item_category: "custom_songs",
+      },
+    ],
+  });
+}
+
+/**
+ * Track apply_promotion event (when discount code is applied)
+ */
+export function trackApplyPromotion(
+  promotionId: string,
+  promotionName: string,
+  discountAmount: number
+): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: apply_promotion", {
+      promotionId,
+      promotionName,
+      discountAmount,
+    });
+    return;
+  }
+
+  window.gtag("event", "apply_promotion", {
+    currency: "AUD",
+    promotion_id: promotionId,
+    promotion_name: promotionName,
+    value: discountAmount,
+  });
+}
+
+/**
+ * Track purchase event (on successful payment)
+ */
+export function trackPurchase(
+  transactionId: string,
+  items: Array<{
+    item_id: string;
+    item_name: string;
+    price: number;
+    quantity?: number;
+  }>,
+  totalValue: number,
+  discount?: number,
+  promotionId?: string
+): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: purchase", {
+      transactionId,
+      items,
+      totalValue,
+      discount,
+    });
+    return;
+  }
+
+  window.gtag("event", "purchase", {
+    transaction_id: transactionId,
+    currency: "AUD",
+    value: totalValue,
+    items: items,
+    ...(discount && { discount: discount }),
+    ...(promotionId && { promotion_id: promotionId }),
+  });
+}
+
+// ============================================================================
+// Custom Event Tracking
+// ============================================================================
+
+/**
+ * Track discount_code_applied event
+ */
+export function trackDiscountCodeApplied(code: string, discountAmount: number): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: discount_code_applied", { code, discountAmount });
+    return;
+  }
+
+  window.gtag("event", "discount_code_applied", {
+    event_category: "Custom Songs",
+    event_label: code,
+    value: discountAmount,
+    currency: "AUD",
+    promotion_id: code,
+    promotion_name: code,
+  });
+}
+
+/**
+ * Track discount_code_failed event
+ */
+export function trackDiscountCodeFailed(code: string): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: discount_code_failed", { code });
+    return;
+  }
+
+  window.gtag("event", "discount_code_failed", {
+    event_category: "Custom Songs",
+    event_label: code,
+  });
+}
+
+/**
+ * Track package_selected event
+ */
+export function trackPackageSelected(packageType: PackageType, packagePrice: number): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: package_selected", { packageType, packagePrice });
+    return;
+  }
+
+  window.gtag("event", "package_selected", {
+    event_category: "Custom Songs",
+    event_label: packageNames[packageType] || packageType,
+    value: packagePrice,
+    currency: "AUD",
+    package_type: packageType,
+  });
+}
+
+/**
+ * Track form_abandoned event (when user leaves mid-completion)
+ */
+export function trackFormAbandoned(
+  step: string,
+  fieldsCompleted: number,
+  totalFields: number
+): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: form_abandoned", {
+      step,
+      fieldsCompleted,
+      totalFields,
+    });
+    return;
+  }
+
+  window.gtag("event", "form_abandoned", {
+    event_category: "Custom Songs",
+    event_label: step,
+    value: Math.round((fieldsCompleted / totalFields) * 100),
+    completion_percentage: Math.round((fieldsCompleted / totalFields) * 100),
+  });
+}

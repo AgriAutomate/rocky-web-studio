@@ -1,0 +1,42 @@
+[33m19067bf[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: add MOBILE_MESSAGE_SENDER_ID validation to prevent silent failures
+[33m8140bc7[m fix: add visible pricing to service page pricing cards
+[33m51327c1[m feat: Add Stripe webhook handler, discount codes, pricing updates, and deployment checklist
+[33meee7b13[m Merge remote changes and resolve conflicts
+[33m456c0c0[m[33m ([m[1;35mrefs/stash[m[33m)[m On main: Stash untracked files before pull
+[33m88549fa[m index on main: e4f3550 fix: remove apostrophes and comma from portfolio titles
+[33m3815c37[m untracked files on main: e4f3550 fix: remove apostrophes and comma from portfolio titles
+[33me4f3550[m fix: remove apostrophes and comma from portfolio titles
+[33ma8f3458[m fix: replace entire file with Cursor-corrected version (clean UTF-8 encoding)
+[33m427616e[m fix: add missing .map() function to close portfolio array
+[33m601ff0f[m fix: remove remaining apostrophe from Portia title
+[33meadb1aa[m fix: remove apostrophes from song titles to fix parsing errors
+[33m052750b[m Add files via upload
+[33m5b53860[m Delete public/Home, Down Under.mp4
+[33m7a7b346[m Delete public/Loved Out Loud (Portia's DnB Assault).mp4
+[33me7d43f6[m Delete public/Wheel of Fortune (McFly's Vindication).mp4
+[33mcb13f13[m refactor: simplify video filenames without special characters
+[33m8f1bc29[m fix: add missing .map() function to close portfolio array
+[33mb168f8d[m fix: replace curly apostrophes with ASCII apostrophes
+[33mc39cc87[m fix: remove extra brace, use array bracket for portfolio data
+[33m40049a3[m fix: use double quotes in portfolio array to handle apostrophes
+[33m731687a[m fix: escape apostrophes in portfolio video file paths
+[33mc52258c[m fix: correct portfolio data structure for video URLs
+[33m5dfa101[m feat: add video players to Custom Songs portfolio
+[33m5db4706[m feat: add video samples for Custom Songs portfolio
+[33mc37e625[m feat: update Custom Songs portfolio with new sample tracks
+[33m83adecf[m feat: update order API package prices
+[33m5f2315a[m feat: update order form package options with new pricing
+[33mf3e1e72[m feat: update Custom Songs pricing to market penetration rates
+[33mc71cad8[m feat: add analytics tracking utility for Custom Songs
+[33mc1df779[m feat: add Custom Songs banner to homepage
+[33m31fc2b7[m feat: add Custom Songs promotional banner component
+[33m12f556a[m feat: add Custom Songs service to services grid
+[33mddbce04[m feat: add Custom Songs Terms & Conditions page
+[33m2781452[m feat: add Portfolio section to Custom Songs page
+[33m2ad6ab3[m fix: update Custom Songs CTA to link to order form
+[33m0a06a1d[m feat: add Custom Songs order API endpoint
+[33m0e8fd29[m feat: add Custom Songs order form page
+[33mba5c42a[m feat: add Custom AI Songs service page
+[33ma13f4bd[m Add ABN to footer
+[33m96bed4e[m Update contact form email to hello@rockywebstudio.com.au
+[33mf105222[m Update footer email to hello@rockywebstudio.com.au

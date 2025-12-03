@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Let's Build Your Web Project – Rocky Web Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 60px 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+
+        .header p {
+            font-size: 20px;
+            opacity: 0.95;
+            line-height: 1.5;
+        }
+
+        .content {
+            padding: 50px 40px;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            text-decoration: none;
+            padding: 20px 50px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(76, 175, 80, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(76, 175, 80, 0.5);
+        }
+
+        .info-section {
+            margin-bottom: 40px;
+        }
+
+        .info-section h2 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .info-section p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .benefit-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .benefit-card h3 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .benefit-card p {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .trust-signals {
+            background: #f0fdfa;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 40px 0;
+            text-align: center;
+        }
+
+        .trust-signals h3 {
+            color: #0d9488;
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .trust-badges {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        .trust-badge {
+            text-align: center;
+        }
+
+        .trust-badge strong {
+            display: block;
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .trust-badge span {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .faq-section {
+            margin-top: 50px;
+        }
+
+        .faq-item {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .faq-item h3 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .faq-item p {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .footer {
+            background: #1e293b;
+            padding: 40px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .footer a {
+            color: #94a3b8;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        .footer a:hover {
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 40px 20px;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .header p {
+                font-size: 18px;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .cta-button {
+                padding: 18px 40px;
+                font-size: 18px;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .benefits-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .trust-badges {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Let's Build Your Web Project</h1>
+            <p>5 Minutes to a Custom Proposal</p>
+        </div>
+
+        <div class="content">
+            <div class="cta-section">
+                <p style="font-size: 18px; color: #666; margin-bottom: 30px;">
+                    Answer a few questions and we'll create a custom proposal tailored to your business.
+                </p>
+                <a href="https://form.typeform.com/to/YOUR_FORM_ID" class="cta-button">
+                    Start My Discovery Form
+                </a>
+            </div>
+
+            <!-- Why We Ask -->
+            <div class="info-section">
+                <h2>Why We Ask</h2>
+                <p>
+                    This form helps us understand your exact needs, goals, and challenges. The more we know about your business, the better we can tailor our recommendations and create a proposal that's perfect for you.
+                </p>
+                <p>
+                    We're not here to waste your time—every question serves a purpose in helping us deliver the best solution for your business.
+                </p>
+            </div>
+
+            <!-- Time Estimate -->
+            <div class="info-section">
+                <h2>⏱️ Quick & Easy</h2>
+                <p>
+                    Takes just <strong>5-8 minutes</strong> to complete. We've designed it to be fast and straightforward—no lengthy questionnaires or unnecessary questions.
+                </p>
+            </div>
+
+            <!-- What Happens Next -->
+            <div class="info-section">
+                <h2>What Happens Next</h2>
+                <p>
+                    Once you submit the form, here's what you can expect:
+                </p>
+                <ol style="margin-left: 20px; color: #666; font-size: 16px; line-height: 1.8;">
+                    <li style="margin-bottom: 10px;">We review your answers and prepare a custom proposal</li>
+                    <li style="margin-bottom: 10px;">You receive your proposal within 24 hours</li>
+                    <li style="margin-bottom: 10px;">We schedule a free consultation call to discuss your project</li>
+                    <li style="margin-bottom: 10px;">You decide if we're the right fit—no pressure, no obligation</li>
+                </ol>
+            </div>
+
+            <!-- Security/Privacy -->
+            <div class="info-section">
+                <h2>🔒 Your Data is Secure</h2>
+                <p>
+                    Your information is secure and never shared with third parties. We respect your privacy and use your data solely to create your custom proposal and communicate about your project.
+                </p>
+                <p>
+                    <a href="/privacy" style="color: #667eea; text-decoration: none;">View our Privacy Policy →</a>
+                </p>
+            </div>
+
+            <!-- Benefits -->
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <h3>✅ Custom Proposal</h3>
+                    <p>Get a custom proposal within 24 hours, tailored specifically to your business needs and goals.</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>💰 Budget Aligned</h3>
+                    <p>Our recommendations are aligned with your budget and timeline, ensuring realistic expectations.</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>📍 Local Focus</h3>
+                    <p>Built for Central Queensland businesses. We understand local market needs and challenges.</p>
+                </div>
+            </div>
+
+            <!-- Trust Signals -->
+            <div class="trust-signals">
+                <h3>Why Businesses Choose Rocky Web Studio</h3>
+                <div class="trust-badges">
+                    <div class="trust-badge">
+                        <strong>100+</strong>
+                        <span>Happy Clients</span>
+                    </div>
+                    <div class="trust-badge">
+                        <strong>Industry Leaders</strong>
+                        <span>in AI Automation</span>
+                    </div>
+                    <div class="trust-badge">
+                        <strong>Rockhampton-Based</strong>
+                        <span>Since 2020</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="faq-section">
+                <h2 style="color: #667eea; font-size: 24px; margin-bottom: 20px;">Frequently Asked Questions</h2>
+                
+                <div class="faq-item">
+                    <h3>How long does the form take to complete?</h3>
+                    <p>Most people complete it in 5-8 minutes. We've designed it to be quick and straightforward.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>What if I don't know all the answers?</h3>
+                    <p>That's okay! Answer what you can, and we'll discuss the rest during our consultation call.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Is there any obligation after submitting?</h3>
+                    <p>None at all. This is just to help us understand your needs and provide you with a custom proposal.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>When will I receive my proposal?</h3>
+                    <p>You'll receive your custom proposal within 24 hours of submitting the form.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>What if I have questions before submitting?</h3>
+                    <p>Feel free to reach out! Email us at hello@rockywebstudio.com.au or call us—we're happy to help.</p>
+                </div>
+            </div>
+
+            <!-- Final CTA -->
+            <div class="cta-section" style="margin-top: 50px;">
+                <h2 style="color: #333; font-size: 28px; margin-bottom: 20px;">Ready to Get Started?</h2>
+                <p style="font-size: 18px; color: #666; margin-bottom: 30px;">
+                    Let's build something amazing together. Start your discovery form now.
+                </p>
+                <a href="https://form.typeform.com/to/YOUR_FORM_ID" class="cta-button">
+                    Start My Discovery Form
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p style="margin-bottom: 20px; font-size: 16px; font-weight: 600;">Rocky Web Studio</p>
+            <p style="margin-bottom: 20px; font-size: 14px;">Custom AI Songs & Web Solutions for Central Queensland</p>
+            <div style="margin-bottom: 20px;">
+                <a href="mailto:hello@rockywebstudio.com.au">📧 hello@rockywebstudio.com.au</a>
+                <a href="https://rockywebstudio.com.au">🌐 rockywebstudio.com.au</a>
+            </div>
+            <div>
+                <a href="https://facebook.com/rockywebstudio">Facebook</a>
+                <a href="https://linkedin.com/company/rockywebstudio">LinkedIn</a>
+                <a href="https://instagram.com/rockywebstudio">Instagram</a>
+            </div>
+            <p style="margin-top: 30px; font-size: 12px;">
+                <a href="/privacy">Privacy Policy</a> | 
+                <a href="/terms">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+
+

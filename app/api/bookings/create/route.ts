@@ -1,6 +1,7 @@
 import { format, parse, isValid } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
-import { Booking, saveBooking } from "@/lib/bookings/storage";
+import type { Booking } from "@/lib/bookings/storage";
+import { kvBookingStorage } from "@/lib/kv/bookings";
 import { sendSMS } from "@/lib/sms";
 import { logSMSAttempt } from "@/lib/sms/storage";
 import {
@@ -166,11 +167,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO(production): replace mock ID + logging-only flow with persistent storage.
-    // Generate mock bookingId
+    // Generate bookingId and persist to KV-backed storage
     const bookingId = `BK${Date.now()}`;
 
-    saveBooking({
+    await kvBookingStorage.save({
       id: bookingId,
       bookingId,
       customerName: name,

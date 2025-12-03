@@ -1,0 +1,346 @@
+{
+  "name": "Notion Discovery Form Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discovery-form-notion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "notion-discovery-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse form data and prepare for Notion\nconst body = $input.item.json.body || $input.item.json;\n\n// Map form fields to Notion properties\nconst formData = {\n  companyName: body.companyName || body['Company Name'] || '',\n  contactName: body.contactName || body['Contact Name'] || '',\n  email: body.email || body.Email || '',\n  phone: body.phone || body.Phone || '',\n  industry: body.industry || body.Industry || 'Other',\n  companySize: body.companySize || body['Company Size'] || '',\n  budget: body.budget || body.Budget || '',\n  features: Array.isArray(body.features) ? body.features : (body.Features ? body.Features.split(', ') : []),\n  aiInterests: Array.isArray(body.aiFeatures) ? body.aiFeatures : (body['AI Features'] ? body['AI Features'].split(', ') : ['None']),\n  mainProblem: body.mainProblem || body['Main Problem'] || '',\n  successMetric: body.successMetric || body['Success Metric'] || '',\n  targetCustomer: body.targetCustomer || body['Target Customer'] || '',\n  submittedAt: body.submittedAt || new Date().toISOString(),\n  formLink: body.formLink || 'https://form.typeform.com/to/...'\n};\n\n// Map industry to Notion select options\nconst industryMap = {\n  'Retail / E-commerce': 'Retail',\n  'Healthcare': 'Health',\n  'Finance / Banking': 'Services',\n  'Education': 'Services',\n  'Technology / SaaS': 'Tech',\n  'Real Estate': 'Real Estate',\n  'Hospitality / Tourism': 'Services',\n  'Manufacturing': 'Services',\n  'Professional Services': 'Services',\n  'Non-profit': 'Non-Profit',\n  'Other': 'Other'\n};\n\nformData.industry = industryMap[formData.industry] || 'Other';\n\n// Map company size\nconst sizeMap = {\n  'Solo (Just me)': 'Solo',\n  '2-5 employees': '2-5',\n  '6-20 employees': '6-20',\n  '21-50 employees': '20+',\n  '51-200 employees': '20+',\n  '200+ employees': '20+'\n};\n\nformData.companySize = sizeMap[formData.companySize] || formData.companySize;\n\n// Map budget\nconst budgetMap = {\n  'Under $2,000': 'Under $2K',\n  '$2,000 - $5,000': '$2-5K',\n  '$5,000 - $10,000': '$5-10K',\n  '$10,000 - $25,000': '$10K+',\n  '$25,000 - $50,000': '$10K+',\n  '$50,000+': '$10K+'\n};\n\nformData.budget = budgetMap[formData.budget] || formData.budget;\n\nreturn formData;"
+      },
+      "id": "parse-form-data",
+      "name": "Parse Form Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_CLIENT_PROJECTS_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.companyName }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Contact Name",
+              "type": "richText",
+              "textValue": "={{ $json.contactName || '' }}"
+            },
+            {
+              "key": "Email",
+              "type": "email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Phone",
+              "type": "phoneNumber",
+              "phoneNumberValue": "={{ $json.phone || '' }}"
+            },
+            {
+              "key": "Industry",
+              "type": "select",
+              "selectValue": "={{ $json.industry }}"
+            },
+            {
+              "key": "Company Size",
+              "type": "select",
+              "selectValue": "={{ $json.companySize }}"
+            },
+            {
+              "key": "Budget",
+              "type": "select",
+              "selectValue": "={{ $json.budget }}"
+            },
+            {
+              "key": "Features",
+              "type": "multiSelect",
+              "multiSelectValue": "={{ $json.features }}"
+            },
+            {
+              "key": "AI Interests",
+              "type": "multiSelect",
+              "multiSelectValue": "={{ $json.aiInterests }}"
+            },
+            {
+              "key": "Status",
+              "type": "select",
+              "selectValue": "Discovery"
+            },
+            {
+              "key": "Submission Date",
+              "type": "date",
+              "dateValue": "={{ $json.submittedAt }}"
+            },
+            {
+              "key": "Discovery Form Link",
+              "type": "url",
+              "urlValue": "={{ $json.formLink }}"
+            }
+          ]
+        }
+      },
+      "id": "create-notion-project",
+      "name": "Create Notion Project",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "notion-credentials",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_NOTES_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ 'Discovery Form - ' + $('Parse Form Data').item.json.companyName }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Project",
+              "type": "relation",
+              "relationValue": "={{ $('Create Notion Project').item.json.id }}"
+            },
+            {
+              "key": "Note Type",
+              "type": "select",
+              "selectValue": "Discovery Notes"
+            },
+            {
+              "key": "Date",
+              "type": "date",
+              "dateValue": "={{ $('Parse Form Data').item.json.submittedAt }}"
+            },
+            {
+              "key": "Content",
+              "type": "richText",
+              "textValue": "={{ 'Discovery form submitted via Typeform.\\n\\nMain Problem: ' + $('Parse Form Data').item.json.mainProblem + '\\n\\nSuccess Metric: ' + $('Parse Form Data').item.json.successMetric + '\\n\\nTarget Customer: ' + $('Parse Form Data').item.json.targetCustomer }}"
+            },
+            {
+              "key": "Tags",
+              "type": "multiSelect",
+              "multiSelectValue": "Important"
+            }
+          ]
+        }
+      },
+      "id": "create-notion-note",
+      "name": "Create Notion Note",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.1,
+      "position": [850, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "notion-credentials",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "consultation-scheduled",
+              "leftValue": "={{ $('Parse Form Data').item.json.consultationDate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-consultation-date",
+      "name": "Check Consultation Date",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_TIMELINE_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ 'Consultation - ' + $('Parse Form Data').item.json.companyName }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Project",
+              "type": "relation",
+              "relationValue": "={{ $('Create Notion Project').item.json.id }}"
+            },
+            {
+              "key": "Event Type",
+              "type": "select",
+              "selectValue": "Consultation"
+            },
+            {
+              "key": "Date",
+              "type": "date",
+              "dateValue": "={{ $('Parse Form Data').item.json.consultationDate }}"
+            },
+            {
+              "key": "Status",
+              "type": "select",
+              "selectValue": "Scheduled"
+            },
+            {
+              "key": "Description",
+              "type": "richText",
+              "textValue": "Initial consultation call scheduled from discovery form submission."
+            }
+          ]
+        }
+      },
+      "id": "create-timeline-event",
+      "name": "Create Timeline Event",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.1,
+      "position": [1250, 200],
+      "credentials": {
+        "notionApi": {
+          "id": "notion-credentials",
+          "name": "Notion API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Form Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Form Data": {
+      "main": [
+        [
+          {
+            "node": "Create Notion Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Project": {
+      "main": [
+        [
+          {
+            "node": "Create Notion Note",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Consultation Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Note": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Consultation Date": {
+      "main": [
+        [
+          {
+            "node": "Create Timeline Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Timeline Event": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+
+

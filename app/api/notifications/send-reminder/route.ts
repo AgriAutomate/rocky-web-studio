@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Booking, getAllBookings, markReminderSent } from "@/lib/bookings/storage";
+import type { Booking } from "@/lib/bookings/storage";
+import { kvBookingStorage } from "@/lib/kv/bookings";
 import { sendSMS } from "@/lib/sms";
 import {
   generate24HourReminder,
@@ -90,19 +91,18 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     const now = new Date();
     const dueReminders: Array<{ booking: Booking; config: ReminderConfig }> = [];
 
-    reminderConfigs.forEach((config) => {
-      const eligibleBookings = getAllBookings().filter((booking) => {
-        if (!booking.smsOptIn) return false;
-        if (booking[config.flag]) return false;
-        const appointment = calculateAppointmentDate(booking);
-        const diffHours = (appointment.getTime() - now.getTime()) / (1000 * 60 * 60);
-        return diffHours <= config.hoursBefore && diffHours > config.hoursBefore - 1;
-      });
-      eligibleBookings.forEach((booking) => dueReminders.push({ booking, config }));
-    });
+    for (const config of reminderConfigs) {
+      const eligibleBookings = await kvBookingStorage.getDueBookings(
+        config.hoursBefore
+      );
+      eligibleBookings
+        .filter((booking) => !booking[config.flag])
+        .forEach((booking) => dueReminders.push({ booking, config }));
+    }
 
     const outcomes: ReminderResult[] = [];
     for (const entry of dueReminders) {
+      const outcome = await sendReminder(entry.booking, entry.config);
       const outcome = await sendReminder(entry.booking, entry.config);
       outcomes.push(outcome);
     }

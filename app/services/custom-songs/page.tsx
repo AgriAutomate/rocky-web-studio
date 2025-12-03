@@ -35,6 +35,8 @@ export default function CustomSongsPage() {
         "2 revision rounds",
         "Basic consultation",
       ],
+      packageValue: "standard",
+      orderLink: "/services/custom-songs/order?package=standard",
     },
     {
       name: "Express Personal",
@@ -46,6 +48,8 @@ export default function CustomSongsPage() {
         "1 revision round",
         "Priority processing",
       ],
+      packageValue: "express",
+      orderLink: "/services/custom-songs/order?package=express",
     },
     {
       name: "Wedding Trio",
@@ -58,6 +62,8 @@ export default function CustomSongsPage() {
         "Extended consultation",
       ],
       highlighted: true,
+      packageValue: "wedding",
+      orderLink: "/services/custom-songs/order?package=wedding",
     },
   ];
 

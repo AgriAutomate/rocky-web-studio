@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle, Loader2, Music } from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle, Loader2, Music, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { StripeProvider } from "./components/StripeProvider";
+import { OrderSummary } from "./components/OrderSummary";
+import {
+  trackBeginCheckout,
+  trackAddPaymentInfo,
+  trackApplyPromotion,
+  trackPurchase,
+  trackDiscountCodeApplied,
+  trackDiscountCodeFailed,
+  trackPackageSelected,
+  trackFormAbandoned,
+  packageNames,
+  type PackageType,
+} from "@/lib/analytics";
 
-type Step = "form" | "confirmation";
+type Step = "form" | "payment" | "processing";
 
 interface OrderFormData {
   name: string;
@@ -36,6 +52,11 @@ interface OrderResponse {
   orderId?: string;
   message?: string;
   error?: string;
+  paymentIntentId?: string;
+  clientSecret?: string;
+  discountApplied?: boolean;
+  finalAmount?: number;
+  originalAmount?: number;
 }
 
 const occasionOptions = [
@@ -77,18 +98,141 @@ const genreOptions = [
   "Let Diamonds McFly decide",
 ];
 
-export default function CustomSongOrderPage() {
+function PaymentForm({
+  orderId,
+  finalPrice,
+  packageType,
+  discountAmount,
+  promoCode,
+  onPaymentSuccess,
+}: {
+  orderId: string;
+  finalPrice: number;
+  packageType: PackageType | null;
+  discountAmount: number;
+  promoCode: string | null;
+  onPaymentSuccess: (paymentIntentId: string) => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setError(submitError.message || "Please check your payment details");
+        setIsProcessing(false);
+        return;
+      }
+
+      const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/services/custom-songs/order/success?orderId=${orderId}`,
+        },
+        redirect: "if_required",
+      });
+
+      if (confirmError) {
+        setError(confirmError.message || "Payment failed. Please try again.");
+        setIsProcessing(false);
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        // Track purchase event
+        if (packageType) {
+          trackPurchase(
+            paymentIntent.id,
+            [
+              {
+                item_id: packageType,
+                item_name: packageNames[packageType] || packageType,
+                price: finalPrice,
+                quantity: 1,
+              },
+            ],
+            finalPrice,
+            discountAmount > 0 ? discountAmount : undefined,
+            promoCode || undefined
+          );
+        }
+        onPaymentSuccess(paymentIntent.id);
+      } else {
+        setError("Payment processing. Please wait...");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <div className="bg-slate-50 rounded-lg p-4 sm:p-6 border border-slate-200">
+        <PaymentElement />
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-red-800 break-words">Payment Error</p>
+            <p className="text-sm text-red-700 mt-1 break-words">{error}</p>
+          </div>
+        </div>
+      )}
+
+      <Button
+        type="submit"
+        className="w-full bg-teal-600 hover:bg-teal-700 text-base sm:text-lg py-4 sm:py-6 min-h-[44px] sm:min-h-0 font-semibold"
+        disabled={!stripe || isProcessing}
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            <span className="hidden sm:inline">Processing Payment...</span>
+            <span className="sm:hidden">Processing...</span>
+          </>
+        ) : (
+          `Pay $${finalPrice.toFixed(2)} AUD`
+        )}
+      </Button>
+    </form>
+  );
+}
+
+function CustomSongOrderPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("form");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingIntent, setIsCreatingIntent] = useState(false);
   const [orderId, setOrderId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
   const [appliedPromoCode, setAppliedPromoCode] = useState<string>("");
   const [promoError, setPromoError] = useState<string>("");
+  const [formError, setFormError] = useState<string>("");
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  
+  // Get package from URL parameter
+  const packageParam = searchParams.get("package");
+  const validPackages = ["standard", "express", "wedding"];
+  const initialPackage = packageParam && validPackages.includes(packageParam) ? packageParam : "";
+  
   const [formData, setFormData] = useState<OrderFormData>({
     name: "",
     email: "",
     phone: "",
     occasion: "",
-    package: "",
+    package: initialPackage,
     eventDate: "",
     storyDetails: "",
     mood: "",
@@ -96,17 +240,49 @@ export default function CustomSongOrderPage() {
     additionalInfo: "",
     promoCode: "",
   });
+  
+  // Update package if URL parameter changes
+  useEffect(() => {
+    if (packageParam && validPackages.includes(packageParam) && formData.package !== packageParam) {
+      setFormData((prev) => ({ ...prev, package: packageParam }));
+    }
+  }, [packageParam, formData.package]);
+
+  // Track form abandonment
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Count completed fields
+      const requiredFields = ['name', 'email', 'occasion', 'package', 'storyDetails'];
+      const optionalFields = ['phone', 'eventDate', 'mood', 'genre', 'additionalInfo'];
+      const totalFields = requiredFields.length + optionalFields.length;
+      let completedFields = 0;
+
+      requiredFields.forEach((field) => {
+        if (formData[field as keyof OrderFormData]) completedFields++;
+      });
+      optionalFields.forEach((field) => {
+        if (formData[field as keyof OrderFormData]) completedFields++;
+      });
+
+      if (completedFields > 0 && step === 'form') {
+        trackFormAbandoned('order_form', completedFields, totalFields);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [formData, step]);
 
   const handleInputChange = (field: keyof OrderFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear promo error when user types
-    if (field === "promoCode") {
+    setFormError("");
+    // Clear promo error and applied code when user types (only if code was not successfully applied)
+    if (field === "promoCode" && !appliedPromoCode) {
       setPromoError("");
-      setAppliedPromoCode("");
     }
   };
 
-  const handleApplyPromoCode = () => {
+  const handleApplyPromoCode = async () => {
     const code = formData.promoCode?.trim().toUpperCase() || "";
     if (!code) {
       setPromoError("Please enter a promo code");
@@ -114,13 +290,36 @@ export default function CustomSongOrderPage() {
       return;
     }
 
+    setIsValidatingPromo(true);
+    setPromoError("");
+
+    // Simulate validation delay for better UX
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Case-insensitive validation
     if (code === "LAUNCH20") {
       setAppliedPromoCode("LAUNCH20");
       setPromoError("");
+      
+      // Track successful discount code application
+      const discountAmount = basePrice * 0.2;
+      trackDiscountCodeApplied("LAUNCH20", discountAmount);
+      trackApplyPromotion("LAUNCH20", "LAUNCH20 - 20% Off", discountAmount);
     } else {
-      setPromoError("Invalid promo code");
+      setPromoError("Invalid promo code. Please check and try again.");
       setAppliedPromoCode("");
+      
+      // Track failed discount code attempt
+      trackDiscountCodeFailed(code);
     }
+
+    setIsValidatingPromo(false);
+  };
+
+  const handleRemovePromoCode = () => {
+    setAppliedPromoCode("");
+    setPromoError("");
+    setFormData((prev) => ({ ...prev, promoCode: "" }));
   };
 
   // Calculate pricing
@@ -132,9 +331,56 @@ export default function CustomSongOrderPage() {
   const discountAmount = discountApplied ? basePrice * 0.2 : 0;
   const finalPrice = basePrice - discountAmount;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  // Track begin_checkout on page load or when package is selected
+  useEffect(() => {
+    if (selectedPackage && formData.package) {
+      const packageType = formData.package as PackageType;
+      trackBeginCheckout([
+        {
+          item_id: packageType,
+          item_name: packageNames[packageType] || packageType,
+          price: basePrice,
+          quantity: 1,
+        },
+      ]);
+    } else {
+      trackBeginCheckout([]);
+    }
+  }, [formData.package, selectedPackage, basePrice]);
+
+  // Track package selection
+  useEffect(() => {
+    if (formData.package && validPackages.includes(formData.package)) {
+      const packageType = formData.package as PackageType;
+      const packagePrice = selectedPackage?.price || 0;
+      
+      // Track custom event
+      trackPackageSelected(packageType, packagePrice);
+      
+      // Track add_payment_info
+      trackAddPaymentInfo(packageType, packagePrice);
+    }
+  }, [formData.package, selectedPackage]);
+
+  // Check if form is ready for payment
+  const isFormValid = () => {
+    return (
+      formData.name &&
+      formData.email &&
+      formData.occasion &&
+      formData.package &&
+      formData.storyDetails
+    );
+  };
+
+  const handleCreatePaymentIntent = async () => {
+    if (!isFormValid()) {
+      setFormError("Please fill in all required fields");
+      return;
+    }
+
+    setIsCreatingIntent(true);
+    setFormError("");
 
     try {
       const response = await fetch("/api/custom-songs/order", {
@@ -148,237 +394,45 @@ export default function CustomSongOrderPage() {
 
       const data: OrderResponse = await response.json();
 
-      if (data.success && data.orderId) {
+      if (data.success && data.clientSecret && data.orderId) {
         setOrderId(data.orderId);
-        setStep("confirmation");
+        setClientSecret(data.clientSecret);
+        setStep("payment");
       } else {
-        alert(data.error || "Something went wrong. Please try again.");
+        setFormError(data.error || "Failed to initialize payment. Please try again.");
       }
-    } catch {
-      alert("Failed to submit order. Please try again.");
+    } catch (err) {
+      setFormError("Network error. Please check your connection and try again.");
     } finally {
-      setIsSubmitting(false);
+      setIsCreatingIntent(false);
     }
   };
 
-  if (step === "confirmation") {
+  const handlePaymentSuccess = (paymentIntentId: string) => {
+    router.push(`/services/custom-songs/order/success?orderId=${orderId}&paymentIntentId=${paymentIntentId}`);
+  };
+
+  if (step === "payment" && clientSecret) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-16">
-        <div className="container max-w-2xl mx-auto px-4">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-4">
-              Order Received!
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 sm:py-12 md:py-16">
+        <div className="container max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4 px-2">
+              Complete Your Payment
             </h1>
-            <p className="text-lg text-slate-600 mb-4">
-              Thank you for your custom song order. Diamonds McFly will begin crafting your personalized song shortly.
+            <p className="text-base sm:text-lg text-slate-600 px-2">
+              Secure payment powered by Stripe
             </p>
-            <div className="bg-slate-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-slate-500">Order Reference</p>
-              <p className="text-xl font-mono font-bold text-teal-600">{orderId}</p>
-            </div>
-            <p className="text-slate-600 mb-8">
-              A confirmation email has been sent to <strong>{formData.email}</strong> with your order details and next steps.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/services/custom-songs">
-                <Button variant="outline">Back to Custom Songs</Button>
-              </Link>
-              <Link href="/">
-                <Button>Return Home</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-16">
-      <div className="container max-w-3xl mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Music className="w-8 h-8 text-teal-600" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            Order Your Custom Song
-          </h1>
-          <p className="text-lg text-slate-600 max-w-xl mx-auto">
-            Tell us about your special moment and we'll create a personalized song that captures your story perfectly.
-          </p>
-        </div>
-
-        {/* Order Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-8">
-          {/* Contact Information */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">Contact Information</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Full Name *</Label>
-                <Input
-                  id="name"
-                  required
-                  placeholder="Your name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  placeholder="your@email.com"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="0400 000 000"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="eventDate">Event Date (if applicable)</Label>
-                <Input
-                  id="eventDate"
-                  type="date"
-                  value={formData.eventDate}
-                  onChange={(e) => handleInputChange("eventDate", e.target.value)}
-                />
-              </div>
-            </div>
           </div>
 
-          {/* Package Selection */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">Select Your Package</h2>
-            <div className="grid gap-4">
-              <div>
-                <Label htmlFor="package">Package *</Label>
-                <Select
-                  value={formData.package}
-                  onValueChange={(value) => handleInputChange("package", value)}
-                  required
-                >
-                  <SelectTrigger id="package">
-                    <SelectValue placeholder="Select a package" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {packageOptions.map((pkg) => (
-                      <SelectItem key={pkg.value} value={pkg.value}>
-                        {pkg.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="occasion">Occasion Type *</Label>
-                <Select
-                  value={formData.occasion}
-                  onValueChange={(value) => handleInputChange("occasion", value)}
-                  required
-                >
-                  <SelectTrigger id="occasion">
-                    <SelectValue placeholder="What's the occasion?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {occasionOptions.map((occasion) => (
-                      <SelectItem key={occasion} value={occasion}>
-                        {occasion}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Song Details */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">Song Details</h2>
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <Label htmlFor="mood">Desired Mood</Label>
-                <Select
-                  value={formData.mood}
-                  onValueChange={(value) => handleInputChange("mood", value)}
-                >
-                  <SelectTrigger id="mood">
-                    <SelectValue placeholder="Select mood" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {moodOptions.map((mood) => (
-                      <SelectItem key={mood} value={mood}>
-                        {mood}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="genre">Preferred Genre</Label>
-                <Select
-                  value={formData.genre}
-                  onValueChange={(value) => handleInputChange("genre", value)}
-                >
-                  <SelectTrigger id="genre">
-                    <SelectValue placeholder="Select genre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {genreOptions.map((genre) => (
-                      <SelectItem key={genre} value={genre}>
-                        {genre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="storyDetails">Your Story *</Label>
-              <Textarea
-                id="storyDetails"
-                required
-                placeholder="Tell us about the person or moment this song is for. Include names, special memories, inside jokes, or meaningful details you'd like incorporated into the lyrics..."
-                rows={6}
-                value={formData.storyDetails}
-                onChange={(e) => handleInputChange("storyDetails", e.target.value)}
-              />
-            </div>
-            <div className="mt-4">
-              <Label htmlFor="additionalInfo">Additional Information</Label>
-              <Textarea
-                id="additionalInfo"
-                placeholder="Any other details, specific phrases to include, or things to avoid..."
-                rows={3}
-                value={formData.additionalInfo}
-                onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Order Summary & Discount Code */}
-          {selectedPackage && (
-            <div className="mb-8 border-t pt-6">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8">
+            <div className="mb-6">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Order Summary</h2>
-              <div className="bg-slate-50 rounded-lg p-6 mb-4 border border-slate-200">
+              <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600">
-                      {selectedPackage.label.split(" - ")[0]}
+                      {selectedPackage?.label.split(" - ")[0]}
                     </span>
                     <span className="font-semibold text-slate-900">
                       ${basePrice.toFixed(2)}
@@ -407,89 +461,422 @@ export default function CustomSongOrderPage() {
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Promo Code Section */}
-              <div className="bg-white border border-slate-200 rounded-lg p-4">
-                <Label htmlFor="promoCode" className="text-base font-medium text-slate-900 mb-2 block">
-                  Promo Code (optional)
-                </Label>
-                <div className="flex gap-2">
+            <StripeProvider clientSecret={clientSecret}>
+              <PaymentForm
+                orderId={orderId}
+                finalPrice={finalPrice}
+                packageType={formData.package as PackageType | null}
+                discountAmount={discountAmount}
+                promoCode={appliedPromoCode || null}
+                onPaymentSuccess={handlePaymentSuccess}
+              />
+            </StripeProvider>
+
+            <div className="mt-4 sm:mt-6 text-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep("form")}
+                className="text-sm min-h-[44px] sm:min-h-0 w-full sm:w-auto px-6"
+              >
+                ← Back to Order Form
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 sm:py-12 md:py-16">
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6">
+        {/* Header */}
+        <div className="text-center mb-8 sm:mb-10 md:mb-12">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+            <Music className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4 px-2">
+            Order Your Custom Song
+          </h1>
+          <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto px-2">
+            Tell us about your special moment and we'll create a personalized song that captures your story perfectly.
+          </p>
+        </div>
+
+        {/* Responsive Layout: Sidebar on desktop, stacked on mobile */}
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Main Form - Takes 2 columns on desktop */}
+          <div className="lg:col-span-2 order-1 lg:order-1">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleCreatePaymentIntent();
+              }}
+              className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8"
+            >
+          {/* Contact Information */}
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">Contact Information</h2>
+            <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm sm:text-base">Full Name *</Label>
+                <Input
+                  id="name"
+                  required
+                  placeholder="Your name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  className="text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm sm:text-base">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  placeholder="your@email.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  className="text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="0400 000 000"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  className="text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="eventDate" className="text-sm sm:text-base">Event Date (if applicable)</Label>
+                <Input
+                  id="eventDate"
+                  type="date"
+                  value={formData.eventDate}
+                  onChange={(e) => handleInputChange("eventDate", e.target.value)}
+                  className="text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Package Selection */}
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">Select Your Package</h2>
+            <div className="grid gap-3 sm:gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="package" className="text-sm sm:text-base">Package *</Label>
+                <Select
+                  value={formData.package}
+                  onValueChange={(value) => handleInputChange("package", value)}
+                  required
+                >
+                  <SelectTrigger id="package" className="text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0 w-full">
+                    <SelectValue placeholder="Select a package" />
+                  </SelectTrigger>
+                  <SelectContent className="text-base">
+                    {packageOptions.map((pkg) => (
+                      <SelectItem key={pkg.value} value={pkg.value} className="text-base py-3 sm:py-2">
+                        <span className="break-words">{pkg.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="occasion" className="text-sm sm:text-base">Occasion Type *</Label>
+                <Select
+                  value={formData.occasion}
+                  onValueChange={(value) => handleInputChange("occasion", value)}
+                  required
+                >
+                  <SelectTrigger id="occasion" className="text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0 w-full">
+                    <SelectValue placeholder="What's the occasion?" />
+                  </SelectTrigger>
+                  <SelectContent className="text-base">
+                    {occasionOptions.map((occasion) => (
+                      <SelectItem key={occasion} value={occasion} className="text-base py-3 sm:py-2">
+                        {occasion}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Song Details */}
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">Song Details</h2>
+            <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
+              <div className="space-y-2">
+                <Label htmlFor="mood" className="text-sm sm:text-base">Desired Mood</Label>
+                <Select
+                  value={formData.mood}
+                  onValueChange={(value) => handleInputChange("mood", value)}
+                >
+                  <SelectTrigger id="mood" className="text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0 w-full">
+                    <SelectValue placeholder="Select mood" />
+                  </SelectTrigger>
+                  <SelectContent className="text-base">
+                    {moodOptions.map((mood) => (
+                      <SelectItem key={mood} value={mood} className="text-base py-3 sm:py-2">
+                        {mood}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="genre" className="text-sm sm:text-base">Preferred Genre</Label>
+                <Select
+                  value={formData.genre}
+                  onValueChange={(value) => handleInputChange("genre", value)}
+                >
+                  <SelectTrigger id="genre" className="text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0 w-full">
+                    <SelectValue placeholder="Select genre" />
+                  </SelectTrigger>
+                  <SelectContent className="text-base">
+                    {genreOptions.map((genre) => (
+                      <SelectItem key={genre} value={genre} className="text-base py-3 sm:py-2">
+                        {genre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="storyDetails" className="text-sm sm:text-base">Your Story *</Label>
+              <Textarea
+                id="storyDetails"
+                required
+                placeholder="Tell us about the person or moment this song is for. Include names, special memories, inside jokes, or meaningful details you'd like incorporated into the lyrics..."
+                rows={6}
+                value={formData.storyDetails}
+                onChange={(e) => handleInputChange("storyDetails", e.target.value)}
+                className="text-base min-h-[120px] resize-y"
+              />
+            </div>
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="additionalInfo" className="text-sm sm:text-base">Additional Information</Label>
+              <Textarea
+                id="additionalInfo"
+                placeholder="Any other details, specific phrases to include, or things to avoid..."
+                rows={3}
+                value={formData.additionalInfo}
+                onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+                className="text-base min-h-[100px] resize-y"
+              />
+            </div>
+          </div>
+
+          {/* Promo Code Section */}
+          <div className="mb-6 sm:mb-8 border-t pt-4 sm:pt-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">Promo Code</h2>
+            <div className="bg-white border rounded-lg p-3 sm:p-4 transition-colors duration-200"
+              style={{
+                borderColor: discountApplied 
+                  ? "#10b981" // green-500
+                  : promoError 
+                  ? "#ef4444" // red-500
+                  : "#e5e7eb" // gray-200
+              }}
+            >
+              <Label htmlFor="promoCode" className="text-sm sm:text-base font-medium text-slate-900 mb-2 block">
+                Promo Code (optional)
+              </Label>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+                <div className="flex-1 relative">
                   <Input
                     id="promoCode"
                     placeholder="Enter promo code"
                     value={formData.promoCode || ""}
                     onChange={(e) => handleInputChange("promoCode", e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+                      if (e.key === "Enter" && !discountApplied) {
                         e.preventDefault();
                         handleApplyPromoCode();
                       }
                     }}
-                    className="flex-1"
+                    disabled={discountApplied}
+                    className={`flex-1 transition-colors duration-200 text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0 ${
+                      discountApplied
+                        ? "border-green-500 bg-green-50 pr-10"
+                        : promoError
+                        ? "border-red-500 bg-red-50"
+                        : ""
+                    }`}
                     aria-invalid={!!promoError}
                   />
+                  {discountApplied && (
+                    <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
+                  )}
+                </div>
+                {!discountApplied && (
                   <Button
                     type="button"
                     onClick={handleApplyPromoCode}
-                    variant="outline"
-                    className="whitespace-nowrap"
+                    disabled={isValidatingPromo || !formData.promoCode?.trim()}
+                    className="w-full sm:w-auto whitespace-nowrap bg-teal-600 hover:bg-teal-700 text-white min-h-[44px] sm:min-h-0 text-base sm:text-sm"
                   >
-                    Apply
+                    {isValidatingPromo ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <span className="hidden sm:inline">Validating...</span>
+                        <span className="sm:hidden">Validating</span>
+                      </>
+                    ) : (
+                      "Apply"
+                    )}
                   </Button>
+                )}
+              </div>
+
+              {/* Success Message */}
+              {discountApplied && (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-2">
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-green-800 break-words">
+                          Discount applied! Code: {appliedPromoCode}
+                        </p>
+                        <p className="text-sm text-green-700 mt-1 break-words">
+                          Save ${discountAmount.toFixed(2)} (20% off)
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemovePromoCode}
+                      className="text-sm text-green-700 hover:text-green-900 underline font-medium self-start sm:self-auto min-h-[44px] sm:min-h-0 px-2 sm:px-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-                {discountApplied && (
-                  <div className="mt-2 flex items-center gap-2 text-green-600 text-sm font-medium">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>20% discount applied with code {appliedPromoCode}</span>
+              )}
+
+              {/* Error Message */}
+              {promoError && !discountApplied && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800">Invalid Code</p>
+                    <p className="text-sm text-red-700 mt-1">{promoError}</p>
                   </div>
-                )}
-                {promoError && (
-                  <div className="mt-2 text-red-600 text-sm">
-                    {promoError}
-                  </div>
-                )}
-                {!discountApplied && !promoError && formData.promoCode && (
-                  <div className="mt-2 text-slate-500 text-sm">
-                    Enter "LAUNCH20" for 20% off
-                  </div>
-                )}
+                </div>
+              )}
+
+              {/* Helper Text */}
+              {!discountApplied && !promoError && !formData.promoCode && (
+                <div className="mt-2 text-slate-500 text-sm">
+                  Enter "LAUNCH20" for 20% off your order
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {formError && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800">Error</p>
+                <p className="text-sm text-red-700 mt-1">{formError}</p>
               </div>
             </div>
           )}
 
           {/* Terms & Submit */}
-          <div className="border-t pt-6">
-            <p className="text-sm text-slate-500 mb-6">
-              By submitting this order, you agree to our{" "}
-              <Link href="/services/custom-songs/terms" className="text-teal-600 hover:underline">
+          <div className="border-t pt-4 sm:pt-6">
+            <p className="text-xs sm:text-sm text-slate-500 mb-4 sm:mb-6 leading-relaxed">
+              By proceeding to payment, you agree to our{" "}
+              <Link href="/services/custom-songs/terms" className="text-teal-600 hover:underline break-words">
                 Terms & Conditions
               </Link>{" "}
               and acknowledge that songs are created using Suno AI technology with human creative direction by Diamonds McFly.
             </p>
             <Button
               type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700 text-lg py-6"
-              disabled={isSubmitting}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-base sm:text-lg py-4 sm:py-6 min-h-[44px] sm:min-h-0 font-semibold"
+              disabled={isCreatingIntent || !isFormValid()}
             >
-              {isSubmitting ? (
+              {isCreatingIntent ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Submitting Order...
+                  <span className="hidden sm:inline">Preparing Payment...</span>
+                  <span className="sm:hidden">Preparing...</span>
                 </>
               ) : (
-                "Submit Order Request"
+                "Proceed to Payment"
               )}
             </Button>
           </div>
         </form>
 
-        {/* AI Transparency Notice */}
-        <div className="mt-8 text-center text-sm text-slate-500">
-          <p>
-            Our songs are created using Suno AI technology with human creative direction and curation by Diamonds McFly.
-          </p>
+            {/* AI Transparency Notice */}
+            <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-slate-500 px-2">
+              <p className="break-words">
+                Our songs are created using Suno AI technology with human creative direction and curation by Diamonds McFly.
+              </p>
+            </div>
+          </div>
+
+          {/* Order Summary Sidebar - Sticky on desktop, below form on mobile */}
+          <div className="lg:col-span-1 order-2 lg:order-2">
+            <div className="lg:sticky lg:top-24">
+              <OrderSummary
+                selectedPackage={selectedPackage ? {
+                  value: selectedPackage.value,
+                  name: selectedPackage.label.split(" - ")[0] || selectedPackage.value,
+                  price: selectedPackage.price,
+                  format: selectedPackage.value === "standard" ? "MP3 + Lyric Sheet" : 
+                          selectedPackage.value === "express" ? "MP3 format" : 
+                          "MP3 + WAV formats",
+                  revisions: selectedPackage.value === "standard" ? "2 revision rounds" : 
+                            selectedPackage.value === "express" ? "1 revision round" : 
+                            "3 revision rounds",
+                  deliveryTime: selectedPackage.value === "standard" ? "3-5 days" : 
+                               selectedPackage.value === "express" ? "24-48 hours" : 
+                               "5-7 days",
+                } : null}
+                discountApplied={discountApplied}
+                discountAmount={discountAmount}
+                finalPrice={finalPrice}
+                appliedPromoCode={appliedPromoCode}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CustomSongOrderPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-16 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-teal-600 mx-auto mb-4" />
+            <p className="text-slate-600">Loading order form...</p>
+          </div>
+        </div>
+      }
+    >
+      <CustomSongOrderPageContent />
+    </Suspense>
   );
 }

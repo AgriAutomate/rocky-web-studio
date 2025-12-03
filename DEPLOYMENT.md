@@ -3,10 +3,10 @@
 ## 1. Prerequisites
 1. **Environment variables** – Set the following in Vercel (see `.env.example` for names):
    - `NEXT_PUBLIC_*` values for branding/URLs
-   - SMS provider credentials (`SMS_PROVIDER`, `KUDOSITY_*` or `TWILIO_*`)
+   - Mobile Message API credentials (`MOBILE_MESSAGE_API_USERNAME`, `MOBILE_MESSAGE_API_PASSWORD`, `MOBILE_MESSAGE_API_URL`, `MOBILE_MESSAGE_SENDER_ID`)
    - `RESEND_API_KEY` if email delivery is re-enabled later
 2. **DNS records** – Add the Resend + Sender identities and any custom domain records before cut-over.
-3. **SMS provider** – Contact Kudosity/TransmitSMS to confirm the API key/secret are active in the target region.
+3. **SMS provider** – Verify Mobile Message API credentials are active and sender ID is registered in the Mobile Message dashboard.
 
 ## 2. Build & Test Checklist
 1. `npm install`
@@ -32,7 +32,6 @@ vercel --prod              # promote to production
 
 ## 5. Known Follow-ups
 - **Persistent storage** – Booking + SMS history currently live only in memory/logs. Replace mock ID generator with KV/DB before accepting real customers.
-- **Kudosity credentials** – Current key/secret return `401 AUTH_FAILED`; resolve with provider and update env vars.
 - **Resend DNS** – Email notifications remain disabled until DNS verification is finished.
 - **Legacy `/api/bookings/sms` route** – removed since new provider abstraction handles SMS; keep the system consistent going forward.
 

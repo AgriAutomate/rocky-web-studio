@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Discovery Form Received</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    
+                    <!-- Header with Gradient -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 40px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; line-height: 1.2;">
+                                🎯 Thank You for Your Submission!
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px 40px 30px;">
+                            <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                                Hi <strong>{{companyName}}</strong>,
+                            </p>
+                            
+                            <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                                We've received your discovery form and are excited to learn more about your project! We've reviewed your responses and prepared a consultation summary for you.
+                            </p>
+
+                            <!-- Summary Box -->
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 30px 0; border-radius: 8px;">
+                                <h2 style="margin: 0 0 15px; color: #667eea; font-size: 20px; font-weight: 600;">
+                                    Your Project Summary
+                                </h2>
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #666666; font-size: 14px; width: 40%;"><strong>Company:</strong></td>
+                                        <td style="padding: 8px 0; color: #333333; font-size: 14px;">{{companyName}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #666666; font-size: 14px;"><strong>Industry:</strong></td>
+                                        <td style="padding: 8px 0; color: #333333; font-size: 14px;">{{industry}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #666666; font-size: 14px;"><strong>Budget Range:</strong></td>
+                                        <td style="padding: 8px 0; color: #333333; font-size: 14px;">{{budget}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #666666; font-size: 14px;"><strong>Key Features:</strong></td>
+                                        <td style="padding: 8px 0; color: #333333; font-size: 14px;">{{featuresList}}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Download Link -->
+                            <div style="background-color: #f0fdfa; border: 2px solid #14b8a6; padding: 20px; margin: 30px 0; border-radius: 8px; text-align: center;">
+                                <p style="margin: 0 0 15px; color: #0d9488; font-size: 16px; font-weight: 600;">
+                                    📄 Download Your Full Consultation Summary
+                                </p>
+                                <p style="margin: 0 0 20px; color: #475569; font-size: 14px;">
+                                    Your complete discovery form responses are available as a PDF for your records.
+                                </p>
+                                <a href="{{pdfDownloadLink}}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                    Download PDF Summary
+                                </a>
+                            </div>
+
+                            <!-- Next Steps -->
+                            <h2 style="margin: 30px 0 15px; color: #333333; font-size: 20px; font-weight: 600;">
+                                What Happens Next?
+                            </h2>
+                            <ol style="margin: 0 0 30px; padding-left: 20px; color: #333333; font-size: 16px; line-height: 1.8;">
+                                <li style="margin-bottom: 10px;">We'll review your submission and prepare a tailored proposal</li>
+                                <li style="margin-bottom: 10px;">Schedule your free consultation call using the link below</li>
+                                <li style="margin-bottom: 10px;">During the call, we'll discuss your project in detail and answer any questions</li>
+                                <li style="margin-bottom: 10px;">You'll receive a comprehensive proposal within 48 hours after our call</li>
+                            </ol>
+
+                            <!-- CTA Button -->
+                            <div style="text-align: center; margin: 40px 0;">
+                                <a href="{{calendlyLink}}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                                    📅 Schedule Your Consultation
+                                </a>
+                            </div>
+
+                            <p style="margin: 30px 0 0; color: #666666; font-size: 14px; text-align: center; font-style: italic;">
+                                See you on <strong>{{consultationDate}}</strong> at <strong>{{consultationTime}}</strong>!
+                            </p>
+
+                            <!-- Help Section -->
+                            <div style="background-color: #f8f9fa; padding: 20px; margin: 30px 0 0; border-radius: 8px;">
+                                <p style="margin: 0 0 10px; color: #333333; font-size: 14px; font-weight: 600;">
+                                    Need to reschedule?
+                                </p>
+                                <p style="margin: 0; color: #666666; font-size: 14px;">
+                                    No problem! Simply <a href="{{calendlyLink}}" style="color: #667eea; text-decoration: none;">click here to reschedule</a> or reply to this email with your preferred time.
+                                </p>
+                            </div>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #1e293b; padding: 30px 40px; text-align: center;">
+                            <p style="margin: 0 0 15px; color: #94a3b8; font-size: 16px; font-weight: 600;">
+                                Rocky Web Studio
+                            </p>
+                            <p style="margin: 0 0 20px; color: #64748b; font-size: 14px;">
+                                Custom AI Songs & Web Solutions for Central Queensland
+                            </p>
+                            
+                            <!-- Contact Info -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 20px auto;">
+                                <tr>
+                                    <td style="padding: 0 15px;">
+                                        <a href="mailto:hello@rockywebstudio.com.au" style="color: #94a3b8; text-decoration: none; font-size: 14px;">
+                                            📧 hello@rockywebstudio.com.au
+                                        </a>
+                                    </td>
+                                    <td style="padding: 0 15px;">
+                                        <a href="https://rockywebstudio.com.au" style="color: #94a3b8; text-decoration: none; font-size: 14px;">
+                                            🌐 rockywebstudio.com.au
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Social Links -->
+                            <div style="margin: 20px 0;">
+                                <a href="https://facebook.com/rockywebstudio" style="display: inline-block; margin: 0 10px; color: #94a3b8; text-decoration: none; font-size: 14px;">Facebook</a>
+                                <a href="https://linkedin.com/company/rockywebstudio" style="display: inline-block; margin: 0 10px; color: #94a3b8; text-decoration: none; font-size: 14px;">LinkedIn</a>
+                                <a href="https://instagram.com/rockywebstudio" style="display: inline-block; margin: 0 10px; color: #94a3b8; text-decoration: none; font-size: 14px;">Instagram</a>
+                            </div>
+
+                            <!-- Unsubscribe -->
+                            <p style="margin: 30px 0 0; padding-top: 20px; border-top: 1px solid #334155; color: #64748b; font-size: 12px;">
+                                You're receiving this email because you submitted a discovery form on Rocky Web Studio.<br>
+                                <a href="{{unsubscribeLink}}" style="color: #94a3b8; text-decoration: underline;">Unsubscribe</a> | 
+                                <a href="https://rockywebstudio.com.au/privacy" style="color: #94a3b8; text-decoration: underline;">Privacy Policy</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+
+

@@ -4,13 +4,16 @@ interface PricingTier {
   description: string;
   features: string[];
   highlighted?: boolean;
+  packageValue?: string; // For Custom Songs: "standard", "express", "wedding"
+  orderLink?: string; // Custom order link (e.g., "/services/custom-songs/order?package=standard")
 }
 
 interface ServicePricingProps {
   tiers: PricingTier[];
+  defaultLink?: string; // Default link if orderLink not provided (defaults to "/book")
 }
 
-export default function ServicePricing({ tiers }: ServicePricingProps) {
+export default function ServicePricing({ tiers, defaultLink = "/book" }: ServicePricingProps) {
   return (
     <section className="py-16 px-6 bg-gray-50">
       <div className="max-w-6xl mx-auto">
@@ -59,7 +62,7 @@ export default function ServicePricing({ tiers }: ServicePricingProps) {
                 ))}
               </ul>
               <a
-                href="/book"
+                href={tier.orderLink || defaultLink}
                 className={`block text-center py-3 rounded-lg font-semibold transition ${
                   tier.highlighted
                     ? "bg-white text-blue-600 hover:bg-gray-100"

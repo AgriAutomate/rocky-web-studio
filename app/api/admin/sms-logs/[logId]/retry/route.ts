@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSMSStorage } from "@/lib/sms/storage";
-import { getAllBookings } from "@/lib/bookings/storage";
+import { kvBookingStorage } from "@/lib/kv/bookings";
 import { sendSMS } from "@/lib/sms";
 import { logSMSAttempt } from "@/lib/sms/storage";
 
@@ -45,7 +45,7 @@ export async function POST(
     }
 
     // Get booking details to reconstruct message
-    const bookings = getAllBookings();
+    const bookings = await kvBookingStorage.getAll();
     const booking = bookings.find((b) => b.bookingId === smsLog.bookingId);
 
     if (!booking) {

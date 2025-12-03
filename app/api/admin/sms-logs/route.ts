@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSMSStorage, SMSRecord } from "@/lib/sms/storage";
-import { getAllBookings } from "@/lib/bookings/storage";
+import { kvBookingStorage } from "@/lib/kv/bookings";
 
 interface SMSLogWithCustomer {
   id: string;
@@ -51,8 +51,8 @@ export async function GET(
       endDate: endDate ? new Date(endDate) : undefined,
     });
 
-    // Get all bookings to match customer names
-    const bookings = getAllBookings();
+    // Get all bookings to match customer names (from KV)
+    const bookings = await kvBookingStorage.getAll();
     const bookingsMap = new Map(bookings.map((b) => [b.bookingId, b]));
 
     // Combine SMS logs with customer information
@@ -98,6 +98,7 @@ export async function GET(
     );
   }
 }
+
 
 
 

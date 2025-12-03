@@ -1,0 +1,218 @@
+{
+  "name": "Slack Discovery Form Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discovery-form-slack",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "slack-discovery-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse form data and format for Slack\nconst body = $input.item.json.body || $input.item.json;\n\nconst data = {\n  companyName: body.companyName || body['Company Name'] || '',\n  contactName: body.contactName || body['Contact Name'] || '',\n  email: body.email || body.Email || '',\n  phone: body.phone || body.Phone || '',\n  industry: body.industry || body.Industry || 'Other',\n  companySize: body.companySize || body['Company Size'] || '',\n  budget: body.budget || body.Budget || '',\n  features: Array.isArray(body.features) ? body.features : (body.Features ? body.Features.split(', ') : []),\n  aiFeatures: Array.isArray(body.aiFeatures) ? body.aiFeatures : (body['AI Features'] ? body['AI Features'].split(', ') : []),\n  mainProblem: body.mainProblem || body['Main Problem'] || '',\n  successMetric: body.successMetric || body['Success Metric'] || '',\n  targetCustomer: body.targetCustomer || body['Target Customer'] || '',\n  launchDate: body.launchDate || body['Launch Date'] || '',\n  submittedAt: body.submittedAt || new Date().toISOString(),\n  formLink: body.formLink || 'https://form.typeform.com/to/...',\n  calendlyLink: 'https://calendly.com/rockywebstudio/consultation',\n  notionLink: body.notionLink || 'N/A'\n};\n\n// Calculate days until launch\nif (data.launchDate) {\n  const launch = new Date(data.launchDate);\n  const now = new Date();\n  data.daysUntilLaunch = Math.ceil((launch - now) / (1000 * 60 * 60 * 24));\n} else {\n  data.daysUntilLaunch = 'TBD';\n}\n\nreturn data;"
+      },
+      "id": "parse-form-data",
+      "name": "Parse Form Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Slack message for new form submission\nconst data = $input.item.json;\n\nconst message = `🎯 *New Discovery Form Submission*\n\n*Company:* ${data.companyName}\n*Contact:* ${data.contactName || 'Not provided'} | ${data.email}\n*Industry:* ${data.industry} | *Size:* ${data.companySize}\n*Budget Range:* ${data.budget}\n\n*Main Goals:*\n• ${data.mainProblem || 'Not specified'}\n• ${data.successMetric || 'Not specified'}\n\n*Key Features Requested:*\n${data.features.length > 0 ? data.features.join(', ') : 'None specified'}\n\n*AI Interests:* ${data.aiFeatures.length > 0 ? data.aiFeatures.join(', ') : 'None'}\n\n*Timeline:* ${data.launchDate || 'Not specified'} ${data.daysUntilLaunch !== 'TBD' ? `(${data.daysUntilLaunch} days)` : ''}\n\n📋 *Full Details:* ${data.formLink}\n📅 *Schedule Consultation:* ${data.calendlyLink}\n📊 *View in Notion:* ${data.notionLink}\n\n---\n*Submitted:* ${new Date(data.submittedAt).toLocaleString()} | *Status:* 🟡 Discovery`;\n\nreturn { message, channel: '#projects' };"
+      },
+      "id": "format-slack-message",
+      "name": "Format Slack Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $json.channel }}",
+        "text": "={{ $json.message }}",
+        "options": {
+          "username": "Rocky Web Studio Bot",
+          "icon_emoji": ":rocket:"
+        }
+      },
+      "id": "send-slack-message",
+      "name": "Send to #projects",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1.2,
+      "position": [850, 300],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "daily-reminder-trigger",
+      "name": "Daily Reminder Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Query consultations happening tomorrow\n// This would typically query from Notion or Google Sheets\n// For example purposes, using mock data\n\nconst tomorrow = new Date();\ntomorrow.setDate(tomorrow.getDate() + 1);\ntomorrow.setHours(0, 0, 0, 0);\n\nconst dayAfter = new Date(tomorrow);\ndayAfter.setDate(dayAfter.getDate() + 1);\n\n// In real implementation, query from database:\n// const consultations = await queryConsultations(tomorrow, dayAfter);\n\n// Mock data for example\nconst consultations = [\n  {\n    companyName: 'Acme Corp',\n    consultationDate: tomorrow.toISOString(),\n    contactName: 'John Doe',\n    email: 'john@acme.com',\n    timezone: 'AEST',\n    zoomLink: 'https://zoom.us/j/123456789',\n    formLink: 'https://form.typeform.com/to/abc123',\n    notionLink: 'https://notion.so/project/acme',\n    goal1: 'Increase sales',\n    goal2: 'Automate inquiries',\n    budget: '$10,000 - $25,000',\n    launchDate: '2024-03-15'\n  }\n];\n\nreturn consultations.map(c => ({\n  json: c\n}));"
+      },
+      "id": "query-tomorrow-consultations",
+      "name": "Query Tomorrow Consultations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format 24h reminder message\nconst data = $input.item.json;\nconst consultationDate = new Date(data.consultationDate);\n\nconst message = `⏰ *Consultation Reminder - Tomorrow*\n\n*Company:* ${data.companyName}\n*Time:* Tomorrow at ${consultationDate.toLocaleTimeString()} (${data.timezone || 'AEST'})\n*Duration:* 30-45 minutes\n\n*Quick Prep:*\n• Review discovery form: ${data.formLink || 'N/A'}\n• Check project notes: ${data.notionLink || 'N/A'}\n• Review call script: https://docs.google.com/consultation-script\n\n*Key Points to Cover:*\n• ${data.goal1 || 'Main goal'}\n• ${data.goal2 || 'Secondary goal'}\n• Budget: ${data.budget}\n• Timeline: ${data.launchDate ? new Date(data.launchDate).toLocaleDateString() : 'TBD'}\n\n🔗 *Zoom Link:* ${data.zoomLink || 'TBD'}\n\n---\n*Reminder sent:* ${new Date().toLocaleString()}`;\n\nreturn { message, channel: '#consultations' };"
+      },
+      "id": "format-reminder-message",
+      "name": "Format Reminder Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $json.channel }}",
+        "text": "={{ $json.message }}",
+        "options": {
+          "username": "Rocky Web Studio Bot"
+        }
+      },
+      "id": "send-reminder",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1.2,
+      "position": [850, 500],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Form Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Form Data": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slack Message": {
+      "main": [
+        [
+          {
+            "node": "Send to #projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to #projects": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Reminder Check": {
+      "main": [
+        [
+          {
+            "node": "Query Tomorrow Consultations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Tomorrow Consultations": {
+      "main": [
+        [
+          {
+            "node": "Format Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reminder Message": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+
+

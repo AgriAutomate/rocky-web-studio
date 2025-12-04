@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import {
   OrderEmailDetails,
@@ -6,13 +6,19 @@ import {
   sendOrderConfirmationEmail,
   sendInternalNotificationEmail,
 } from "@/lib/email/customSongs";
+import { getLogger } from "@/lib/logging";
+import { withApiHandler } from "@/lib/api/handlers";
+import { ExternalServiceError, ValidationError } from "@/lib/errors";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const orderLogger = getLogger("custom-songs.order");
 
 if (!stripeSecretKey) {
-  console.error('STRIPE_SECRET_KEY is not set');
+  orderLogger.error("STRIPE_SECRET_KEY is not set - payment processing will fail");
 }
 
+// Initialize Stripe instance with latest stable API version
+// Note: Using '2025-11-17.clover' - verify this is correct for your Stripe account
 const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
       apiVersion: "2025-11-17.clover",
@@ -40,26 +46,30 @@ function generateOrderId(): string {
   return `CS-${timestamp}-${randomPart}`;
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body: CustomSongOrderRequest = await request.json();
+async function handlePost(request: NextRequest, requestId: string) {
+  const body: CustomSongOrderRequest = await request.json();
 
-    // Validate required fields
-    if (!body.name || !body.email || !body.occasion || !body.package || !body.storyDetails) {
-      return NextResponse.json(
-        { success: false, error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
+  // Validate required fields
+  if (!body.name || !body.email || !body.occasion || !body.package || !body.storyDetails) {
+    throw new ValidationError("Missing required fields", {
+      missingFields: [
+        !body.name && "name",
+        !body.email && "email",
+        !body.occasion && "occasion",
+        !body.package && "package",
+        !body.storyDetails && "storyDetails",
+      ].filter(Boolean),
+    });
+  }
 
-    // Get package price
-    const packageInfo = packagePrices[body.package];
-    if (!packageInfo) {
-      return NextResponse.json(
-        { success: false, error: "Invalid package selected" },
-        { status: 400 }
-      );
-    }
+  // Get package price
+  const packageInfo = packagePrices[body.package];
+  if (!packageInfo) {
+    throw new ValidationError("Invalid package selected", {
+      package: body.package,
+      availablePackages: Object.keys(packagePrices),
+    });
+  }
 
     // Calculate price with discount if applicable
     const originalPriceInDollars = packageInfo.price;
@@ -79,98 +89,132 @@ export async function POST(request: NextRequest) {
     // Generate order ID
     const orderId = generateOrderId();
 
-    // Create Stripe PaymentIntent if Stripe is configured
-    let paymentIntentId: string | null = null;
-    let clientSecret: string | null = null;
-    let stripeError: Error | null = null;
-
-    if (stripe) {
-      try {
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: finalAmountInCents,
-          currency: "aud",
-          automatic_payment_methods: { enabled: true },
-          metadata: {
-            orderId,
-            customerName: body.name,
-            customerEmail: body.email,
-            phone: body.phone || "",
-            package: body.package,
-            occasion: body.occasion,
-            eventDate: body.eventDate || "",
-            storyDetails: body.storyDetails,
-            mood: body.mood || "",
-            genre: body.genre || "",
-            additionalInfo: body.additionalInfo || "",
-            promoCode: promoCode || "none",
-            discountApplied: discountApplied.toString(),
-            originalPrice: originalPriceInCents.toString(),
-            finalPrice: finalAmountInCents.toString(),
-          },
-          description: `Custom Song - ${packageInfo.name} - ${body.occasion}`,
-          receipt_email: body.email,
-        });
-
-        paymentIntentId = paymentIntent.id;
-        clientSecret = paymentIntent.client_secret;
-      } catch (error) {
-        stripeError = error instanceof Error ? error : new Error("Unknown Stripe error");
-        console.error("Error creating Stripe PaymentIntent:", stripeError);
-        // Return error if Stripe fails (don't continue without payment)
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Failed to create payment intent",
-            details: stripeError.message,
-          },
-          { status: 500 }
-        );
-      }
-    } else {
-      // If Stripe is not configured, return error
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Payment processing is not configured",
-        },
-        { status: 500 }
-      );
-    }
-
-    // Prepare email details
-    const emailDetails: OrderEmailDetails = {
+  // Check if Stripe is configured
+  if (!stripe) {
+    orderLogger.error("Stripe is not configured - cannot process payment", {
+      requestId,
       orderId,
-      customerName: body.name,
-      email: body.email,
-      phone: body.phone,
-      occasion: body.occasion,
-      packageType: body.package,
-      eventDate: body.eventDate,
-      storyDetails: body.storyDetails,
-      mood: body.mood,
-      genre: body.genre,
-      additionalInfo: body.additionalInfo,
-    };
-
-    // Send confirmation emails (non-blocking)
-    sendOrderConfirmationEmail(emailDetails);
-    sendInternalNotificationEmail(emailDetails);
-
-    return NextResponse.json({
-      success: true,
-      orderId,
-      message: "Order received successfully",
-      paymentIntentId,
-      clientSecret,
-      discountApplied,
-      finalAmount: finalAmountInCents, // Return in cents as specified
-      originalAmount: originalPriceInCents, // Return in cents
     });
-  } catch (error) {
-    console.error("Error processing custom song order:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to process order" },
-      { status: 500 }
+    throw new ExternalServiceError(
+      "Payment processing is not configured",
+      { requestId, orderId },
+      false // Not retryable - configuration issue
     );
   }
+
+  // Create Stripe PaymentIntent
+  let paymentIntentId: string;
+  let clientSecret: string;
+
+  try {
+    orderLogger.info("Creating Stripe PaymentIntent", {
+      requestId,
+      orderId,
+      amount: finalAmountInCents,
+      package: body.package,
+    });
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: finalAmountInCents,
+      currency: "aud",
+      automatic_payment_methods: { enabled: true },
+      metadata: {
+        orderId,
+        customerName: body.name,
+        customerEmail: body.email,
+        phone: body.phone || "",
+        package: body.package,
+        occasion: body.occasion,
+        eventDate: body.eventDate || "",
+        storyDetails: body.storyDetails,
+        mood: body.mood || "",
+        genre: body.genre || "",
+        additionalInfo: body.additionalInfo || "",
+        promoCode: promoCode || "none",
+        discountApplied: discountApplied.toString(),
+        originalPrice: originalPriceInCents.toString(),
+        finalPrice: finalAmountInCents.toString(),
+      },
+      description: `Custom Song - ${packageInfo.name} - ${body.occasion}`,
+      receipt_email: body.email,
+    });
+
+    paymentIntentId = paymentIntent.id;
+    clientSecret = paymentIntent.client_secret || "";
+
+    if (!clientSecret) {
+      throw new Error("PaymentIntent created but client_secret is missing");
+    }
+
+    orderLogger.info("Stripe PaymentIntent created successfully", {
+      requestId,
+      orderId,
+      paymentIntentId,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown Stripe error";
+    orderLogger.error("Failed to create Stripe PaymentIntent", {
+      requestId,
+      orderId,
+      error: errorMessage,
+    }, error);
+
+    throw new ExternalServiceError(
+      "Failed to create payment intent",
+      {
+        requestId,
+        orderId,
+        stripeError: errorMessage,
+      },
+      true // Retryable - transient Stripe API issue
+    );
+  }
+
+  // Prepare email details
+  const emailDetails: OrderEmailDetails = {
+    orderId,
+    customerName: body.name,
+    email: body.email,
+    phone: body.phone,
+    occasion: body.occasion,
+    packageType: body.package,
+    eventDate: body.eventDate,
+    storyDetails: body.storyDetails,
+    mood: body.mood,
+    genre: body.genre,
+    additionalInfo: body.additionalInfo,
+  };
+
+  // Send confirmation emails (non-blocking - don't await to avoid blocking response)
+  // Emails will be sent, but errors won't block the order creation
+  Promise.all([
+    sendOrderConfirmationEmail(emailDetails),
+    sendInternalNotificationEmail(emailDetails),
+  ]).catch((emailError) => {
+    orderLogger.error("Failed to send order confirmation emails (non-blocking)", {
+      requestId,
+      orderId,
+    }, emailError);
+  });
+
+  orderLogger.info("Custom song order created successfully", {
+    requestId,
+    orderId,
+    paymentIntentId,
+    package: body.package,
+    amount: finalAmountInCents,
+  });
+
+  return {
+    success: true,
+    orderId,
+    message: "Order received successfully",
+    paymentIntentId,
+    clientSecret,
+    discountApplied,
+    finalAmount: finalAmountInCents, // Return in cents as specified
+    originalAmount: originalPriceInCents, // Return in cents
+  };
 }
+
+export const POST = withApiHandler(handlePost);

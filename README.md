@@ -190,3 +190,5 @@ See `DEPLOYMENT.md` for detailed deployment instructions.
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Mobile Message API Docs](https://mobilemessage.com.au/api-docs)
 - [Resend API Docs](https://resend.com/docs)
+- 
+<!-- Redeploy trigger: Stripe environment variables updated -->

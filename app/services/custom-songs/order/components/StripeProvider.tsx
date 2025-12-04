@@ -4,9 +4,8 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { ReactNode } from "react";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
-);
+const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 
 interface StripeProviderProps {
   children: ReactNode;
@@ -14,13 +13,22 @@ interface StripeProviderProps {
 }
 
 export function StripeProvider({ children, clientSecret }: StripeProviderProps) {
-  if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+  if (!publishableKey) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
         <p className="font-semibold">Payment Configuration Error</p>
         <p className="text-sm mt-1">
           Stripe publishable key is not configured. Please contact support.
         </p>
+      </div>
+    );
+  }
+
+  if (!stripePromise) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
+        <p className="font-semibold">Loading Payment System...</p>
+        <p className="text-sm mt-1">Please wait while we initialize the payment form.</p>
       </div>
     );
   }

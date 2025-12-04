@@ -49,18 +49,6 @@ interface OrderFormData {
   promoCode?: string;
 }
 
-interface OrderResponse {
-  success: boolean;
-  orderId?: string;
-  message?: string;
-  error?: string;
-  paymentIntentId?: string;
-  clientSecret?: string;
-  discountApplied?: boolean;
-  finalAmount?: number;
-  originalAmount?: number;
-}
-
 const occasionOptions = [
   "Wedding",
   "Birthday",
@@ -409,14 +397,23 @@ function CustomSongOrderPageContent() {
         }),
       });
 
-      const data: OrderResponse = await response.json();
+      const responseData = await response.json();
 
-      if (data.success && data.clientSecret && data.orderId) {
-        setOrderId(data.orderId);
-        setClientSecret(data.clientSecret);
-        setStep("payment");
+      // Handle withApiHandler wrapped response structure
+      // Response format: { success: true, data: { ... }, requestId: "..." }
+      if (responseData.success && responseData.data) {
+        const data = responseData.data;
+        if (data.success && data.clientSecret && data.orderId) {
+          setOrderId(data.orderId);
+          setClientSecret(data.clientSecret);
+          setStep("payment");
+        } else {
+          setFormError(data.error || data.message || "Failed to initialize payment. Please try again.");
+        }
       } else {
-        setFormError(data.error || "Failed to initialize payment. Please try again.");
+        // Handle error response from withApiHandler
+        const errorMessage = responseData.error?.message || responseData.error?.code || "Failed to initialize payment. Please try again.";
+        setFormError(errorMessage);
       }
     } catch (err) {
       setFormError("Network error. Please check your connection and try again.");

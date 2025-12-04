@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { xeroClient } from "@/lib/xero/client";
 import { ensureAuthenticated, getAuthenticatedTenantId } from "@/lib/xero/helpers";
 import { Invoice, Contact, LineItem } from "xero-node";
+import { getLogger } from "@/lib/logging";
+
+const xeroCreateInvoiceLogger = getLogger("xero.invoices.create");
 
 /**
  * Xero Create Invoice Route
@@ -79,7 +82,7 @@ export async function POST(
     await ensureAuthenticated();
     const tenantId = await getAuthenticatedTenantId();
 
-    console.log("[Xero Create Invoice] Starting invoice creation", {
+    xeroCreateInvoiceLogger.info("Starting invoice creation", {
       contactName: body.contactName,
       contactEmail: body.contactEmail,
       lineItemsCount: body.lineItems.length,
@@ -110,16 +113,18 @@ export async function POST(
         foundContact = contacts[0];
       }
 
-      if (foundContact && foundContact.contactID) {
-        // Contact exists, use it
-        contactId = foundContact.contactID;
-        console.log("[Xero Create Invoice] Contact found", {
-          contactId,
-          name: foundContact.name,
-        });
+        if (foundContact && foundContact.contactID) {
+          // Contact exists, use it
+          contactId = foundContact.contactID;
+          xeroCreateInvoiceLogger.info("Xero contact found", {
+            contactId,
+            name: foundContact.name,
+          });
       } else {
         // Contact doesn't exist, create it
-        console.log("[Xero Create Invoice] Contact not found, creating new contact");
+        xeroCreateInvoiceLogger.info("Xero contact not found, creating new contact", {
+          contactEmail: body.contactEmail,
+        });
 
         const newContact: Contact = {
           name: body.contactName,
@@ -136,13 +141,13 @@ export async function POST(
         const createdContacts = createContactsResponse.body.contacts;
         if (createdContacts && createdContacts.length > 0 && createdContacts[0]?.contactID) {
           contactId = createdContacts[0].contactID;
-          console.log("[Xero Create Invoice] Contact created", { contactId });
+          xeroCreateInvoiceLogger.info("Xero contact created", { contactId });
         } else {
           throw new Error("Failed to create contact in Xero");
         }
       }
     } catch (contactError: unknown) {
-      console.error("[Xero Create Invoice] Error managing contact:", contactError);
+      xeroCreateInvoiceLogger.error("Error managing Xero contact", undefined, contactError);
       const errorMessage =
         contactError instanceof Error
           ? contactError.message
@@ -180,7 +185,7 @@ export async function POST(
       status: invoiceStatus,
     };
 
-    console.log("[Xero Create Invoice] Creating invoice", {
+    xeroCreateInvoiceLogger.info("Creating Xero invoice", {
       contactId,
       status: invoiceStatus,
       lineItemsCount: invoiceLineItems.length,
@@ -204,7 +209,7 @@ export async function POST(
       throw new Error("Invoice created but no ID returned");
     }
 
-    console.log("[Xero Create Invoice] Invoice created successfully", {
+    xeroCreateInvoiceLogger.info("Xero invoice created successfully", {
       invoiceId: createdInvoice.invoiceID,
       invoiceNumber: createdInvoice.invoiceNumber,
     });
@@ -219,7 +224,7 @@ export async function POST(
       { status: 201 }
     );
   } catch (error: unknown) {
-    console.error("[Xero Create Invoice] Error:", error);
+    xeroCreateInvoiceLogger.error("Error creating Xero invoice", undefined, error);
 
     const errorMessage =
       error instanceof Error ? error.message : "Failed to create invoice";

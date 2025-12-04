@@ -35,12 +35,14 @@ const getXeroConfig = () => {
 };
 
 /**
- * Configured Xero client instance
+ * Lazy Xero client instance
+ * Only initialized when actually used (not during build)
  * 
  * Usage:
  * ```typescript
- * import { xeroClient } from '@/lib/xero/client';
+ * import { getXeroClient } from '@/lib/xero/client';
  * 
+ * const xeroClient = getXeroClient();
  * // Build consent URL for OAuth
  * const consentUrl = await xeroClient.buildConsentUrl();
  * 
@@ -49,7 +51,21 @@ const getXeroConfig = () => {
  * await xeroClient.setTokenSet(tokenSet);
  * ```
  */
-export const xeroClient = new XeroClient(getXeroConfig());
+let xeroClientInstance: XeroClient | null = null;
+
+export function getXeroClient(): XeroClient {
+  if (!xeroClientInstance) {
+    xeroClientInstance = new XeroClient(getXeroConfig());
+  }
+  return xeroClientInstance;
+}
+
+// Export for backward compatibility (but prefer getXeroClient())
+export const xeroClient = new Proxy({} as XeroClient, {
+  get(_target, prop) {
+    return getXeroClient()[prop as keyof XeroClient];
+  },
+});
 
 /**
  * Type export for Xero token set
@@ -61,5 +77,11 @@ export type XeroTokenSet = {
   id_token?: string;
   token_type: string;
   scope: string;
+  /**
+   * Epoch seconds when the token was obtained.
+   * Used for proactive refresh (5 minutes before expiry).
+   */
+  obtained_at?: number;
 };
+
 

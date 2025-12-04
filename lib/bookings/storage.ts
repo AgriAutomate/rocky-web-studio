@@ -1,3 +1,14 @@
+export interface BookingHistoryEntry {
+  timestamp: Date;
+  action: "created" | "cancelled" | "rescheduled" | "status_changed";
+  changedBy: "user" | "admin";
+  details: {
+    oldValue?: unknown;
+    newValue?: unknown;
+    reason?: string;
+  };
+}
+
 export interface Booking {
   id: string;
   bookingId: string;
@@ -7,7 +18,14 @@ export interface Booking {
   service: string;
   date: string; // yyyy-MM-dd
   time: string; // HH:mm
+  status: "pending" | "confirmed" | "cancelled" | "rescheduled";
+  cancelReason?: "user_request" | "admin_cancel" | "too_late";
+  cancelledAt?: Date;
+  cancelledBy?: "user" | "admin";
+  paymentIntentId?: string; // Stripe Payment Intent ID for refunds
+  history: BookingHistoryEntry[];
   createdAt: Date;
+  updatedAt: Date;
   reminderSent24h: boolean;
   reminderSent2h: boolean;
   smsOptIn: boolean;

@@ -3,14 +3,14 @@ import type { NextAuthConfig } from "next-auth";
 /**
  * Base NextAuth configuration shared between route handlers and middleware.
  */
-const authConfig: NextAuthConfig = {
+const authConfig: Partial<NextAuthConfig> = {
   pages: {
     signIn: "/login",
   },
   session: {
     strategy: "jwt",
-    // 30 days
-    maxAge: 30 * 24 * 60 * 60,
+    // 8 hours
+    maxAge: 8 * 60 * 60,
   },
   callbacks: {
     /**

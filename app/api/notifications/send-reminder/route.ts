@@ -50,15 +50,6 @@ const reminderConfigs: ReminderConfig[] = [
   },
 ];
 
-const calculateAppointmentDate = (booking: Booking): Date => {
-  const [year, month, day] = booking.date.split("-").map(Number);
-  const [hour, minute] = booking.time.split(":").map(Number);
-  if (!year || !month || !day || hour === undefined || minute === undefined) {
-    throw new Error("Invalid booking date or time format");
-  }
-  return new Date(year, month - 1, day, hour, minute);
-};
-
 const sendReminder = async (
   booking: Booking,
   config: ReminderConfig
@@ -67,7 +58,7 @@ const sendReminder = async (
     const message = config.template(booking);
     const result = await sendSMS(booking.phone, message, `${booking.bookingId}-${config.flag}`);
     if (result.success) {
-      markReminderSent(booking.id, config.flag === "reminderSent24h" ? "24h" : "2h");
+      await kvBookingStorage.markReminderSent(booking.id, config.flag === "reminderSent24h" ? "24h" : "2h");
     }
     return {
       bookingId: booking.bookingId,
@@ -88,7 +79,6 @@ const sendReminder = async (
 
 export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
-    const now = new Date();
     const dueReminders: Array<{ booking: Booking; config: ReminderConfig }> = [];
 
     for (const config of reminderConfigs) {
@@ -102,7 +92,6 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
 
     const outcomes: ReminderResult[] = [];
     for (const entry of dueReminders) {
-      const outcome = await sendReminder(entry.booking, entry.config);
       const outcome = await sendReminder(entry.booking, entry.config);
       outcomes.push(outcome);
     }

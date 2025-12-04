@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { xeroClient } from "@/lib/xero/client";
 import { ensureAuthenticated, getAuthenticatedTenantId } from "@/lib/xero/helpers";
+import { getLogger } from "@/lib/logging";
+
+const xeroInvoiceLogger = getLogger("xero.invoices.detail");
 
 /**
  * Xero Get Invoice Route
@@ -45,10 +48,10 @@ interface GetInvoiceResponse {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<GetInvoiceResponse | Response>> {
   try {
-    const invoiceId = params.id;
+    const { id: invoiceId } = await params;
 
     if (!invoiceId) {
       return NextResponse.json(
@@ -68,7 +71,7 @@ export async function GET(
     await ensureAuthenticated();
     const tenantId = await getAuthenticatedTenantId();
 
-    console.log("[Xero Get Invoice] Fetching invoice", {
+    xeroInvoiceLogger.info("Fetching invoice from Xero", {
       invoiceId,
       isPdfRequest,
     });
@@ -76,7 +79,10 @@ export async function GET(
     if (isPdfRequest) {
       // Return PDF
       try {
-        console.log("[Xero Get Invoice] Fetching PDF", { invoiceId, tenantId });
+        xeroInvoiceLogger.info("Fetching invoice PDF from Xero", {
+          invoiceId,
+          tenantId,
+        });
         
         const pdfResponse = await xeroClient.accountingApi.getInvoiceAsPdf(
           tenantId,
@@ -96,9 +102,9 @@ export async function GET(
         if (pdfBuffer instanceof Blob) {
           responseBody = pdfBuffer;
         } else if (Buffer.isBuffer(pdfBuffer)) {
-          responseBody = pdfBuffer;
+          responseBody = Buffer.from(pdfBuffer);
         } else {
-          responseBody = new Uint8Array(pdfBuffer);
+          responseBody = new Uint8Array(pdfBuffer as ArrayLike<number>);
         }
 
         return new NextResponse(responseBody, {
@@ -109,7 +115,7 @@ export async function GET(
           },
         });
       } catch (pdfError: unknown) {
-        console.error("[Xero Get Invoice] Error fetching PDF:", pdfError);
+        xeroInvoiceLogger.error("Error fetching invoice PDF from Xero", { invoiceId }, pdfError);
         const errorMessage =
           pdfError instanceof Error
             ? pdfError.message
@@ -126,10 +132,7 @@ export async function GET(
     }
 
     // Get invoice details
-    const invoiceResponse = await xeroClient.accountingApi.getInvoice(
-      tenantId,
-      invoiceId
-    );
+    const invoiceResponse = await xeroClient.accountingApi.getInvoice(tenantId, invoiceId);
 
     const invoice = invoiceResponse.body.invoices?.[0];
 
@@ -143,13 +146,20 @@ export async function GET(
       );
     }
 
-    console.log("[Xero Get Invoice] Invoice retrieved successfully", {
+    xeroInvoiceLogger.info("Invoice retrieved successfully from Xero", {
       invoiceId: invoice.invoiceID,
       invoiceNumber: invoice.invoiceNumber,
       status: invoice.status,
     });
 
     // Format response
+    const formatDate = (date: unknown): string | undefined => {
+      if (!date) return undefined;
+      if (date instanceof Date) return date.toISOString();
+      if (typeof date === 'string') return date;
+      return String(date);
+    };
+
     const response: GetInvoiceResponse = {
       success: true,
       invoice: {
@@ -157,8 +167,8 @@ export async function GET(
         invoiceNumber: invoice.invoiceNumber,
         type: invoice.type?.toString(),
         status: invoice.status?.toString(),
-        date: invoice.date ? (typeof invoice.date === 'string' ? invoice.date : (invoice.date instanceof Date ? invoice.date.toISOString() : String(invoice.date))) : undefined,
-        dueDate: invoice.dueDate ? (typeof invoice.dueDate === 'string' ? invoice.dueDate : (invoice.dueDate instanceof Date ? invoice.dueDate.toISOString() : String(invoice.dueDate))) : undefined,
+        date: formatDate(invoice.date),
+        dueDate: formatDate(invoice.dueDate),
         reference: invoice.reference,
         total: invoice.total,
         totalTax: invoice.totalTax,
@@ -184,7 +194,8 @@ export async function GET(
 
     return NextResponse.json(response, { status: 200 });
   } catch (error: unknown) {
-    console.error("[Xero Get Invoice] Error:", error);
+    const { id: invoiceId } = await params;
+    xeroInvoiceLogger.error("Error retrieving invoice from Xero", { invoiceId }, error);
 
     const errorMessage =
       error instanceof Error ? error.message : "Failed to retrieve invoice";

@@ -196,3 +196,4 @@ For questions or issues with email templates:
   - Variable placeholders added
 
 
+

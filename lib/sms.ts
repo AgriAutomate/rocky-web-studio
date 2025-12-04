@@ -1,10 +1,19 @@
+import { getLogger } from "@/lib/logging";
+
+const smsLogger = getLogger("sms");
+
 const username = process.env.MOBILE_MESSAGE_API_USERNAME;
 const password = process.env.MOBILE_MESSAGE_API_PASSWORD;
 const senderId = process.env.MOBILE_MESSAGE_SENDER_ID;
 
 if (!username || !password || !senderId) {
-  console.warn(
-    "Mobile Message SMS config missing. Set MOBILE_MESSAGE_API_USERNAME, PASSWORD, and SENDER_ID."
+  smsLogger.warn(
+    "Mobile Message SMS config missing",
+    {
+      hasUsername: !!username,
+      hasPassword: !!password,
+      hasSenderId: !!senderId,
+    }
   );
 }
 
@@ -12,12 +21,14 @@ const authHeader = () => {
   // Validate environment variables at runtime
   const runtimeUsername = process.env.MOBILE_MESSAGE_API_USERNAME;
   const runtimePassword = process.env.MOBILE_MESSAGE_API_PASSWORD;
-  const runtimeBaseURL = process.env.MOBILE_MESSAGE_API_URL || "https://api.mobilemessage.com.au/v1";
+  const runtimeBaseURL =
+    process.env.MOBILE_MESSAGE_API_URL || "https://api.mobilemessage.com.au/v1";
 
-  console.log("[SMS] Environment variable validation:");
-  console.log("[SMS]   MOBILE_MESSAGE_API_URL:", runtimeBaseURL);
-  console.log("[SMS]   MOBILE_MESSAGE_API_USERNAME:", runtimeUsername ? `${runtimeUsername.substring(0, 3)}...` : "UNDEFINED");
-  console.log("[SMS]   MOBILE_MESSAGE_API_PASSWORD exists:", !!runtimePassword);
+  smsLogger.debug("Environment variable validation", {
+    baseUrl: runtimeBaseURL,
+    usernamePreview: runtimeUsername ? `${runtimeUsername.substring(0, 3)}...` : "UNDEFINED",
+    hasPassword: !!runtimePassword,
+  });
 
   if (!runtimeUsername || !runtimePassword) {
     const missing = [];
@@ -31,36 +42,22 @@ const authHeader = () => {
     throw new Error("Mobile Message API credentials must be strings");
   }
 
-  // Build the credentials string
+  // Build the credentials string (never logged in full)
   const creds = `${runtimeUsername}:${runtimePassword}`;
-  
-  // Log before encoding
-  console.log("[SMS] Base64 encoding validation:");
-  console.log("[SMS]   Encoding string length:", creds.length);
-  console.log("[SMS]   Username length:", runtimeUsername.length);
-  console.log("[SMS]   Password length:", runtimePassword.length);
-  console.log("[SMS]   String starts with:", creds.substring(0, 10));
-  console.log("[SMS]   Contains colon separator:", creds.includes(":"));
 
   // Encode to Base64
   const encoded = Buffer.from(creds).toString("base64");
-  
-  // Log after encoding
-  console.log("[SMS]   Base64 result (first 20 chars):", encoded.substring(0, 20));
-  console.log("[SMS]   Base64 full length:", encoded.length);
 
-  // Validate by decoding back
+  // Minimal validation without exposing secrets
   try {
     const decoded = Buffer.from(encoded, "base64").toString("utf-8");
     const isValid = decoded === creds;
-    console.log("[SMS]   Decoded matches original:", isValid);
-    if (!isValid) {
-      console.error("[SMS]   WARNING: Base64 decode mismatch!");
-      console.error("[SMS]   Original:", creds.substring(0, 20) + "...");
-      console.error("[SMS]   Decoded:", decoded.substring(0, 20) + "...");
-    }
+    smsLogger.debug("SMS auth header validation", {
+      encodingLength: encoded.length,
+      decodedMatchesOriginal: isValid,
+    });
   } catch (decodeError) {
-    console.error("[SMS]   ERROR: Failed to decode Base64:", decodeError);
+    smsLogger.error("Failed to decode SMS auth header", undefined, decodeError);
   }
 
   // Build auth header with exactly one space after 'Basic'
@@ -69,10 +66,10 @@ const authHeader = () => {
   // Validate auth header format
   const hasBasicPrefix = auth.startsWith("Basic ");
   const hasOneSpace = auth.substring(6).startsWith(encoded);
-  console.log("[SMS]   Auth header format validation:");
-  console.log("[SMS]     Starts with 'Basic ':", hasBasicPrefix);
-  console.log("[SMS]     Has exactly one space:", hasOneSpace);
-  console.log("[SMS]     Full auth header (first 30 chars):", auth.substring(0, 30));
+  smsLogger.debug("SMS auth header format validation", {
+    hasBasicPrefix,
+    hasOneSpace,
+  });
 
   if (!hasBasicPrefix || !hasOneSpace) {
     throw new Error("Invalid auth header format");
@@ -86,7 +83,7 @@ const logCredentialDiagnostics = (auth: string, runtimeUsername?: string, runtim
   const pass = runtimePassword || password;
   
   if (!user || !pass) {
-    console.warn("[SMS] Missing username or password for Mobile Message API");
+    smsLogger.warn("Missing username or password for Mobile Message API");
     return;
   }
 
@@ -94,11 +91,12 @@ const logCredentialDiagnostics = (auth: string, runtimeUsername?: string, runtim
   const passwordSpecialChars = /[^A-Za-z0-9]/.test(pass);
   const passwordLength = pass.length || 0;
 
-  console.log("[SMS] Credential diagnostics:");
-  console.log("[SMS]   Username (first 3 chars):", usernamePreview);
-  console.log("[SMS]   Password exists:", true, ", length:", passwordLength);
-  console.log("[SMS]   Password contains special chars:", passwordSpecialChars);
-  console.log("[SMS]   Auth header (first 20 chars):", auth.substring(0, 20));
+  smsLogger.debug("SMS credential diagnostics", {
+    usernamePreview,
+    passwordLength,
+    passwordSpecialChars,
+    authPreview: auth.substring(0, 10),
+  });
 };
 
 interface MobileMessagePayload {
@@ -166,44 +164,34 @@ const buildPayload = (messages: SMSMessage[]): MobileMessagePayload => {
 async function post(payload: MobileMessagePayload): Promise<MobileMessageResponse> {
   try {
     // Use runtime environment variables consistently
-    const runtimeBaseURL = process.env.MOBILE_MESSAGE_API_URL || "https://api.mobilemessage.com.au/v1";
+    const runtimeBaseURL =
+      process.env.MOBILE_MESSAGE_API_URL || "https://api.mobilemessage.com.au/v1";
     const runtimeUsername = process.env.MOBILE_MESSAGE_API_USERNAME;
     const runtimePassword = process.env.MOBILE_MESSAGE_API_PASSWORD;
     
     // Construct API URL: remove trailing slashes and ensure proper path
-    const baseURL = runtimeBaseURL.trim().replace(/\/+$/, ""); // Remove trailing slashes
-    const apiUrl = `${baseURL}/messages`; // Append /messages endpoint
-    console.log("[SMS] Base URL:", baseURL);
-    console.log("[SMS] API URL:", apiUrl);
-    console.log("[SMS] Username exists:", !!runtimeUsername);
-    console.log("[SMS] Password exists:", !!runtimePassword);
-    
-    // Log the exact payload structure being sent
-    console.log("[SMS] Payload structure verification:");
-    console.log("[SMS]   enable_unicode:", payload.enable_unicode, "(type:", typeof payload.enable_unicode, ")");
-    console.log("[SMS]   messages array length:", payload.messages.length);
-    payload.messages.forEach((msg, idx) => {
-      console.log(`[SMS]   Message ${idx + 1}:`);
-      console.log(`[SMS]     to: "${msg.to}" (type: ${typeof msg.to})`);
-      console.log(`[SMS]     message: "${msg.message.substring(0, 50)}..." (length: ${msg.message.length})`);
-      console.log(`[SMS]     sender: "${msg.sender}" (type: ${typeof msg.sender})`);
-      console.log(`[SMS]     custom_ref: ${msg.custom_ref ? `"${msg.custom_ref}"` : "undefined"} (type: ${typeof msg.custom_ref})`);
+    const baseURL = runtimeBaseURL.trim().replace(/\/+$/, "");
+    const apiUrl = `${baseURL}/messages`;
+
+    smsLogger.debug("Prepared Mobile Message API request", {
+      baseURL,
+      apiUrl,
+      hasUsername: !!runtimeUsername,
+      hasPassword: !!runtimePassword,
+      messagesCount: payload.messages.length,
     });
-    console.log("[SMS] Full payload JSON:", JSON.stringify(payload, null, 2));
     
     const auth = authHeader();
-    console.log("[SMS] Auth header (first 10 chars):", auth.substring(0, 10));
+    smsLogger.debug("Auth header prepared");
 
     const headers = {
       Authorization: auth,
       "Content-Type": "application/json",
     };
     logCredentialDiagnostics(auth, runtimeUsername, runtimePassword);
-    console.log("[SMS] Full request headers:", headers);
-    console.log("[SMS] Final API URL (before fetch):", apiUrl);
-    console.log("[SMS] URL verification - Expected: https://api.mobilemessage.com.au/v1/messages");
-    console.log("[SMS] URL verification - Actual:", apiUrl);
-    console.log("[SMS] URL match:", apiUrl === "https://api.mobilemessage.com.au/v1/messages" ? "✅ CORRECT" : "❌ MISMATCH");
+    smsLogger.debug("Final SMS request configuration", {
+      apiUrl,
+    });
 
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -213,7 +201,7 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
 
     if (!response.ok) {
       const text = await response.text();
-      
+
       // Specific handling for authentication errors
       if (response.status === 401) {
         return {
@@ -222,7 +210,7 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
           error: "Authentication failed. Please verify MOBILE_MESSAGE_API_USERNAME and MOBILE_MESSAGE_API_PASSWORD are correct.",
         };
       }
-      
+
       // Specific handling for rate limit errors
       if (response.status === 429) {
         return {
@@ -231,7 +219,6 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
           error: "Rate limit exceeded. Mobile Message API allows max 5 concurrent requests. Please retry after a moment.",
         };
       }
-      
       // Generic error handling for other status codes
       return {
         success: false,
@@ -241,6 +228,10 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
     }
 
     const data = (await response.json()) as MobileMessageAPIResponse;
+    smsLogger.info("SMS sent via Mobile Message API", {
+      status: response.status,
+      messagesCount: data.messages?.length ?? 0,
+    });
     return { success: true, status: response.status, data };
   } catch (error: unknown) {
     const normalized: SMSError = {
@@ -255,6 +246,7 @@ async function post(payload: MobileMessagePayload): Promise<MobileMessageRespons
         normalized.details = JSON.stringify(errorWithMeta.data);
       }
     }
+    smsLogger.error("SMS API call failed", undefined, error);
     return {
       success: false,
       status: 500,
@@ -271,14 +263,14 @@ export async function sendSMS(
   // Validate environment variables at runtime in sendSMS
   const runtimeUsername = process.env.MOBILE_MESSAGE_API_USERNAME;
   const runtimePassword = process.env.MOBILE_MESSAGE_API_PASSWORD;
-  const runtimeBaseURL = process.env.MOBILE_MESSAGE_API_URL || "https://api.mobilemessage.com.au/v1";
+  const runtimeBaseURL =
+    process.env.MOBILE_MESSAGE_API_URL || "https://api.mobilemessage.com.au/v1";
 
-  console.log("[SMS] sendSMS - Environment variable check:");
-  console.log("[SMS]   MOBILE_MESSAGE_API_URL:", runtimeBaseURL);
-  console.log("[SMS]   MOBILE_MESSAGE_API_USERNAME:", runtimeUsername ? `${runtimeUsername.substring(0, 3)}...` : "UNDEFINED");
-  console.log("[SMS]   MOBILE_MESSAGE_API_PASSWORD exists:", !!runtimePassword);
-  console.log("[SMS]   Username type:", typeof runtimeUsername);
-  console.log("[SMS]   Password type:", typeof runtimePassword);
+  smsLogger.debug("sendSMS environment check", {
+    baseUrl: runtimeBaseURL,
+    usernamePreview: runtimeUsername ? `${runtimeUsername.substring(0, 3)}...` : "UNDEFINED",
+    hasPassword: !!runtimePassword,
+  });
 
   if (!runtimeUsername || !runtimePassword) {
     const missing = [];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, parse } from "date-fns";
 import { CheckCircle, Loader2, Calendar, User, FileCheck } from "lucide-react";
 import {
@@ -21,6 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import BookingConfirmation, { SmsStatus } from "@/components/BookingConfirmation";
+import {
+  trackBookingStarted,
+  trackBookingCompleted,
+} from "@/lib/analytics";
 
 type Step = "calendar" | "details" | "confirmation";
 
@@ -64,6 +68,11 @@ export default function BookPage() {
   const [bookingId, setBookingId] = useState<string>("");
   const [smsStatus, setSmsStatus] = useState<SmsStatus>("idle");
   const [smsError, setSmsError] = useState<string>("");
+
+  // Track booking_started when component mounts
+  useEffect(() => {
+    trackBookingStarted();
+  }, []);
 
   const handleDateTimeSelect = (date: string, time: string) => {
     setSelectedDate(date);
@@ -204,6 +213,15 @@ export default function BookPage() {
 
       if (data.success && data.bookingId) {
         setBookingId(data.bookingId);
+        
+        // Track booking_completed event
+        trackBookingCompleted({
+          service_type: formData.serviceType,
+          date: selectedDate,
+          time: selectedTime,
+          booking_id: data.bookingId,
+        });
+
         if (formData.smsOptIn) {
           await sendSmsNotification(formattedPhone);
         }

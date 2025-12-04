@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { xeroClient } from "@/lib/xero/client";
 import { ensureAuthenticated, getAuthenticatedTenantId } from "@/lib/xero/helpers";
+import { getLogger } from "@/lib/logging";
+
+const xeroInvoicesLogger = getLogger("xero.invoices.list");
 
 /**
  * Xero List Invoices Route
@@ -50,7 +53,7 @@ export async function GET(
       ? parseInt(searchParams.get("page")!, 10)
       : undefined;
 
-    console.log("[Xero List Invoices] Fetching invoices", {
+    xeroInvoicesLogger.info("Fetching invoices from Xero", {
       tenantId,
       where,
       order,
@@ -103,7 +106,7 @@ export async function GET(
       };
     });
 
-    console.log("[Xero List Invoices] Retrieved invoices", {
+    xeroInvoicesLogger.info("Invoices retrieved from Xero", {
       count: invoices.length,
     });
 
@@ -115,7 +118,7 @@ export async function GET(
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("[Xero List Invoices] Error:", error);
+    xeroInvoicesLogger.error("Error listing Xero invoices", undefined, error);
 
     const errorMessage =
       error instanceof Error ? error.message : "Failed to retrieve invoices";

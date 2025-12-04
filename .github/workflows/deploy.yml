@@ -1,0 +1,110 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Extract deployment URL
+        run: |
+          DEPLOY_URL=$(echo "${{ steps.deploy.outputs.url }}" | grep -oP 'https://[^\s]+' || echo "")
+          echo "DEPLOYMENT_URL=$DEPLOY_URL" >> $GITHUB_ENV
+          echo "✅ Deployed to: $DEPLOY_URL"
+
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+    
+    steps:
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Test landing page
+        run: |
+          URL="${DEPLOYMENT_URL:-https://rockywebstudio.com.au}"
+          echo "Testing landing page: $URL"
+          
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+          
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Landing page returned status $STATUS"
+            exit 1
+          fi
+          
+          echo "✅ Landing page returned 200 OK"
+
+      - name: Test health check endpoint
+        run: |
+          URL="${DEPLOYMENT_URL:-https://rockywebstudio.com.au}"
+          echo "Testing health check: $URL/api/health"
+          
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/api/health" || echo "000")
+          
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Health check returned status $STATUS"
+            exit 1
+          fi
+          
+          echo "✅ Health check returned 200 OK"
+          
+          # Also verify response body
+          RESPONSE=$(curl -s "$URL/api/health" || echo "{}")
+          if echo "$RESPONSE" | grep -q '"status":"ok"'; then
+            echo "✅ Health check response is valid"
+          else
+            echo "⚠️  Health check response format unexpected"
+          fi
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment URL:** ${DEPLOYMENT_URL:-https://rockywebstudio.com.au}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+

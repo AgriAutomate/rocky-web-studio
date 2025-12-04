@@ -1,8 +1,10 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import authConfig from "./auth.config";
+import { getLogger } from "@/lib/logging";
 
 const ADMIN_EMAIL = "admin@rockywebstudio.com.au";
+const authLogger = getLogger("auth");
 
 /**
  * NextAuth.js v5 entrypoint.
@@ -15,6 +17,44 @@ const ADMIN_EMAIL = "admin@rockywebstudio.com.au";
  */
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
+  callbacks: {
+    ...(authConfig.callbacks ?? {}),
+    async jwt({ token, user, account, profile, trigger, session }) {
+      let nextToken: any = token;
+
+      if (typeof authConfig.callbacks?.jwt === "function") {
+        nextToken = await authConfig.callbacks.jwt({
+          token,
+          user,
+          account,
+          profile,
+          trigger,
+          session,
+        } as any);
+      }
+
+      if (!nextToken.sessionId) {
+        const base = user?.id ?? token.sub ?? "anonymous";
+        nextToken.sessionId = `${base}-${Date.now()}`;
+      }
+
+      return nextToken;
+    },
+    async session({ session, token, user }) {
+      let nextSession: any = session;
+
+      if (typeof authConfig.callbacks?.session === "function") {
+        nextSession = await authConfig.callbacks.session({
+          session,
+          token,
+          user,
+        } as any);
+      }
+
+      (nextSession as any).sessionId = (token as any).sessionId;
+      return nextSession;
+    },
+  },
   providers: [
     Credentials({
       name: "Credentials",
@@ -31,13 +71,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         const adminPassword = process.env.ADMIN_PASSWORD;
         if (!adminPassword) {
-          console.error(
-            "[auth] ADMIN_PASSWORD environment variable is not set"
-          );
+          authLogger.error("ADMIN_PASSWORD environment variable is not set");
           return null;
         }
 
-        if (password !== adminPassword) return null;
+        if (password !== adminPassword) {
+          return null;
+        }
 
         // Minimal admin user object
         return {

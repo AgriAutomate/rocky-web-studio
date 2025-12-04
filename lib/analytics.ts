@@ -222,6 +222,168 @@ export function trackPurchase(
 }
 
 // ============================================================================
+// Booking Funnel Event Tracking
+// ============================================================================
+
+/**
+ * Track booking_started event (when user views booking form)
+ */
+export function trackBookingStarted(): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: booking_started");
+    return;
+  }
+
+  window.gtag("event", "booking_started", {
+    event_category: "Booking",
+    event_label: "Booking Form Viewed",
+  });
+}
+
+/**
+ * Track booking_completed event (when booking is submitted successfully)
+ */
+export function trackBookingCompleted(params: {
+  service_type: string;
+  date: string;
+  time: string;
+  booking_id: string;
+  duration?: string;
+  price?: number;
+}): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: booking_completed", params);
+    return;
+  }
+
+  window.gtag("event", "booking_completed", {
+    event_category: "Booking",
+    event_label: params.service_type,
+    service_type: params.service_type,
+    booking_date: params.date,
+    booking_time: params.time,
+    booking_id: params.booking_id,
+    ...(params.duration && { duration: params.duration }),
+    ...(params.price && { value: params.price, currency: "AUD" }),
+  });
+}
+
+/**
+ * Track payment_initiated event (when user enters payment details)
+ * Note: Bookings don't currently require payment, but this is for future use
+ */
+export function trackPaymentInitiated(params: {
+  service_type: string;
+  amount: number;
+  currency?: string;
+  booking_id?: string;
+}): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: payment_initiated", params);
+    return;
+  }
+
+  window.gtag("event", "payment_initiated", {
+    event_category: "Payment",
+    event_label: params.service_type,
+    service_type: params.service_type,
+    value: params.amount,
+    currency: params.currency || "AUD",
+    ...(params.booking_id && { booking_id: params.booking_id }),
+  });
+}
+
+/**
+ * Track payment_confirmed event (when Stripe confirms payment)
+ * This is called from the Stripe webhook handler
+ */
+export function trackPaymentConfirmed(params: {
+  transaction_id: string;
+  amount: number;
+  service_type: string;
+  currency?: string;
+  booking_id?: string;
+}): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: payment_confirmed", params);
+    return;
+  }
+
+  window.gtag("event", "payment_confirmed", {
+    event_category: "Payment",
+    event_label: params.service_type,
+    transaction_id: params.transaction_id,
+    value: params.amount,
+    currency: params.currency || "AUD",
+    service_type: params.service_type,
+    ...(params.booking_id && { booking_id: params.booking_id }),
+  });
+}
+
+/**
+ * Track booking_cancelled event (when user cancels booking)
+ */
+export function trackBookingCancelled(params: {
+  booking_id: string;
+  service_type?: string;
+  reason?: string;
+}): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: booking_cancelled", params);
+    return;
+  }
+
+  window.gtag("event", "booking_cancelled", {
+    event_category: "Booking",
+    event_label: params.service_type || "Unknown",
+    booking_id: params.booking_id,
+    ...(params.service_type && { service_type: params.service_type }),
+    ...(params.reason && { cancellation_reason: params.reason }),
+  });
+}
+
+/**
+ * Track song_request_viewed event (when user views custom song page)
+ */
+export function trackSongRequestViewed(): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: song_request_viewed");
+    return;
+  }
+
+  window.gtag("event", "song_request_viewed", {
+    event_category: "Custom Songs",
+    event_label: "Custom Song Page Viewed",
+  });
+}
+
+/**
+ * Track song_request_purchased event (when user purchases custom song)
+ */
+export function trackSongRequestPurchased(params: {
+  order_id: string;
+  package_type: PackageType;
+  price: number;
+  occasion?: string;
+  currency?: string;
+}): void {
+  if (typeof window === "undefined" || !window.gtag) {
+    console.log("[Analytics] GA not available: song_request_purchased", params);
+    return;
+  }
+
+  window.gtag("event", "song_request_purchased", {
+    event_category: "Custom Songs",
+    event_label: packageNames[params.package_type] || params.package_type,
+    order_id: params.order_id,
+    package_type: params.package_type,
+    value: params.price,
+    currency: params.currency || "AUD",
+    ...(params.occasion && { occasion: params.occasion }),
+  });
+}
+
+// ============================================================================
 // Custom Event Tracking
 // ============================================================================
 

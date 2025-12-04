@@ -80,7 +80,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let expiresIn = 0;
     if (tokenSet.expires_in) {
       if (typeof tokenSet.expires_in === 'function') {
-        expiresIn = tokenSet.expires_in();
+        expiresIn = (tokenSet.expires_in as () => number)();
       } else if (typeof tokenSet.expires_in === 'number') {
         expiresIn = tokenSet.expires_in;
       }

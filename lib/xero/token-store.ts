@@ -28,16 +28,23 @@ export async function storeTokenSet(
     throw new Error("tokenSet must include access_token and refresh_token");
   }
 
+  const tokenWithTimestamp: XeroTokenSet = {
+    ...tokenSet,
+    obtained_at: tokenSet.obtained_at ?? Math.floor(Date.now() / 1000),
+  };
+
   // Store token set with expiration time
   // We'll store it with a TTL based on expires_in (in seconds)
   // Add 60 seconds buffer to ensure we refresh before expiration
-  const ttl = tokenSet.expires_in ? tokenSet.expires_in - 60 : undefined;
+  const ttl = tokenWithTimestamp.expires_in
+    ? tokenWithTimestamp.expires_in - 60
+    : undefined;
 
   // Only set TTL if valid (greater than 0)
   if (ttl && ttl > 0) {
-    await kv.set(TOKEN_KEY(userId), tokenSet, { ex: ttl });
+    await kv.set(TOKEN_KEY(userId), tokenWithTimestamp, { ex: ttl });
   } else {
-    await kv.set(TOKEN_KEY(userId), tokenSet);
+    await kv.set(TOKEN_KEY(userId), tokenWithTimestamp);
   }
 }
 

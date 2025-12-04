@@ -18,6 +18,19 @@ const SMS_PHONE_KEY = (phoneNumber: string) => `sms:phone:${phoneNumber}`;
 
 class KVSMSStorage implements SMSStorage {
   async save(record: SMSRecord): Promise<void> {
+    // Update existing record if messageId matches (for delivery status updates)
+    if (record.messageId) {
+      const existingRecords = await this.findAll();
+      const existing = existingRecords.find(
+        (r) => r.messageId === record.messageId && r.messageId !== ""
+      );
+      if (existing) {
+        // Update existing record with new status
+        await kv.set(SMS_KEY(existing.id), record);
+        return;
+      }
+    }
+
     await kv.set(SMS_KEY(record.id), record);
 
     // Global index of all SMS records

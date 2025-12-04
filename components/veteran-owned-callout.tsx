@@ -1,3 +1,5 @@
+import { AVOBBadge } from "@/components/ui";
+
 export function VeteranOwnedCallout() {
   return (
     <section
@@ -18,24 +20,36 @@ export function VeteranOwnedCallout() {
             military-grade discipline and precision to every digital project. We understand
             accountability, timelines, and delivering under pressure.
           </p>
+          <ul className="space-y-2 text-slate-200 sm:text-base">
+            <li className="flex items-center gap-2">
+              <span className="text-teal-300 font-bold">✓</span>
+              <span>Licensed AVOB certification</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="text-teal-300 font-bold">✓</span>
+              <span>Commitment to veteran employment</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="text-teal-300 font-bold">✓</span>
+              <span>Supporting Central Queensland veterans</span>
+            </li>
+          </ul>
           <a
-            href="https://www.avob.org.au/"
+            href="https://avob.org.au"
             target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-200 underline decoration-teal-300 decoration-2 underline-offset-4 hover:text-teal-100"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-200 underline decoration-teal-300 decoration-2 underline-offset-4 hover:text-teal-100 transition-colors"
           >
             Learn more about AVOB certification
             <span aria-hidden="true">↗</span>
           </a>
         </div>
         <div className="mx-auto flex flex-col items-center gap-3 md:mx-0">
-          <div className="flex h-[150px] w-[150px] items-center justify-center rounded-full border border-teal-500/50 bg-white/5 p-4 shadow-inner shadow-slate-900/40">
-            <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-dashed border-teal-200 text-center text-xs font-semibold uppercase tracking-wide text-teal-100">
-              AVOB Logo
-            </div>
+          <div className="flex items-center justify-center rounded-lg border border-teal-500/50 bg-white/10 p-4 shadow-inner shadow-slate-900/40 backdrop-blur-sm">
+            <AVOBBadge variant="standard" size="large" link={true} />
           </div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-300">
-            Placeholder
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-300 text-center">
+            Certified AVOB
           </p>
         </div>
       </div>

@@ -1,5 +1,8 @@
 # Rocky Web Studio - Booking Platform
 
+[![CI](https://github.com/your-org/rocky-web-studio/workflows/CI/badge.svg)](https://github.com/your-org/rocky-web-studio/actions/workflows/ci.yml)
+[![Deploy](https://github.com/your-org/rocky-web-studio/workflows/Deploy%20to%20Production/badge.svg)](https://github.com/your-org/rocky-web-studio/actions/workflows/deploy.yml)
+
 A Next.js booking platform with SMS notifications, email confirmations, and admin dashboard.
 
 ## Features

@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { getFromAddress, getReplyToAddress, EMAIL_CONFIG } from "./config";
 
 /**
  * Order email details interface
@@ -126,7 +127,8 @@ hello@rockywebstudio.com.au
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Rocky Web Studio <music@rockywebstudio.com.au>",
+        from: getFromAddress("music"),
+        replyTo: getReplyToAddress("music"),
         to: [details.email],
         subject: subject,
         text: textBody,
@@ -187,8 +189,9 @@ ${details.additionalInfo || "None"}
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Rocky Web Studio <notifications@rockywebstudio.com.au>",
-        to: ["hello@rockywebstudio.com.au"],
+        from: getFromAddress("notifications"),
+        replyTo: getReplyToAddress("hello"),
+        to: [EMAIL_CONFIG.admin],
         subject: subject,
         text: textBody,
       }),
@@ -197,6 +200,7 @@ ${details.additionalInfo || "None"}
     console.error("Error sending internal notification:", error);
   }
 }
+
 
 
 

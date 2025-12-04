@@ -1,16 +1,23 @@
 import { format, parse, isValid } from "date-fns";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import type { Booking } from "@/lib/bookings/storage";
 import { kvBookingStorage } from "@/lib/kv/bookings";
 import { sendSMS } from "@/lib/sms";
 import { logSMSAttempt } from "@/lib/sms/storage";
+import { getLogger } from "@/lib/logging";
+import { withApiHandler } from "@/lib/api/handlers";
+import { ValidationError, ExternalServiceError } from "@/lib/errors";
+import { checkRateLimit } from "@/lib/api/rate-limit-middleware";
+import { RATE_LIMITS } from "@/lib/rate-limit";
 import {
   generateServiceSpecificMessage,
   validateMessageLength,
   getServiceSpecificInfo,
 } from "@/lib/sms/messages";
+import { getFromAddress, getReplyToAddress } from "@/lib/email/config";
 
 const resendApiKey = process.env.RESEND_API_KEY;
+const bookingLogger = getLogger("bookings.create");
 
 interface BookingRequest {
   date: string;
@@ -34,9 +41,9 @@ interface BookingEmailDetails {
 
 async function sendBookingConfirmationEmail(details: BookingEmailDetails) {
   if (!resendApiKey) {
-    console.warn(
-      "Skipping confirmation email — RESEND_API_KEY is not configured."
-    );
+    bookingLogger.warn("Skipping confirmation email — RESEND_API_KEY is not configured.", {
+      bookingId: details.bookingId,
+    });
     return;
   }
 
@@ -82,7 +89,8 @@ The Rocky Web Studio Team
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Rocky Web Studio <bookings@rockywebstudio.com.au>",
+        from: getFromAddress("bookings"),
+        replyTo: getReplyToAddress("bookings"),
         to: details.email,
         subject,
         text: textBody,
@@ -101,13 +109,23 @@ The Rocky Web Studio Team
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Resend email error", message, error);
+    bookingLogger.error("Resend email error", { bookingId: details.bookingId, errorMessage: message }, error);
   }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = (await request.json()) as BookingRequest;
+async function handlePost(request: NextRequest, requestId: string) {
+  // Check rate limit: 10 requests per minute per IP
+  const rateLimitResponse = await checkRateLimit(request, {
+    limit: RATE_LIMITS.BOOKING_CREATE.limit,
+    windowSeconds: RATE_LIMITS.BOOKING_CREATE.windowSeconds,
+    keyPrefix: RATE_LIMITS.BOOKING_CREATE.keyPrefix,
+  });
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
+  const body = (await request.json()) as BookingRequest;
 
     // Validate required fields
     const requiredFields: Array<keyof BookingRequest> = [
@@ -121,13 +139,7 @@ export async function POST(request: NextRequest) {
     const missingFields = requiredFields.filter((field) => !body[field]);
 
     if (missingFields.length > 0) {
-      return NextResponse.json(
-        {
-          error: "Missing required fields",
-          missingFields,
-        },
-        { status: 400 }
-      );
+      throw new ValidationError("Missing required fields", { missingFields });
     }
 
     const {
@@ -143,47 +155,58 @@ export async function POST(request: NextRequest) {
 
     const appointmentDate = parse(date, "yyyy-MM-dd", new Date());
     if (!isValid(appointmentDate)) {
-      return NextResponse.json(
-        { error: "Invalid date format. Use YYYY-MM-DD" },
-        { status: 400 }
-      );
+      throw new ValidationError("Invalid date format. Use YYYY-MM-DD");
     }
 
     // Validate time format (HH:00)
     const timeRegex = /^([0-1][0-9]|2[0-3]):00$/;
     if (!timeRegex.test(time)) {
-      return NextResponse.json(
-        { error: "Invalid time format. Use HH:00 (e.g., 09:00, 14:00)" },
-        { status: 400 }
+      throw new ValidationError(
+        "Invalid time format. Use HH:00 (e.g., 09:00, 14:00)"
       );
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: "Invalid email format" },
-        { status: 400 }
-      );
+      throw new ValidationError("Invalid email format");
     }
 
     // Generate bookingId and persist to KV-backed storage
     const bookingId = `BK${Date.now()}`;
 
-    await kvBookingStorage.save({
-      id: bookingId,
-      bookingId,
-      customerName: name,
-      email,
-      phone,
-      service: serviceType,
-      date,
-      time,
-      smsOptIn,
-      reminderSent24h: false,
-      reminderSent2h: false,
-      createdAt: new Date(),
-    } satisfies Booking);
+            try {
+              const now = new Date();
+              await kvBookingStorage.save({
+                id: bookingId,
+                bookingId,
+                customerName: name,
+                email,
+                phone,
+                service: serviceType,
+                date,
+                time,
+                status: "confirmed",
+                history: [
+                  {
+                    timestamp: now,
+                    action: "created",
+                    changedBy: "user",
+                    details: {},
+                  },
+                ],
+                createdAt: now,
+                updatedAt: now,
+                reminderSent24h: false,
+                reminderSent2h: false,
+                smsOptIn,
+              } satisfies Booking);
+    } catch {
+      throw new ExternalServiceError(
+        "Failed to save booking. Please try again.",
+        { requestId }
+      );
+    }
 
     await sendBookingConfirmationEmail({
       bookingId,
@@ -218,7 +241,10 @@ export async function POST(request: NextRequest) {
         // Validate message length
         const validation = validateMessageLength(smsMessage);
         if (!validation.valid && validation.warning) {
-          console.warn("[SMS] Message length warning:", validation.warning);
+          bookingLogger.warn("SMS message length warning", {
+            bookingId,
+            warning: validation.warning,
+          });
         }
 
         // Log SMS attempt before sending
@@ -230,26 +256,28 @@ export async function POST(request: NextRequest) {
           status: "pending", // Will update after API call
         });
 
-        const smsResult = await sendSMS(phone, smsMessage, bookingId);
+              const smsResult = await sendSMS(phone, smsMessage, bookingId);
 
-        if (smsResult.success) {
-          smsMessageId = smsResult.data?.messages?.[0]?.message_id || "";
-          smsStatus = "sent";
-          
-          // Log successful SMS send
-          await logSMSAttempt({
-            bookingId,
-            phoneNumber: phone,
-            message: smsMessage,
-            messageType: "confirmation",
-            status: "sent",
-            messageId: smsMessageId,
-          });
+              if (smsResult.success) {
+                // Extract messageId from Mobile Message API response
+                smsMessageId = smsResult.data?.messages?.[0]?.message_id || "";
+                smsStatus = "sent";
 
-          console.log("[SMS] ✓ Sent successfully", {
+                // Log successful SMS send with messageId for delivery tracking
+                await logSMSAttempt({
+                  bookingId,
+                  phoneNumber: phone,
+                  message: smsMessage,
+                  messageType: "confirmation",
+                  status: "sent",
+                  messageId: smsMessageId, // Store for delivery status tracking
+                });
+
+          bookingLogger.info("SMS sent successfully", {
             bookingId,
             messageId: smsMessageId,
-            phone: phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
+            phonePreview:
+              phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
           });
         } else {
           smsStatus = "failed";
@@ -265,12 +293,16 @@ export async function POST(request: NextRequest) {
             error: smsError,
           });
 
-          console.error("[SMS] ✗ Failed to send", {
-            bookingId,
-            status: smsResult.status,
-            error: smsError,
-            phone: phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
-          });
+          bookingLogger.error(
+            "SMS failed to send",
+            {
+              bookingId,
+              status: smsResult.status,
+              error: smsError,
+              phonePreview:
+                phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
+            }
+          );
         }
       } catch (smsException: unknown) {
         // Log exception as failed SMS attempt
@@ -287,40 +319,34 @@ export async function POST(request: NextRequest) {
           error: errorMessage,
         });
 
-        console.error("[SMS] ✗ Failed to send", {
+        bookingLogger.error("SMS exception while sending", {
           bookingId,
           error: errorMessage,
-          phone: phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
+          phonePreview:
+            phone.substring(0, 4) + "***" + phone.substring(phone.length - 3),
         });
       }
     }
 
-    // Return success response with SMS status
-    return NextResponse.json(
-      {
-        success: true,
-        bookingId,
-        message: "Booking created successfully",
-        sms: smsOptIn && phone ? {
-          status: smsStatus,
-          messageId: smsMessageId,
-          error: smsError,
-        } : undefined,
-      },
-      { status: 201 }
-    );
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    console.error("Booking creation error", {
-      message,
-      stack: process.env.NODE_ENV !== "production" && error instanceof Error ? error.stack : undefined,
+    bookingLogger.info("Booking created successfully", {
+      bookingId,
+      serviceType,
+      smsStatus,
+      requestId,
     });
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        message,
-      },
-      { status: 500 }
-    );
-  }
+
+    return {
+      bookingId,
+      message: "Booking created successfully",
+      sms:
+        smsOptIn && phone
+          ? {
+              status: smsStatus,
+              messageId: smsMessageId,
+              error: smsError,
+            }
+          : undefined,
+    };
 }
+
+export const POST = withApiHandler(handlePost);

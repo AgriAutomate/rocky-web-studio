@@ -27,6 +27,8 @@ import {
   trackDiscountCodeFailed,
   trackPackageSelected,
   trackFormAbandoned,
+  trackSongRequestViewed,
+  trackPaymentInitiated,
   packageNames,
   type PackageType,
 } from "@/lib/analytics";
@@ -127,6 +129,16 @@ function PaymentForm({
 
     setIsProcessing(true);
     setError(null);
+
+    // Track payment_initiated when user submits payment form
+    if (packageType) {
+      trackPaymentInitiated({
+        service_type: "custom_song",
+        amount: finalPrice,
+        currency: "AUD",
+        booking_id: orderId,
+      });
+    }
 
     try {
       const { error: submitError } = await elements.submit();
@@ -241,6 +253,11 @@ function CustomSongOrderPageContent() {
     promoCode: "",
   });
   
+  // Track song_request_viewed when component mounts
+  useEffect(() => {
+    trackSongRequestViewed();
+  }, []);
+
   // Update package if URL parameter changes
   useEffect(() => {
     if (packageParam && validPackages.includes(packageParam) && formData.package !== packageParam) {

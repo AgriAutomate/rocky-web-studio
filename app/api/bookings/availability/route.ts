@@ -1,5 +1,6 @@
 import { format, parse, isValid, startOfDay } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
+import { kvBookingStorage } from "@/lib/kv/bookings";
 
 // Generate time slots from 9 AM to 5 PM (9:00 to 17:00)
 const generateTimeSlots = (): string[] => {
@@ -41,13 +42,25 @@ export async function GET(request: NextRequest) {
     const normalizedDate = startOfDay(date);
     const dateKey = format(normalizedDate, "yyyy-MM-dd");
 
-    // Generate all available slots (all slots are available for testing)
+    // Generate all available slots
     const allSlots = generateTimeSlots();
 
-    // Map slots with availability (all set to available for testing)
+    // Get existing bookings for this date (excluding cancelled)
+    const allBookings = await kvBookingStorage.getAll();
+    const bookingsForDate = allBookings.filter(
+      (booking) =>
+        booking.date === dateKey &&
+        booking.status !== "cancelled" &&
+        booking.status !== "rescheduled" // Exclude rescheduled bookings from old date
+    );
+
+    // Create set of booked times
+    const bookedTimes = new Set(bookingsForDate.map((b) => b.time));
+
+    // Map slots with availability
     const slots = allSlots.map((time) => ({
       time,
-      available: true,
+      available: !bookedTimes.has(time),
     }));
 
     // Return response

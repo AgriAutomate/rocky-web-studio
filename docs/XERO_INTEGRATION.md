@@ -6,9 +6,12 @@ This guide provides comprehensive instructions for setting up and using the Xero
 
 1. [Environment Variables](#environment-variables)
 2. [Setup Instructions](#setup-instructions)
-3. [Usage Guide](#usage-guide)
-4. [API Reference](#api-reference)
-5. [Troubleshooting](#troubleshooting)
+3. [Token Management](#token-management)
+4. [Lazy Initialization](#lazy-initialization)
+5. [Structured Logging](#structured-logging)
+6. [Usage Guide](#usage-guide)
+7. [API Reference](#api-reference)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -84,6 +87,12 @@ The following environment variables are required for the Xero integration:
      - **Company URL:** Your website URL (e.g., `https://rockywebstudio.com.au`)
      - **Redirect URI:** Your callback URL (see below)
      - **OAuth 2.0 scopes:** Select the scopes you need (see [Environment Variables](#environment-variables))
+
+3. **Important: Lazy Initialization**
+   - The Xero client uses lazy initialization to prevent build-time failures
+   - Client is only created when first accessed via `getXeroClient()` function
+   - This prevents errors when environment variables aren't available during `next build`
+   - See [Lazy Initialization](#lazy-initialization) section for details
 
 3. **Configure Redirect URI**
    - **Production:** `https://rockywebstudio.com.au/api/xero/callback`
@@ -188,6 +197,188 @@ For local development, you'll need to use a tunneling service to receive webhook
    - Set webhook URL to: `https://abc123.ngrok.io/api/xero/webhook`
 
 6. **⚠️ Note:** ngrok URLs change each time you restart ngrok (unless you have a paid plan). Update your Xero app configuration accordingly.
+
+---
+
+## Token Management
+
+### Automatic Token Refresh
+
+The Xero integration automatically refreshes access tokens when they expire or are about to expire. This ensures seamless API operations without manual intervention.
+
+#### Proactive Refresh
+
+- **Timing:** Tokens are refreshed **5 minutes before expiry** to prevent failed API calls
+- **Method:** Uses `obtained_at` timestamp + `expires_in` duration for accurate timing
+- **Fallback:** If timing metadata isn't available, uses `tokenSet.expired()` method
+
+#### Retry Logic with Exponential Backoff
+
+If a token refresh fails, the system automatically retries:
+
+- **Max Attempts:** 3 attempts
+- **Backoff Delays:** 
+  - Attempt 1: 200ms delay
+  - Attempt 2: 400ms delay  
+  - Attempt 3: 800ms delay
+- **Logging:** Each attempt is logged with structured logging for debugging
+
+#### Concurrency Guard
+
+To prevent multiple concurrent refresh attempts:
+
+- **Lock Mechanism:** Uses Vercel KV with `SET NX` (set if not exists)
+- **Lock Duration:** 30 seconds
+- **Wait Behavior:** If another request is refreshing, waits up to 1.5 seconds (5 × 300ms)
+- **Lock Release:** Always released after refresh completes or fails
+
+**How it works:**
+1. Request checks if token needs refresh
+2. Attempts to acquire lock in KV (`xero:token:refresh-lock:{userId}`)
+3. If lock acquired → proceeds with refresh
+4. If lock exists → waits for other request to complete, then re-reads token from KV
+5. Lock is always released in `finally` block
+
+#### Error Handling
+
+- **Success:** Token refreshed and stored in KV, client updated
+- **All Attempts Fail:** Throws `AuthenticationError` with message "Xero connection expired. Please reconnect Xero from settings."
+- **User Action Required:** User must reconnect Xero from admin panel to get new tokens
+
+#### Implementation Details
+
+**Location:** `lib/xero/helpers.ts` - `ensureAuthenticated()` function
+
+**Key Functions:**
+- `ensureAuthenticated(userId)` - Main function that handles refresh logic
+- `getTokenSet(userId)` - Retrieves stored tokens from KV
+- `storeTokenSet(userId, tokenSet)` - Stores refreshed tokens in KV
+
+**Example Flow:**
+```typescript
+// In any API route that needs Xero:
+import { ensureAuthenticated, getAuthenticatedTenantId } from '@/lib/xero/helpers';
+
+// This automatically refreshes if needed
+await ensureAuthenticated();
+const tenantId = await getAuthenticatedTenantId();
+```
+
+---
+
+## Lazy Initialization
+
+### Why Lazy Initialization?
+
+The Xero client uses **lazy initialization** to prevent build-time failures when environment variables aren't available during Next.js build process.
+
+**Problem:** If `XeroClient` is initialized at module load time, it throws errors during `next build` when environment variables aren't set.
+
+**Solution:** Client is only created when first accessed via `getXeroClient()` function.
+
+### Usage Pattern
+
+**Correct:**
+```typescript
+import { getXeroClient } from '@/lib/xero/client';
+
+// Client is created here (not at import time)
+const xeroClient = getXeroClient();
+const consentUrl = await xeroClient.buildConsentUrl();
+```
+
+**Incorrect:**
+```typescript
+// Don't do this - causes build failures
+import { xeroClient } from '@/lib/xero/client';
+// Client tries to initialize immediately
+```
+
+**Implementation:** `lib/xero/client.ts` - `getXeroClient()` function
+
+---
+
+## Structured Logging
+
+All Xero operations use structured logging for better debugging and monitoring.
+
+### Logger Names
+
+- **`xero.helpers`** - Token management and authentication
+- **`xero.invoices.create`** - Invoice creation operations
+- **`xero.invoices.list`** - Invoice listing operations
+- **`xero.invoices.detail`** - Invoice detail retrieval
+
+### Log Levels
+
+- **`info`** - Normal operations (token refresh success, invoice created)
+- **`warn`** - Retryable issues (token refresh attempt failed, will retry)
+- **`error`** - Failures (API errors, authentication failures, token refresh failed after retries)
+
+### Log Context
+
+All logs include relevant context:
+- `userId` - User identifier (default: "default")
+- `attempt` - Retry attempt number (for token refresh)
+- `contactId`, `invoiceId` - Operation-specific IDs
+- `lineItemsCount` - Number of line items in invoice
+
+### Viewing Logs
+
+**Vercel CLI:**
+```bash
+# View all logs
+vercel logs --follow
+
+# Filter for Xero operations
+vercel logs --follow | grep xero
+
+# Filter for specific operation
+vercel logs --follow | grep "xero.invoices.create"
+```
+
+**Vercel Dashboard:**
+1. Go to your project → **Deployments**
+2. Click on a deployment → **Functions** tab
+3. View function logs for Xero API routes
+
+### Example Log Output
+
+**Token Refresh Success:**
+```json
+{
+  "level": "info",
+  "msg": "Xero token refreshed successfully",
+  "timestamp": "2025-12-04T10:30:00.000Z",
+  "component": "xero.helpers",
+  "userId": "default",
+  "attempt": 1
+}
+```
+
+**Token Refresh Retry:**
+```json
+{
+  "level": "warn",
+  "msg": "Xero token refresh attempt failed",
+  "timestamp": "2025-12-04T10:30:00.000Z",
+  "component": "xero.helpers",
+  "userId": "default",
+  "attempt": 1
+}
+```
+
+**Invoice Created:**
+```json
+{
+  "level": "info",
+  "msg": "Xero invoice created successfully",
+  "timestamp": "2025-12-04T10:30:00.000Z",
+  "component": "xero.invoices.create",
+  "invoiceId": "12345678-1234-1234-1234-123456789012",
+  "invoiceNumber": "INV-001"
+}
+```
 
 ---
 
@@ -300,11 +491,20 @@ When `ENABLE_AUTO_INVOICING=true`, invoices are automatically created when:
   3. Try disconnecting and reconnecting
 
 #### "Failed to refresh Xero token" Error
-- **Cause:** Refresh token expired or invalid
+- **Cause:** Refresh token expired or invalid, or all retry attempts failed
 - **Solution:**
   1. Disconnect Xero from admin panel
   2. Reconnect Xero (this will get new tokens)
   3. Ensure `offline_access` scope is included in `XERO_SCOPES`
+  4. Check Vercel logs for detailed error messages:
+     ```bash
+     vercel logs --follow | grep "xero.helpers"
+     ```
+- **What Happens:**
+  - System attempts refresh up to 3 times with exponential backoff
+  - If all attempts fail, throws `AuthenticationError`
+  - Previous tokens are cleared from storage
+  - User must reconnect to get fresh tokens
 
 #### "No Xero tenant found" Error
 - **Cause:** Tenant ID not stored after OAuth callback
@@ -319,6 +519,39 @@ When `ENABLE_AUTO_INVOICING=true`, invoices are automatically created when:
   3. Account codes exist in your Xero chart of accounts
   4. Contact email is valid format
   5. Due date is in the future (or allowed by Xero settings)
+  6. Check structured logs for detailed error:
+     ```bash
+     vercel logs --follow | grep "xero.invoices.create"
+     ```
+
+#### Check Structured Logs
+
+All Xero operations are logged with structured logging:
+
+- **Logger Names:**
+  - `xero.helpers` - Token management and authentication
+  - `xero.invoices.create` - Invoice creation
+  - `xero.invoices.list` - Invoice listing
+  - `xero.invoices.detail` - Invoice details
+
+- **Log Levels:**
+  - `info` - Normal operations (token refresh, invoice creation)
+  - `warn` - Retryable issues (token refresh attempts)
+  - `error` - Failures (API errors, authentication failures)
+
+- **View Logs:**
+  ```bash
+  # All Xero logs
+  vercel logs --follow | grep xero
+  
+  # Specific operation
+  vercel logs --follow | grep "xero.invoices.create"
+  
+  # Token refresh issues
+  vercel logs --follow | grep "xero.helpers"
+  ```
+
+- **Log Context:** All logs include relevant context like `userId`, `attempt`, `invoiceId`, etc.
 
 #### Webhooks Not Receiving Events
 - **Check:**
@@ -623,9 +856,68 @@ curl -X POST https://rockywebstudio.com.au/api/xero/create-invoice \
 - Creates invoice with specified line items
 - Returns invoice ID and number
 
+**Error Handling:**
+- Uses structured logging (`xero.invoices.create` logger)
+- Returns appropriate HTTP status codes (400, 500)
+- Error messages are user-friendly and actionable
+
+**Note:** This route currently uses manual error handling. Future updates will migrate to `withApiHandler` for consistency with other API routes (like Stripe webhooks).
+
 ---
 
 ### Error Codes and Handling
+
+#### Error Types
+
+The Xero integration uses a custom error hierarchy:
+
+**AuthenticationError:**
+- **Status Code:** 401
+- **When Used:** 
+  - Xero not connected
+  - Tokens expired and refresh failed
+  - No tenant ID found
+- **User Action:** Reconnect Xero from admin panel
+- **Example:**
+  ```json
+  {
+    "success": false,
+    "error": "Xero not connected. Please connect Xero first.",
+    "code": "AUTHENTICATION_ERROR"
+  }
+  ```
+
+**ExternalServiceError:**
+- **Status Code:** 502 or 503
+- **When Used:**
+  - Xero API call failed
+  - Network errors
+  - Xero service unavailable
+- **Retryable:** Usually yes (transient errors)
+- **Example:**
+  ```json
+  {
+    "success": false,
+    "error": "Failed to create invoice in Xero",
+    "code": "EXTERNAL_SERVICE_ERROR",
+    "retryable": true
+  }
+  ```
+
+**ValidationError:**
+- **Status Code:** 400
+- **When Used:**
+  - Missing required fields
+  - Invalid data format
+  - Invalid email addresses
+- **Example:**
+  ```json
+  {
+    "success": false,
+    "error": "contactName and contactEmail are required",
+    "code": "VALIDATION_ERROR"
+  }
+  ```
 
 #### Common Error Responses
 
@@ -652,6 +944,8 @@ curl -X POST https://rockywebstudio.com.au/api/xero/create-invoice \
   "error": "Failed to create invoice"
 }
 ```
+
+**Note:** Xero API routes currently use manual error handling. Future updates will migrate to `withApiHandler` for consistency with other API routes (like Stripe webhooks).
 
 #### Error Handling Best Practices
 

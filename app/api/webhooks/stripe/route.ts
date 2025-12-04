@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import {
   sendOrderConfirmationEmail,
@@ -7,7 +7,8 @@ import {
 } from "@/lib/email/customSongs";
 import { getLogger } from "@/lib/logging";
 import { kv } from "@vercel/kv";
-import { ExternalServiceError } from "@/lib/errors";
+import { ExternalServiceError, ValidationError } from "@/lib/errors";
+import { withApiHandler } from "@/lib/api/handlers";
 import {
   trackPaymentConfirmedServer,
   trackSongRequestPurchasedServer,
@@ -88,190 +89,173 @@ async function isEventProcessed(eventId: string): Promise<boolean> {
   }
 }
 
-export async function POST(req: NextRequest) {
-  // Early return if Stripe is not configured
+async function handlePost(req: NextRequest, requestId: string) {
+  // Early validation: Check if Stripe is configured
   if (!stripe || !webhookSecret) {
-    stripeLogger.error("Stripe webhook secret or secret key is not configured");
-    return NextResponse.json(
-      { error: 'Webhook configuration error' },
-      { status: 500 }
+    stripeLogger.error("Stripe webhook secret or secret key is not configured", { requestId });
+    throw new ExternalServiceError(
+      "Webhook configuration error",
+      { requestId },
+      false // Not retryable - configuration issue
     );
   }
 
+  // 1. Get raw body and signature
+  const body = await req.text();
+  const signature = req.headers.get("stripe-signature");
+
+  if (!signature) {
+    stripeLogger.error("Missing stripe-signature header", { requestId });
+    throw new ValidationError("Missing stripe-signature header", { requestId });
+  }
+
+  // 2. Verify webhook signature
+  let event: Stripe.Event;
   try {
-    // 1. Get raw body and signature
-    const body = await req.text();
-    const signature = req.headers.get("stripe-signature");
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Unknown error");
+    stripeLogger.error("Webhook signature verification failed", { requestId }, error);
+    throw new ValidationError("Invalid webhook signature", { requestId });
+  }
 
-    if (!signature) {
-      stripeLogger.error("Missing stripe-signature header");
-      return NextResponse.json(
-        { error: 'Missing signature' },
-        { status: 400 }
-      );
-    }
+  // 3. Idempotency check: ensure we don't process the same event twice
+  // Stripe may retry webhooks on network failures, so we use event.id as idempotency key
+  const eventId = event.id;
+  const alreadyProcessed = await isEventProcessed(eventId);
 
-    // 2. Verify webhook signature
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error("Unknown error");
-      stripeLogger.error("Webhook signature verification failed", undefined, error);
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Idempotency check: ensure we don't process the same event twice
-    // Stripe may retry webhooks on network failures, so we use event.id as idempotency key
-    const eventId = event.id;
-    const alreadyProcessed = await isEventProcessed(eventId);
-
-    if (alreadyProcessed) {
-      stripeLogger.info("Webhook event already processed, skipping", {
-        eventId,
-        eventType: event.type,
-      });
-      // Return 200 immediately - Stripe considers this success and won't retry
-      return NextResponse.json({ received: true, idempotent: true }, { status: 200 });
-    }
-
-    stripeLogger.info("Processing new webhook event", {
+  if (alreadyProcessed) {
+    stripeLogger.info("Webhook event already processed, skipping", {
+      requestId,
       eventId,
       eventType: event.type,
     });
+    // Return success immediately - Stripe considers this success and won't retry
+    return { received: true, idempotent: true };
+  }
 
-    // 4. Process payment_intent.succeeded events
-    if (event.type === "payment_intent.succeeded") {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      const metadata = paymentIntent.metadata;
+  stripeLogger.info("Processing new webhook event", {
+    requestId,
+    eventId,
+    eventType: event.type,
+  });
 
-      // Validate required metadata fields
-      // If metadata is invalid, return 200 to prevent Stripe retries (customer issue, not transient)
-      if (
-        !metadata.orderId ||
-        !metadata.customerName ||
-        !metadata.customerEmail ||
-        !metadata.occasion ||
-        !metadata.package ||
-        !metadata.storyDetails
-      ) {
-        stripeLogger.warn("Missing required metadata in payment intent - returning 200 to prevent retry", {
-          eventId,
-          orderId: metadata.orderId,
-          customerName: metadata.customerName,
-          customerEmail: metadata.customerEmail,
-          occasion: metadata.occasion,
-          package: metadata.package,
-          paymentIntentId: paymentIntent.id,
-        });
-        // Return 200 - this is a permanent issue (invalid customer data), not transient
-        // Stripe won't retry, and we've already marked event as processed
-        return NextResponse.json({ received: true, skipped: "invalid_metadata" }, { status: 200 });
-      }
+  // 4. Process payment_intent.succeeded events
+  if (event.type === "payment_intent.succeeded") {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    const metadata = paymentIntent.metadata;
 
-      // Log the payment success
-      stripeLogger.info("Payment succeeded - processing order", {
+    // Validate required metadata fields
+    // If metadata is invalid, log warning and return success (permanent issue, not transient)
+    // Stripe won't retry, and we've already marked event as processed
+    if (
+      !metadata.orderId ||
+      !metadata.customerName ||
+      !metadata.customerEmail ||
+      !metadata.occasion ||
+      !metadata.package ||
+      !metadata.storyDetails
+    ) {
+      stripeLogger.warn("Missing required metadata in payment intent - skipping processing", {
+        requestId,
         eventId,
         orderId: metadata.orderId,
         customerName: metadata.customerName,
         customerEmail: metadata.customerEmail,
+        occasion: metadata.occasion,
         package: metadata.package,
-        occasion: metadata.occasion,
         paymentIntentId: paymentIntent.id,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
       });
+      // Return success - this is a permanent issue (invalid customer data), not transient
+      // Stripe won't retry, and we've already marked event as processed
+      return { received: true, skipped: "invalid_metadata" };
+    }
 
-      // Track payment_confirmed and song_request_purchased events (server-side)
-      await Promise.all([
-        trackPaymentConfirmedServer({
-          transaction_id: paymentIntent.id,
-          amount: paymentIntent.amount,
-          service_type: "custom_song",
-          currency: paymentIntent.currency || "AUD",
-          order_id: metadata.orderId,
-        }),
-        trackSongRequestPurchasedServer({
-          order_id: metadata.orderId,
-          package_type: metadata.package,
-          price: paymentIntent.amount,
-          occasion: metadata.occasion,
-          currency: paymentIntent.currency || "AUD",
-        }),
-      ]);
+    // Log the payment success
+    stripeLogger.info("Payment succeeded - processing order", {
+      requestId,
+      eventId,
+      orderId: metadata.orderId,
+      customerName: metadata.customerName,
+      customerEmail: metadata.customerEmail,
+      package: metadata.package,
+      occasion: metadata.occasion,
+      paymentIntentId: paymentIntent.id,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+    });
 
-      // Build email details from metadata
-      const emailDetails: OrderEmailDetails = {
-        orderId: metadata.orderId,
-        customerName: metadata.customerName,
-        email: metadata.customerEmail,
-        phone: metadata.phone || undefined,
+    // Track payment_confirmed and song_request_purchased events (server-side)
+    // These are non-blocking - fire and forget
+    Promise.all([
+      trackPaymentConfirmedServer({
+        transaction_id: paymentIntent.id,
+        amount: paymentIntent.amount,
+        service_type: "custom_song",
+        currency: paymentIntent.currency || "AUD",
+        order_id: metadata.orderId,
+      }),
+      trackSongRequestPurchasedServer({
+        order_id: metadata.orderId,
+        package_type: metadata.package,
+        price: paymentIntent.amount,
         occasion: metadata.occasion,
-        packageType: metadata.package,
-        eventDate: metadata.eventDate || undefined,
-        storyDetails: metadata.storyDetails,
-        mood: metadata.mood || undefined,
-        genre: metadata.genre || undefined,
-        additionalInfo: metadata.additionalInfo || undefined,
-      };
+        currency: paymentIntent.currency || "AUD",
+      }),
+    ]).catch((analyticsError) => {
+      stripeLogger.error("Failed to track analytics events (non-blocking)", {
+        requestId,
+        eventId,
+        orderId: metadata.orderId,
+      }, analyticsError);
+    });
 
-      // Send confirmation emails (await to catch errors)
-      // If email fails, we throw and return 503 - Stripe will retry
-      // This ensures emails are eventually sent on retry
-      try {
-        await Promise.all([
-          sendOrderConfirmationEmail(emailDetails),
-          sendInternalNotificationEmail(emailDetails),
-        ]);
+    // Build email details from metadata
+    const emailDetails: OrderEmailDetails = {
+      orderId: metadata.orderId,
+      customerName: metadata.customerName,
+      email: metadata.customerEmail,
+      phone: metadata.phone || undefined,
+      occasion: metadata.occasion,
+      packageType: metadata.package,
+      eventDate: metadata.eventDate || undefined,
+      storyDetails: metadata.storyDetails,
+      mood: metadata.mood || undefined,
+      genre: metadata.genre || undefined,
+      additionalInfo: metadata.additionalInfo || undefined,
+    };
 
-        stripeLogger.info("Email notifications sent successfully", {
-          eventId,
-          orderId: metadata.orderId,
-        });
-      } catch (emailError) {
-        // Email send failed - log and rethrow to trigger 503
-        // Stripe will retry the webhook, and emails will be sent on retry
-        stripeLogger.error("Failed to send email notifications", {
-          eventId,
-          orderId: metadata.orderId,
-        }, emailError);
-        throw new ExternalServiceError(
-          "Failed to send order confirmation emails",
-          { eventId, orderId: metadata.orderId },
-          true // retryable
-        );
-      }
-    }
-
-    // 5. Return success response for all webhook events
-    return NextResponse.json({ received: true }, { status: 200 });
-  } catch (error) {
-    // Handle known error types
-    if (error instanceof ExternalServiceError) {
-      stripeLogger.error("External service error in webhook", {
-        code: error.code,
-        retryable: error.retryable,
-      }, error);
-      // Return 503 (Service Unavailable) for transient failures
-      // Stripe will retry webhooks that return 5xx status codes
-      return NextResponse.json(
-        { error: 'Service temporarily unavailable', retryable: true },
-        { status: 503 }
-      );
-    }
-
-    // Catch any unexpected errors
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    stripeLogger.error("Unexpected error processing webhook", { errorMessage }, error);
-    // Return 500 for unexpected errors - Stripe will retry
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    // Send confirmation emails (NON-BLOCKING - fire and forget)
+    // This ensures we return 200 OK immediately to Stripe
+    // Errors are logged but don't block the webhook response
+    Promise.all([
+      sendOrderConfirmationEmail(emailDetails),
+      sendInternalNotificationEmail(emailDetails),
+    ]).then(() => {
+      stripeLogger.info("Email notifications sent successfully", {
+        requestId,
+        eventId,
+        orderId: metadata.orderId,
+      });
+    }).catch((emailError) => {
+      // Email send failed - log error but don't block response
+      // Note: This means emails may not be sent if they fail
+      // Consider implementing a retry queue for failed emails
+      stripeLogger.error("Failed to send email notifications (non-blocking)", {
+        requestId,
+        eventId,
+        orderId: metadata.orderId,
+      }, emailError);
+    });
   }
+
+  // Return success response for all webhook events
+  return { received: true };
 }
+
+// Note: Webhooks have special response requirements for Stripe
+// We use withApiHandler for consistent error handling, but webhooks
+// need to return 200 OK quickly, so emails are non-blocking
+export const POST = withApiHandler(handlePost);
 
 

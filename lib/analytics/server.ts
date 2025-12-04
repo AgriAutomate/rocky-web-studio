@@ -5,8 +5,12 @@
  * Requires GA4 Measurement Protocol API Secret.
  */
 
+import { getLogger } from "@/lib/logging";
+
 const GA4_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 const GA4_API_SECRET = process.env.GA4_API_SECRET;
+
+const analyticsLogger = getLogger("analytics.server");
 
 /**
  * Track event using GA4 Measurement Protocol
@@ -52,14 +56,21 @@ export async function trackServerEvent(
     );
 
     if (!response.ok) {
-      console.error(`[Analytics] Server event tracking failed: ${eventName}`, {
+      analyticsLogger.error("Server event tracking failed", {
+        eventName,
         status: response.status,
         statusText: response.statusText,
+      });
+    } else {
+      analyticsLogger.debug("Server event tracked successfully", {
+        eventName,
       });
     }
   } catch (error) {
     // Silently fail - don't break webhook processing if analytics fails
-    console.error(`[Analytics] Server event tracking error: ${eventName}`, error);
+    analyticsLogger.error("Server event tracking error", {
+      eventName,
+    }, error);
   }
 }
 

@@ -18,7 +18,7 @@ export type CustomSongsEvent =
   | "order_error";
 
 // Package types for analytics
-export type PackageType = "express" | "standard" | "wedding";
+export type PackageType = "express" | "standard" | "wedding" | "test"; // TODO: REMOVE "test" AFTER PRODUCTION VERIFICATION
 
 interface CustomSongsEventParams {
   event_category: "Custom Songs";
@@ -98,6 +98,8 @@ export const packagePrices: Record<PackageType, number> = {
   express: 49,
   standard: 29,
   wedding: 149,
+  // TODO: REMOVE AFTER PRODUCTION VERIFICATION
+  test: 1,
 };
 
 /**
@@ -107,6 +109,8 @@ export const packageNames: Record<PackageType, string> = {
   express: "Express Personal",
   standard: "Standard Occasion",
   wedding: "Wedding Trio",
+  // TODO: REMOVE AFTER PRODUCTION VERIFICATION
+  test: "LIVE SYSTEM TEST",
 };
 
 // ============================================================================

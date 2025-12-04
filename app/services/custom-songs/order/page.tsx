@@ -66,6 +66,8 @@ const packageOptions = [
   { value: "express", label: "Express Personal - $49 (24-48 hours)", price: 49 },
   { value: "standard", label: "Standard Occasion - $29 (3-5 days)", price: 29 },
   { value: "wedding", label: "Wedding Trio - $149 (5-7 days)", price: 149 },
+  // TODO: REMOVE AFTER PRODUCTION VERIFICATION
+  { value: "test", label: "LIVE SYSTEM TEST - $1.00 AUD", price: 1 },
 ];
 
 const moodOptions = [
@@ -224,7 +226,7 @@ function CustomSongOrderPageContent() {
   
   // Get package from URL parameter
   const packageParam = searchParams.get("package");
-  const validPackages = ["standard", "express", "wedding"];
+  const validPackages = ["standard", "express", "wedding", "test"]; // TODO: REMOVE "test" AFTER PRODUCTION VERIFICATION
   const initialPackage = packageParam && validPackages.includes(packageParam) ? packageParam : "";
   
   const [formData, setFormData] = useState<OrderFormData>({

@@ -221,10 +221,12 @@ All custom GA4 events for booking funnel and custom songs tracking have been imp
 NEXT_PUBLIC_GA_MEASUREMENT_ID=G-G4PK1DL694
 ```
 
-**Server-Side (Optional):**
+**Server-Side:**
 ```
-GA4_API_SECRET=your_api_secret_here
+GA4_API_SECRET=KS9pz9kLRXG82HmaDJ8oGQ
 ```
+
+✅ **COMPLETE** - `GA4_API_SECRET` configured in Vercel Production
 
 **To Get GA4 API Secret:**
 1. Go to **GA4 Dashboard** → **Admin** → **Data Streams**
@@ -246,10 +248,30 @@ GA4_API_SECRET=your_api_secret_here
 ## 🎯 Next Steps
 
 1. ✅ **Code Implementation:** Complete
-2. ⏳ **Set GA4 API Secret:** Add `GA4_API_SECRET` for server-side tracking
+2. ✅ **Set GA4 API Secret:** `GA4_API_SECRET` configured in Vercel Production
 3. ⏳ **Test Events:** Make test booking and verify events in GA4
 4. ⏳ **Create Funnels:** Set up funnels in GA4 dashboard
 5. ⏳ **Monitor Metrics:** Track conversion rates and drop-offs
+
+### Testing Server-Side Tracking
+
+Run the test script to verify server-side tracking works:
+
+```bash
+npx ts-node scripts/test-ga4-server-tracking.ts
+```
+
+Or with environment variables:
+
+```bash
+GA4_API_SECRET=KS9pz9kLRXG82HmaDJ8oGQ npx ts-node scripts/test-ga4-server-tracking.ts
+```
+
+The script will:
+- Verify environment variables are set
+- Send test `payment_confirmed` event
+- Send test `song_request_purchased` event
+- Provide instructions for verifying in GA4 Dashboard
 
 ---
 

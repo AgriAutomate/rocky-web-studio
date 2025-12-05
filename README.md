@@ -60,16 +60,17 @@ Copy `.env.example` to `.env.local` and configure:
 Get credentials from [Mobile Message Dashboard](https://app.mobilemessage.com.au):
 
 ```bash
+MOBILE_MESSAGE_API_URL=https://api.mobilemessage.com.au/v1
 MOBILE_MESSAGE_API_USERNAME=your_username
 MOBILE_MESSAGE_API_PASSWORD=your_password
-MOBILE_MESSAGE_API_URL=https://api.mobilemessage.com.au/v1
-MOBILE_MESSAGE_SENDER_ID=your_sender_id
+MOBILE_MESSAGE_SENDER_ID=Rocky Web
 ```
 
 **Important:**
 - Sender ID must be registered and active in Mobile Message dashboard
 - Ensure minimum 50 credits available for production
 - Verify credentials work using `/api/test/mobile-message-auth` endpoint
+- The sender ID "Rocky Web" is used for payment success SMS notifications
 
 #### Resend Email API (Optional)
 

@@ -1,0 +1,59 @@
+{
+  "n8n_http_request_configuration": {
+    "method": "POST",
+    "url": "https://api.mobilemessage.com.au/v1/messages",
+    "authentication": {
+      "type": "basicAuth",
+      "username": "{{ $env.MOBILE_MESSAGE_API_USERNAME }}",
+      "password": "{{ $env.MOBILE_MESSAGE_API_PASSWORD }}"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "enable_unicode": true,
+      "messages": [
+        {
+          "to": "{{ $json.phone }}",
+          "message": "{{ $json.message }}",
+          "sender": "{{ $env.MOBILE_MESSAGE_SENDER_ID }}",
+          "custom_ref": "{{ $json.orderId }}"
+        }
+      ]
+    }
+  },
+  "example_stripe_webhook_body": {
+    "enable_unicode": true,
+    "messages": [
+      {
+        "to": "{{ $json.data.object.metadata.phone }}",
+        "message": "Payment successful! Order {{ $json.data.object.metadata.orderId }} has been confirmed. Thank you!",
+        "sender": "{{ $env.MOBILE_MESSAGE_SENDER_ID }}",
+        "custom_ref": "{{ $json.data.object.metadata.orderId }}"
+      }
+    ]
+  },
+  "test_request_body": {
+    "enable_unicode": true,
+    "messages": [
+      {
+        "to": "+61400000000",
+        "message": "Test SMS from n8n workflow",
+        "sender": "RockyWeb",
+        "custom_ref": "test-123"
+      }
+    ]
+  },
+  "expected_success_response": {
+    "success": true,
+    "messages": [
+      {
+        "message_id": "msg_123456789",
+        "recipient": "+61400000000",
+        "status": "queued"
+      }
+    ]
+  }
+}
+
+

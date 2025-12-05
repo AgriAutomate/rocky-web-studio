@@ -1,0 +1,68 @@
+warning: in the working copy of '.env.example', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/custom-songs/order/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/webhooks/stripe/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/services/custom-songs/order/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/analytics.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'middleware.ts', LF will be replaced by CRLF the next time Git touches it
+ .env.example                                       |  12 [32m+[m[31m-[m
+ .husky/pre-commit                                  |   2 [32m+[m
+ ADMIN_SMS_LOGS_DASHBOARD.md                        |   2 [32m+[m
+ DEPLOYMENT_STATUS.md                               |   2 [32m+[m
+ DEVELOPMENT.md                                     |   2 [32m+[m
+ MOBILE_MESSAGE_API_REVIEW.md                       |   2 [32m+[m
+ MOBILE_MESSAGE_PAYLOAD_COMPARISON.md               |   2 [32m+[m
+ PAYLOAD_VERIFICATION.md                            |   2 [32m+[m
+ PRICING_CONSISTENCY_VERIFICATION.md                |   2 [32m+[m
+ PRODUCTION_READINESS_SUMMARY.md                    |   2 [32m+[m
+ README.md                                          |   5 [32m+[m[31m-[m
+ README_LINT.md                                     |   2 [32m+[m
+ SMS_DEBUGGING_GUIDE.md                             |   2 [32m+[m
+ SMS_DEBUG_QUICK_REFERENCE.md                       |   2 [32m+[m
+ SMS_INTEGRATION_SUMMARY.md                         |   2 [32m+[m
+ SMS_LOGGING_IMPLEMENTATION.md                      |   2 [32m+[m
+ SMS_MESSAGE_OPTIMIZATION.md                        |   2 [32m+[m
+ SMS_PRODUCTION_TEST_GUIDE.md                       |   2 [32m+[m
+ SMS_URL_FIX_VERIFICATION.md                        |   2 [32m+[m
+ STRIPE_PAYMENT_VERIFICATION.md                     |   2 [32m+[m
+ STRIPE_VERIFICATION_REPORT.md                      |   2 [32m+[m
+ app/api/custom-songs/order/route.ts                |  37 [32m+++[m[31m--[m
+ app/api/test/sms/route.ts                          | 174 [32m++++++++++++++++++++[m[31m-[m
+ app/api/webhooks/stripe/route.ts                   |  50 [32m+++++[m[31m-[m
+ app/services/custom-songs/order/page.tsx           |   4 [32m+[m[31m-[m
+ docs/consultation-call-script.md                   |   2 [32m+[m
+ docs/email-campaigns/campaign-summary.md           |   2 [32m+[m
+ docs/email-campaigns/discovery-form-follow-up.html |   2 [32m+[m
+ .../discovery-form-initial-outreach.html           |   2 [32m+[m
+ docs/email-campaigns/discovery-form-reminder.html  |   2 [32m+[m
+ docs/email-campaigns/email-subject-lines.md        |   2 [32m+[m
+ docs/email-templates/README.md                     |   2 [32m+[m
+ docs/email-templates/discovery-24h-reminder.html   |   2 [32m+[m
+ docs/email-templates/discovery-48h-prep.html       |   2 [32m+[m
+ .../discovery-immediate-auto-response.html         |   2 [32m+[m
+ .../email-templates/discovery-post-call-maybe.html |   2 [32m+[m
+ docs/email-templates/discovery-post-call-yes.html  |   2 [32m+[m
+ docs/google-sheets-automation-script.js            |   2 [32m+[m
+ docs/google-sheets-discovery-template-guide.md     |   2 [32m+[m
+ docs/google-sheets-quick-setup.md                  |   2 [32m+[m
+ docs/google-sheets-template-setup.csv              |   2 [32m+[m
+ docs/n8n-discovery-form-workflow.json              |   2 [32m+[m
+ docs/n8n-notion-integration-example.json           |   2 [32m+[m
+ docs/n8n-slack-workflow-example.json               |   2 [32m+[m
+ docs/n8n-workflow-setup-instructions.md            |   2 [32m+[m
+ docs/notion-discovery-database-setup.md            |   2 [32m+[m
+ docs/notion-quick-setup.md                         |   2 [32m+[m
+ docs/slack-message-templates.js                    |   2 [32m+[m
+ docs/slack-quick-reference.md                      |   2 [32m+[m
+ docs/slack-setup-complete-guide.md                 |   2 [32m+[m
+ docs/slack-slash-commands-setup.md                 |   2 [32m+[m
+ docs/typeform-discovery-form-setup-guide.md        |   2 [32m+[m
+ lib/analytics.ts                                   |   6 [32m+[m[31m-[m
+ lib/email/customSongs.ts                           |   6 [31m-[m
+ public/discovery-form-landing.html                 |   2 [32m+[m
+ public/discovery-form.html                         |   2 [32m+[m
+ public/songs/README.md                             |   2 [32m+[m
+ public/songs/VERIFICATION.md                       |   2 [32m+[m
+ public/songs/VERIFICATION_REPORT.md                |   2 [32m+[m
+ public/songs/VERIFICATION_SUMMARY.md               |   2 [32m+[m
+ scripts/dev-check.sh                               |   2 [32m+[m
+ 61 files changed, 363 insertions(+), 37 deletions(-)

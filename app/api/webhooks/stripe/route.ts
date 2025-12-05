@@ -5,6 +5,7 @@ import {
   sendInternalNotificationEmail,
   OrderEmailDetails,
 } from "@/lib/email/customSongs";
+import { sendPaymentSuccessSMS } from "@/lib/mobile-message/send-payment-sms";
 import { getLogger } from "@/lib/logging";
 import { kv } from "@vercel/kv";
 import { ExternalServiceError, ValidationError } from "@/lib/errors";
@@ -13,6 +14,7 @@ import {
   trackPaymentConfirmedServer,
   trackSongRequestPurchasedServer,
 } from "@/lib/analytics/server";
+import type { StripePaymentIntentMetadata } from "@/types/stripe";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -143,7 +145,7 @@ async function handlePost(req: NextRequest, requestId: string) {
   // 4. Process payment_intent.succeeded events
   if (event.type === "payment_intent.succeeded") {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const metadata = paymentIntent.metadata;
+    const metadata = paymentIntent.metadata as StripePaymentIntentMetadata;
 
     // Validate required metadata fields
     // If metadata is invalid, log warning and return success (permanent issue, not transient)
@@ -247,6 +249,52 @@ async function handlePost(req: NextRequest, requestId: string) {
         orderId: metadata.orderId,
       }, emailError);
     });
+
+    // Send SMS notification (NON-BLOCKING - fire and forget)
+    // Check if mobile_number exists in metadata (also check 'phone' as fallback)
+    const mobileNumber = metadata.mobile_number || metadata.phone;
+    if (mobileNumber) {
+      try {
+        const smsResult = await sendPaymentSuccessSMS({
+          mobile_number: mobileNumber,
+          customer_name: metadata.customerName || "Customer",
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency || "AUD",
+          order_id: metadata.orderId || paymentIntent.id,
+          payment_id: paymentIntent.id,
+        });
+
+        if (smsResult.success) {
+          console.log("SMS notification sent:", smsResult);
+          stripeLogger.info("SMS notification sent successfully", {
+            requestId,
+            eventId,
+            orderId: metadata.orderId,
+            paymentIntentId: paymentIntent.id,
+          });
+        } else {
+          console.error("SMS notification failed:", smsResult.error);
+          stripeLogger.error("SMS notification failed", {
+            requestId,
+            eventId,
+            orderId: metadata.orderId,
+            paymentIntentId: paymentIntent.id,
+            error: smsResult.error,
+            status: smsResult.status,
+          });
+        }
+      } catch (smsError) {
+        // SMS send failed - log error but don't block response
+        // Webhook processing continues normally even if SMS fails
+        console.error("SMS notification failed:", smsError);
+        stripeLogger.error("Failed to send SMS notification (non-blocking)", {
+          requestId,
+          eventId,
+          orderId: metadata.orderId,
+          paymentIntentId: paymentIntent.id,
+        }, smsError);
+      }
+    }
   }
 
   // Return success response for all webhook events

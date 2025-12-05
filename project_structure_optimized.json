@@ -1,0 +1,150 @@
+﻿{
+    "directories":  {
+                        "scripts":  {
+                                        "file_count":  6,
+                                        "subdirs":  0
+                                    },
+                        "lib":  {
+                                    "file_count":  42,
+                                    "subdirs":  12
+                                },
+                        "app":  {
+                                    "file_count":  61,
+                                    "subdirs":  69
+                                },
+                        "types":  {
+                                      "file_count":  1,
+                                      "subdirs":  0
+                                  },
+                        "components":  {
+                                           "file_count":  27,
+                                           "subdirs":  3
+                                       },
+                        "public":  {
+                                       "file_count":  17,
+                                       "subdirs":  3
+                                   },
+                        "docs":  {
+                                     "file_count":  66,
+                                     "subdirs":  2
+                                 }
+                    },
+    "scan_duration_seconds":  4.17,
+    "scan_performance":  {
+                             "method":  "Optimized directory-first enumeration",
+                             "duration_seconds":  4.17,
+                             "memory_used_mb":  "~50MB",
+                             "notes":  "All results streamed, no large object arrays in memory. Relative paths used for portability."
+                         },
+    "total_files":  239,
+    "security_concerns":  [
+                              {
+                                  "issue":  "Potential credential file",
+                                  "file":  ".env.local",
+                                  "severity":  "HIGH"
+                              },
+                              {
+                                  "issue":  "Environment file (verify gitignored)",
+                                  "file":  ".env.vercel",
+                                  "severity":  "HIGH"
+                              }
+                          ],
+    "configuration_files":  [
+                                {
+                                    "size_kb":  1.88,
+                                    "path":  "package.json",
+                                    "name":  "package.json",
+                                    "last_modified":  "2025-12-04 11:01:36"
+                                },
+                                {
+                                    "size_kb":  3.42,
+                                    "path":  ".env.vercel",
+                                    "name":  ".env.vercel",
+                                    "last_modified":  "2025-12-04 14:51:53"
+                                },
+                                {
+                                    "size_kb":  0.83,
+                                    "path":  "auth.config.ts",
+                                    "name":  "auth.config.ts",
+                                    "last_modified":  "2025-12-03 19:56:59"
+                                },
+                                {
+                                    "size_kb":  3.71,
+                                    "path":  "sentry.config.ts",
+                                    "name":  "sentry.config.ts",
+                                    "last_modified":  "2025-12-04 07:47:20"
+                                },
+                                {
+                                    "size_kb":  0.33,
+                                    "path":  "vercel.json",
+                                    "name":  "vercel.json",
+                                    "last_modified":  "2025-12-05 07:27:58"
+                                },
+                                {
+                                    "size_kb":  1.33,
+                                    "path":  "sentry.client.config.ts",
+                                    "name":  "sentry.client.config.ts",
+                                    "last_modified":  "2025-12-04 07:47:20"
+                                },
+                                {
+                                    "size_kb":  0.1,
+                                    "path":  ".env.local.example",
+                                    "name":  ".env.local.example",
+                                    "last_modified":  "2025-11-30 14:23:13"
+                                },
+                                {
+                                    "size_kb":  0.05,
+                                    "path":  ".env.local",
+                                    "name":  ".env.local",
+                                    "last_modified":  "2025-12-02 09:11:33"
+                                },
+                                {
+                                    "size_kb":  1.91,
+                                    "path":  ".env.example",
+                                    "name":  ".env.example",
+                                    "last_modified":  "2025-12-02 08:37:50"
+                                },
+                                {
+                                    "size_kb":  1.06,
+                                    "path":  "next.config.ts",
+                                    "name":  "next.config.ts",
+                                    "last_modified":  "2025-12-03 20:30:51"
+                                },
+                                {
+                                    "size_kb":  0.83,
+                                    "path":  "tsconfig.json",
+                                    "name":  "tsconfig.json",
+                                    "last_modified":  "2025-12-05 07:27:58"
+                                },
+                                {
+                                    "size_kb":  0.09,
+                                    "path":  "postcss.config.mjs",
+                                    "name":  "postcss.config.mjs",
+                                    "last_modified":  "2025-11-17 21:59:27"
+                                },
+                                {
+                                    "size_kb":  400.02,
+                                    "path":  "package-lock.json",
+                                    "name":  "package-lock.json",
+                                    "last_modified":  "2025-12-04 10:56:50"
+                                },
+                                {
+                                    "size_kb":  2.6,
+                                    "path":  "sentry.server.config.ts",
+                                    "name":  "sentry.server.config.ts",
+                                    "last_modified":  "2025-12-03 20:30:51"
+                                },
+                                {
+                                    "size_kb":  0.44,
+                                    "path":  "components.json",
+                                    "name":  "components.json",
+                                    "last_modified":  "2025-11-17 22:03:26"
+                                },
+                                {
+                                    "size_kb":  0.71,
+                                    "path":  "middleware.ts",
+                                    "name":  "middleware.ts",
+                                    "last_modified":  "2025-12-01 18:31:27"
+                                }
+                            ]
+}

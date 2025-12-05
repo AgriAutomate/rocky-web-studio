@@ -9,6 +9,7 @@ import {
 import { getLogger } from "@/lib/logging";
 import { withApiHandler } from "@/lib/api/handlers";
 import { ExternalServiceError, ValidationError } from "@/lib/errors";
+import type { StripePaymentIntentMetadata } from "@/types/stripe";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const orderLogger = getLogger("custom-songs.order");
@@ -114,27 +115,29 @@ async function handlePost(request: NextRequest, requestId: string) {
       package: body.package,
     });
 
+    const metadata: StripePaymentIntentMetadata = {
+      orderId,
+      customerName: body.name,
+      customerEmail: body.email,
+      phone: body.phone || "",
+      package: body.package,
+      occasion: body.occasion,
+      eventDate: body.eventDate || "",
+      storyDetails: body.storyDetails,
+      mood: body.mood || "",
+      genre: body.genre || "",
+      additionalInfo: body.additionalInfo || "",
+      promoCode: promoCode || "none",
+      discountApplied: discountApplied.toString(),
+      originalPrice: originalPriceInCents.toString(),
+      finalPrice: finalAmountInCents.toString(),
+    };
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: finalAmountInCents,
       currency: "aud",
       automatic_payment_methods: { enabled: true },
-      metadata: {
-        orderId,
-        customerName: body.name,
-        customerEmail: body.email,
-        phone: body.phone || "",
-        package: body.package,
-        occasion: body.occasion,
-        eventDate: body.eventDate || "",
-        storyDetails: body.storyDetails,
-        mood: body.mood || "",
-        genre: body.genre || "",
-        additionalInfo: body.additionalInfo || "",
-        promoCode: promoCode || "none",
-        discountApplied: discountApplied.toString(),
-        originalPrice: originalPriceInCents.toString(),
-        finalPrice: finalAmountInCents.toString(),
-      },
+      metadata: metadata as Record<string, string>,
       description: `Custom Song - ${packageInfo.name} - ${body.occasion}`,
       receipt_email: body.email,
     });

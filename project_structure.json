@@ -1,0 +1,706 @@
+{
+  "project_name": "rocky-web-studio",
+  "project_type": "Next.js 16 Application",
+  "generated_at": "2025-01-12T09:00:00Z",
+  "directories": [
+    {
+      "path": "app",
+      "file_count": 50,
+      "critical_files": [
+        "layout.tsx",
+        "page.tsx",
+        "middleware.ts",
+        "globals.css"
+      ],
+      "issues": [],
+      "subdirectories": {
+        "api": {
+          "file_count": 35,
+          "endpoints": 35,
+          "critical_files": [
+            "webhooks/stripe/route.ts",
+            "custom-songs/order/route.ts",
+            "bookings/create/route.ts"
+          ]
+        },
+        "admin": {
+          "file_count": 3,
+          "protected": true,
+          "routes": ["/admin/sms", "/admin/sms-logs", "/admin/settings"]
+        },
+        "services": {
+          "file_count": 8,
+          "service_pages": [
+            "custom-songs",
+            "website-design-development",
+            "website-redesign-refresh",
+            "ecommerce",
+            "seo-performance",
+            "ai-automation",
+            "crm-integration",
+            "support-maintenance"
+          ]
+        }
+      }
+    },
+    {
+      "path": "lib",
+      "file_count": 30,
+      "critical_files": [
+        "sms.ts",
+        "analytics.ts",
+        "analytics/server.ts",
+        "xero/client.ts",
+        "xero/token-store.ts",
+        "auth/session.ts",
+        "auth/mfa.ts"
+      ],
+      "issues": [],
+      "subdirectories": {
+        "sms": {
+          "file_count": 7,
+          "providers": ["Mobile Message API", "Twilio (legacy)"],
+          "critical_files": ["sms.ts", "booking-helpers.ts", "storage.ts"]
+        },
+        "xero": {
+          "file_count": 4,
+          "oauth_flow": true,
+          "token_storage": "Vercel KV",
+          "critical_files": ["client.ts", "token-store.ts", "helpers.ts"]
+        },
+        "analytics": {
+          "file_count": 2,
+          "providers": ["Google Analytics 4"],
+          "critical_files": ["analytics.ts", "server.ts"]
+        }
+      }
+    },
+    {
+      "path": "components",
+      "file_count": 25,
+      "critical_files": [
+        "ui/button.tsx",
+        "ui/card.tsx",
+        "ui/dialog.tsx",
+        "contact-form.tsx",
+        "pricing-table.tsx"
+      ],
+      "issues": [],
+      "subdirectories": {
+        "ui": {
+          "file_count": 10,
+          "framework": "Radix UI + Tailwind CSS",
+          "critical_files": ["button.tsx", "card.tsx", "dialog.tsx", "input.tsx", "select.tsx"]
+        },
+        "admin": {
+          "file_count": 2,
+          "protected": true,
+          "critical_files": ["CreateInvoiceDialog.tsx", "XeroConnectionStatus.tsx"]
+        }
+      }
+    },
+    {
+      "path": "docs",
+      "file_count": 66,
+      "critical_files": [
+        "n8n-mobile-message-sms-setup.md",
+        "n8n-sms-config-copy-paste.md",
+        "XERO_INTEGRATION.md",
+        "STRIPE_INTEGRATION.md"
+      ],
+      "issues": [],
+      "documentation_types": [
+        "API Documentation",
+        "Integration Guides",
+        "Deployment Guides",
+        "Troubleshooting Guides"
+      ]
+    },
+    {
+      "path": "public",
+      "file_count": 12,
+      "critical_files": [
+        "discovery-form.html",
+        "discovery-form-landing.html",
+        "*.mp4 (video assets)"
+      ],
+      "issues": [],
+      "asset_types": ["HTML", "Images", "Videos", "SVG Icons"]
+    },
+    {
+      "path": "scripts",
+      "file_count": 5,
+      "critical_files": [
+        "verify-sms-templates.ts",
+        "test-ga4-server-tracking.ts"
+      ],
+      "issues": [],
+      "script_types": ["Verification", "Testing", "Utilities"]
+    }
+  ],
+  "configuration_files": [
+    {
+      "name": "package.json",
+      "location": "./",
+      "status": "present",
+      "last_updated": "2025-01-12",
+      "critical": true,
+      "dependencies_count": 45,
+      "dev_dependencies_count": 9
+    },
+    {
+      "name": "tsconfig.json",
+      "location": "./",
+      "status": "present",
+      "last_updated": "2025-01-12",
+      "critical": true,
+      "strict_mode": true
+    },
+    {
+      "name": "next.config.ts",
+      "location": "./",
+      "status": "present",
+      "last_updated": "2025-01-12",
+      "critical": true,
+      "sentry_integration": true,
+      "tunnel_route": "/monitoring"
+    },
+    {
+      "name": "vercel.json",
+      "location": "./",
+      "status": "present",
+      "last_updated": "2025-01-12",
+      "critical": true,
+      "cron_jobs": 1,
+      "function_configs": 2
+    },
+    {
+      "name": "auth.config.ts",
+      "location": "./",
+      "status": "present",
+      "last_updated": "2025-01-12",
+      "critical": true,
+      "auth_provider": "NextAuth v5",
+      "session_strategy": "jwt"
+    },
+    {
+      "name": "middleware.ts",
+      "location": "./",
+      "status": "present",
+      "last_updated": "2025-01-12",
+      "critical": true,
+      "protected_routes": ["/admin/*"]
+    },
+    {
+      "name": "components.json",
+      "location": "./",
+      "status": "present",
+      "last_updated": "2025-01-12",
+      "critical": false,
+      "ui_framework": "shadcn/ui"
+    },
+    {
+      "name": ".env.local",
+      "location": "./",
+      "status": "missing",
+      "last_updated": null,
+      "critical": true,
+      "note": "Should exist but is gitignored - contains sensitive credentials"
+    },
+    {
+      "name": ".env.example",
+      "location": "./",
+      "status": "missing",
+      "last_updated": null,
+      "critical": false,
+      "recommendation": "Create .env.example template for documentation"
+    },
+    {
+      "name": "docker-compose.yml",
+      "location": "./",
+      "status": "missing",
+      "last_updated": null,
+      "critical": false,
+      "note": "n8n runs via Docker but no compose file present"
+    },
+    {
+      "name": "start-n8n.ps1",
+      "location": "./",
+      "status": "present",
+      "last_updated": "2025-01-12",
+      "critical": false,
+      "purpose": "Docker script for n8n automation"
+    }
+  ],
+  "api_endpoints": [
+    {
+      "path": "/api/webhooks/stripe",
+      "method": "POST",
+      "handler": "app/api/webhooks/stripe/route.ts",
+      "purpose": "Stripe payment webhook receiver",
+      "authentication": "Stripe signature verification",
+      "idempotency": true,
+      "memory_allocation": "1024MB",
+      "max_duration": "30s",
+      "critical": true
+    },
+    {
+      "path": "/api/custom-songs/order",
+      "method": "POST",
+      "handler": "app/api/custom-songs/order/route.ts",
+      "purpose": "Create custom song order and Stripe PaymentIntent",
+      "authentication": "Public (rate-limited)",
+      "critical": true
+    },
+    {
+      "path": "/api/bookings/create",
+      "method": "POST",
+      "handler": "app/api/bookings/create/route.ts",
+      "purpose": "Create booking appointment",
+      "authentication": "Public (rate-limited)",
+      "rate_limit": "10 requests/minute",
+      "critical": true
+    },
+    {
+      "path": "/api/bookings/availability",
+      "method": "GET",
+      "handler": "app/api/bookings/availability/route.ts",
+      "purpose": "Get available booking slots",
+      "authentication": "Public",
+      "critical": true
+    },
+    {
+      "path": "/api/bookings/[bookingId]/cancel",
+      "method": "POST",
+      "handler": "app/api/bookings/[bookingId]/cancel/route.ts",
+      "purpose": "Cancel booking and process refund",
+      "authentication": "Public",
+      "critical": true
+    },
+    {
+      "path": "/api/bookings/[bookingId]/reschedule",
+      "method": "POST",
+      "handler": "app/api/bookings/[bookingId]/reschedule/route.ts",
+      "purpose": "Reschedule booking",
+      "authentication": "Public",
+      "critical": true
+    },
+    {
+      "path": "/api/admin/sms/logs",
+      "method": "GET",
+      "handler": "app/api/admin/sms/logs/route.ts",
+      "purpose": "Get SMS logs (admin only)",
+      "authentication": "NextAuth session required",
+      "protected": true,
+      "critical": true
+    },
+    {
+      "path": "/api/admin/sms/stats",
+      "method": "GET",
+      "handler": "app/api/admin/sms/stats/route.ts",
+      "purpose": "Get SMS statistics (admin only)",
+      "authentication": "NextAuth session required",
+      "protected": true,
+      "critical": true
+    },
+    {
+      "path": "/api/admin/sms/credits",
+      "method": "GET",
+      "handler": "app/api/admin/sms/credits/route.ts",
+      "purpose": "Get Mobile Message API credits (admin only)",
+      "authentication": "NextAuth session required",
+      "protected": true,
+      "critical": true
+    },
+    {
+      "path": "/api/xero/connect",
+      "method": "GET",
+      "handler": "app/api/xero/connect/route.ts",
+      "purpose": "Initiate Xero OAuth flow",
+      "authentication": "NextAuth session required",
+      "protected": true,
+      "critical": true
+    },
+    {
+      "path": "/api/xero/callback",
+      "method": "GET",
+      "handler": "app/api/xero/callback/route.ts",
+      "purpose": "Handle Xero OAuth callback",
+      "authentication": "Public (OAuth callback)",
+      "critical": true
+    },
+    {
+      "path": "/api/xero/invoices",
+      "method": "GET",
+      "handler": "app/api/xero/invoices/route.ts",
+      "purpose": "List Xero invoices (admin only)",
+      "authentication": "NextAuth session required",
+      "protected": true,
+      "critical": true
+    },
+    {
+      "path": "/api/xero/create-invoice",
+      "method": "POST",
+      "handler": "app/api/xero/create-invoice/route.ts",
+      "purpose": "Create invoice in Xero (admin only)",
+      "authentication": "NextAuth session required",
+      "protected": true,
+      "critical": true
+    },
+    {
+      "path": "/api/auth/[...nextauth]",
+      "method": "GET, POST",
+      "handler": "app/api/auth/[...nextauth]/route.ts",
+      "purpose": "NextAuth authentication endpoints",
+      "authentication": "Credentials provider",
+      "critical": true
+    },
+    {
+      "path": "/api/notifications/send-reminder",
+      "method": "POST",
+      "handler": "app/api/notifications/send-reminder/route.ts",
+      "purpose": "Send booking reminder SMS (cron)",
+      "authentication": "Vercel cron secret",
+      "cron_schedule": "0 * * * *",
+      "memory_allocation": "1024MB",
+      "max_duration": "10s",
+      "critical": true
+    },
+    {
+      "path": "/api/health",
+      "method": "GET",
+      "handler": "app/api/health/route.ts",
+      "purpose": "Health check endpoint",
+      "authentication": "Public",
+      "critical": false
+    }
+  ],
+  "webhook_receivers": [
+    {
+      "path": "/api/webhooks/stripe",
+      "handler": "app/api/webhooks/stripe/route.ts",
+      "provider": "Stripe",
+      "events_handled": ["payment_intent.succeeded"],
+      "authentication": "Stripe signature verification",
+      "idempotency": "Vercel KV (7-day TTL)",
+      "status": "active",
+      "critical": true
+    }
+  ],
+  "tunnel_configurations": [
+    {
+      "type": "Sentry Tunnel",
+      "route": "/monitoring",
+      "config_location": "next.config.ts",
+      "purpose": "Sentry error monitoring tunnel",
+      "status": "configured"
+    },
+    {
+      "type": "n8n localtunnel",
+      "script": "start-n8n.ps1",
+      "port": 5678,
+      "subdomain": "rocky-web-n8n",
+      "purpose": "n8n workflow automation",
+      "status": "manual_setup",
+      "note": "Requires manual execution: npx localtunnel --port 5678 --subdomain rocky-web-n8n"
+    },
+    {
+      "type": "ngrok (documented)",
+      "documentation": "docs/XERO_INTEGRATION.md",
+      "purpose": "Xero webhook testing in development",
+      "status": "documented_only",
+      "note": "Not configured in code, only documented for local development"
+    }
+  ],
+  "database_schemas": [
+    {
+      "type": "No traditional database",
+      "storage": "Vercel KV (Redis)",
+      "schemas": [
+        {
+          "name": "bookings",
+          "key_pattern": "booking:*",
+          "storage_file": "lib/kv/bookings.ts",
+          "fields": ["id", "date", "time", "name", "email", "phone", "serviceType", "status", "createdAt"]
+        },
+        {
+          "name": "sms_records",
+          "key_pattern": "sms:*",
+          "storage_file": "lib/kv/sms.ts",
+          "fields": ["id", "messageId", "bookingId", "phoneNumber", "messagePreview", "messageType", "status", "cost", "sentAt"]
+        },
+        {
+          "name": "xero_tokens",
+          "key_pattern": "xero:token:{userId}",
+          "storage_file": "lib/xero/token-store.ts",
+          "fields": ["access_token", "refresh_token", "expires_in", "obtained_at", "id_token", "token_type", "scope"]
+        },
+        {
+          "name": "webhook_idempotency",
+          "key_pattern": "webhook:stripe:{eventId}",
+          "storage_file": "app/api/webhooks/stripe/route.ts",
+          "ttl": "7 days",
+          "fields": ["processedAt", "eventId"]
+        }
+      ]
+    }
+  ],
+  "authentication_and_credentials": [
+    {
+      "type": "NextAuth",
+      "config_file": "auth.ts",
+      "provider": "Credentials",
+      "admin_email": "admin@rockywebstudio.com.au",
+      "password_env": "ADMIN_PASSWORD",
+      "session_strategy": "jwt",
+      "session_max_age": "8 hours",
+      "protected_routes": ["/admin/*"],
+      "status": "active"
+    },
+    {
+      "type": "Xero OAuth",
+      "config_file": "lib/xero/client.ts",
+      "env_vars": ["XERO_CLIENT_ID", "XERO_CLIENT_SECRET"],
+      "token_storage": "Vercel KV",
+      "refresh_mechanism": "automatic",
+      "status": "active"
+    },
+    {
+      "type": "Stripe",
+      "config_files": [
+        "app/api/webhooks/stripe/route.ts",
+        "app/api/custom-songs/order/route.ts"
+      ],
+      "env_vars": ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
+      "status": "active"
+    },
+    {
+      "type": "Mobile Message API",
+      "config_file": "lib/sms.ts",
+      "env_vars": [
+        "MOBILE_MESSAGE_API_URL",
+        "MOBILE_MESSAGE_API_USERNAME",
+        "MOBILE_MESSAGE_API_PASSWORD",
+        "MOBILE_MESSAGE_SENDER_ID"
+      ],
+      "auth_method": "Basic Auth (Base64)",
+      "status": "active"
+    },
+    {
+      "type": "Resend Email",
+      "config_files": [
+        "lib/email/customSongs.ts",
+        "app/api/bookings/create/route.ts"
+      ],
+      "env_var": "RESEND_API_KEY",
+      "status": "active"
+    },
+    {
+      "type": "Google Analytics",
+      "config_files": [
+        "lib/analytics.ts",
+        "lib/analytics/server.ts"
+      ],
+      "env_vars": ["NEXT_PUBLIC_GA_MEASUREMENT_ID", "GA4_API_SECRET"],
+      "status": "active"
+    },
+    {
+      "type": "Sentry",
+      "config_files": [
+        "sentry.config.ts",
+        "sentry.server.config.ts",
+        "sentry.client.config.ts"
+      ],
+      "env_vars": ["SENTRY_ORG", "SENTRY_PROJECT", "SENTRY_AUTH_TOKEN"],
+      "status": "active"
+    }
+  ],
+  "security_concerns": [
+    {
+      "file": "auth.ts",
+      "issue": "Hardcoded admin email: admin@rockywebstudio.com.au",
+      "severity": "low",
+      "recommendation": "Move to environment variable ADMIN_EMAIL for flexibility"
+    },
+    {
+      "file": "lib/sms.ts",
+      "issue": "Credentials stored in environment variables (expected)",
+      "severity": "info",
+      "recommendation": "Ensure .env.local is gitignored (verified in .gitignore)"
+    },
+    {
+      "file": "lib/xero/token-store.ts",
+      "issue": "OAuth tokens stored in Vercel KV with TTL",
+      "severity": "info",
+      "recommendation": "Tokens are properly secured with expiration - no action needed"
+    },
+    {
+      "file": "app/api/webhooks/stripe/route.ts",
+      "issue": "Webhook secret verification required",
+      "severity": "info",
+      "recommendation": "Ensure STRIPE_WEBHOOK_SECRET is set in production"
+    },
+    {
+      "file": "lib/logging.ts",
+      "issue": "Secret redaction implemented",
+      "severity": "info",
+      "recommendation": "Good practice - logs redact sensitive keys"
+    },
+    {
+      "file": "sentry.config.ts",
+      "issue": "Sensitive parameter filtering configured",
+      "severity": "info",
+      "recommendation": "Sentry filters password, token, secret, apiKey - good practice"
+    },
+    {
+      "file": ".env.local",
+      "issue": "File missing but required",
+      "severity": "high",
+      "recommendation": "Create .env.local with all required environment variables (see README.md for list)"
+    },
+    {
+      "file": ".env.example",
+      "issue": "Template file missing",
+      "severity": "medium",
+      "recommendation": "Create .env.example with placeholder values for documentation"
+    },
+    {
+      "file": "Multiple files",
+      "issue": "Environment variables referenced but may not be set",
+      "severity": "medium",
+      "recommendation": "Verify all required env vars are set in production (Vercel dashboard)"
+    }
+  ],
+  "version_report": {
+    "node_version": "v22.16.0",
+    "npm_version": "10.9.2",
+    "next_version": "16.0.7",
+    "react_version": "^19.2.1",
+    "typescript_version": "^5",
+    "key_dependency_versions": {
+      "next-auth": "^5.0.0-beta.30",
+      "stripe": "^20.0.0",
+      "@stripe/stripe-js": "^8.5.3",
+      "@stripe/react-stripe-js": "^5.4.1",
+      "@vercel/kv": "^3.0.0",
+      "@sentry/nextjs": "^10.28.0",
+      "resend": "^6.4.2",
+      "xero-node": "^13.3.0",
+      "tailwindcss": "^4",
+      "zod": "^4.1.12"
+    },
+    "compatibility_notes": [
+      "Next.js 16.0.7 - Latest stable",
+      "React 19.2.1 - Latest stable",
+      "NextAuth v5 beta - May need to upgrade to stable when available",
+      "Node v22.16.0 - Latest LTS, compatible with all dependencies"
+    ]
+  },
+  "missing_files_report": [
+    {
+      "file": ".env.local",
+      "should_exist": true,
+      "reason": "Required for local development - contains all API keys and secrets",
+      "gitignored": true,
+      "action": "Create from template or copy from production"
+    },
+    {
+      "file": ".env.example",
+      "should_exist": true,
+      "reason": "Documentation template for required environment variables",
+      "gitignored": false,
+      "action": "Create template file with placeholder values"
+    },
+    {
+      "file": "docker-compose.yml",
+      "should_exist": false,
+      "reason": "Optional - n8n runs via Docker but uses PowerShell script instead",
+      "gitignored": false,
+      "action": "Optional: Create for easier n8n management"
+    }
+  ],
+  "file_inventory_by_function": {
+    "configuration": [
+      "package.json",
+      "tsconfig.json",
+      "next.config.ts",
+      "vercel.json",
+      "auth.config.ts",
+      "middleware.ts",
+      "components.json",
+      "postcss.config.mjs",
+      "sentry.config.ts",
+      "sentry.server.config.ts",
+      "sentry.client.config.ts"
+    ],
+    "api_routes": [
+      "app/api/webhooks/stripe/route.ts",
+      "app/api/custom-songs/order/route.ts",
+      "app/api/bookings/create/route.ts",
+      "app/api/bookings/availability/route.ts",
+      "app/api/bookings/[bookingId]/cancel/route.ts",
+      "app/api/bookings/[bookingId]/reschedule/route.ts",
+      "app/api/admin/sms/logs/route.ts",
+      "app/api/admin/sms/stats/route.ts",
+      "app/api/admin/sms/credits/route.ts",
+      "app/api/xero/connect/route.ts",
+      "app/api/xero/callback/route.ts",
+      "app/api/xero/invoices/route.ts",
+      "app/api/xero/create-invoice/route.ts",
+      "app/api/auth/[...nextauth]/route.ts",
+      "app/api/notifications/send-reminder/route.ts",
+      "app/api/health/route.ts"
+    ],
+    "webhooks": [
+      "app/api/webhooks/stripe/route.ts"
+    ],
+    "frontend": [
+      "app/page.tsx",
+      "app/layout.tsx",
+      "app/book/page.tsx",
+      "app/login/page.tsx",
+      "app/admin/**/*.tsx",
+      "app/services/**/*.tsx",
+      "components/**/*.tsx"
+    ],
+    "backend": [
+      "lib/**/*.ts",
+      "app/api/**/*.ts",
+      "middleware.ts",
+      "auth.ts"
+    ],
+    "deployment": [
+      "vercel.json",
+      "next.config.ts",
+      "start-n8n.ps1",
+      "DEPLOYMENT.md",
+      "PRODUCTION_READINESS_CHECKLIST.md"
+    ],
+    "documentation": [
+      "docs/**/*.md",
+      "README.md",
+      "*.md (root level markdown files)"
+    ]
+  },
+  "summary": {
+    "total_api_endpoints": 16,
+    "total_webhook_receivers": 1,
+    "total_protected_routes": 8,
+    "total_environment_variables": 20,
+    "authentication_providers": 2,
+    "external_integrations": [
+      "Stripe",
+      "Xero",
+      "Mobile Message API",
+      "Resend Email",
+      "Google Analytics",
+      "Sentry",
+      "Vercel KV"
+    ],
+    "deployment_platform": "Vercel",
+    "database": "Vercel KV (Redis)",
+    "tunnel_services": ["Sentry Tunnel", "localtunnel (n8n)"]
+  }
+}
+
+

@@ -7,11 +7,9 @@
   ],
   "functions": {
     "app/api/notifications/send-reminder/route.ts": {
-      "memory": 1024,
       "maxDuration": 10
     },
     "app/api/webhooks/stripe/route.ts": {
-      "memory": 1024,
       "maxDuration": 30
     }
   }

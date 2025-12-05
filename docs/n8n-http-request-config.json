@@ -1,0 +1,83 @@
+{
+  "n8n_http_request_node_configuration": {
+    "method": "POST",
+    "url": "https://api.mobilemessage.com.au/v1/messages",
+    "authentication": {
+      "type": "basicAuth",
+      "instructions": "In n8n HTTP Request node:\n1. Go to 'Authentication' section\n2. Select 'Generic Credential Type'\n3. Choose 'Basic Auth'\n4. User: {{ $env.MOBILE_MESSAGE_API_USERNAME }}\n5. Password: {{ $env.MOBILE_MESSAGE_API_PASSWORD }}"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body_parameters_json": {
+      "enable_unicode": true,
+      "messages": [
+        {
+          "to": "{{ $json.data.object.metadata.phone }}",
+          "message": "💰 New Payment: ${{ ($json.data.object.amount / 100).toFixed(2) }} {{ $json.data.object.currency.toUpperCase() }} from {{ $json.data.object.metadata.customerEmail }}. Order ID: {{ $json.data.object.metadata.orderId }}",
+          "sender": "{{ $env.MOBILE_MESSAGE_SENDER_ID }}",
+          "custom_ref": "{{ $json.data.object.metadata.orderId }}"
+        }
+      ]
+    },
+    "exact_json_to_paste": {
+      "enable_unicode": true,
+      "messages": [
+        {
+          "to": "{{ $json.data.object.metadata.phone }}",
+          "message": "💰 New Payment: ${{ ($json.data.object.amount / 100).toFixed(2) }} {{ $json.data.object.currency.toUpperCase() }} from {{ $json.data.object.metadata.customerEmail }}. Order ID: {{ $json.data.object.metadata.orderId }}",
+          "sender": "{{ $env.MOBILE_MESSAGE_SENDER_ID }}",
+          "custom_ref": "{{ $json.data.object.metadata.orderId }}"
+        }
+      ]
+    }
+  },
+  "step_by_step_instructions": {
+    "step_1": "Open your n8n HTTP Request node",
+    "step_2": "Set Method to: POST",
+    "step_3": "Set URL to: https://api.mobilemessage.com.au/v1/messages",
+    "step_4": "Go to Authentication section → Select 'Generic Credential Type' → Choose 'Basic Auth'",
+    "step_5": "Set User to: {{ $env.MOBILE_MESSAGE_API_USERNAME }}",
+    "step_6": "Set Password to: {{ $env.MOBILE_MESSAGE_API_PASSWORD }}",
+    "step_7": "Go to Headers section → Add header: Content-Type = application/json",
+    "step_8": "Go to Body Parameters section → Select 'JSON' → Paste the JSON from 'exact_json_to_paste' above"
+  },
+  "field_explanations": {
+    "to": "Phone number from Stripe metadata. Format: E.164 (e.g., +61400000000)",
+    "message": "SMS text with payment details. Amount converted from cents to dollars using: ($json.data.object.amount / 100).toFixed(2)",
+    "sender": "Sender ID from environment variable (e.g., RockyWeb)",
+    "custom_ref": "Order ID for tracking purposes",
+    "enable_unicode": "Set to true to support emojis (💰) and special characters"
+  },
+  "stripe_webhook_data_structure": {
+    "note": "When Stripe webhook triggers n8n, the data structure is:",
+    "payment_intent": "$json.data.object",
+    "amount_in_cents": "$json.data.object.amount",
+    "currency": "$json.data.object.currency",
+    "metadata": "$json.data.object.metadata",
+    "phone": "$json.data.object.metadata.phone",
+    "email": "$json.data.object.metadata.customerEmail",
+    "order_id": "$json.data.object.metadata.orderId",
+    "customer_name": "$json.data.object.metadata.customerName"
+  },
+  "test_example": {
+    "note": "If testing with sample data, use this structure:",
+    "sample_input": {
+      "data": {
+        "object": {
+          "amount": 14900,
+          "currency": "aud",
+          "metadata": {
+            "phone": "+61400000000",
+            "customerEmail": "customer@example.com",
+            "orderId": "CS-ABC123-XYZ",
+            "customerName": "John Doe"
+          }
+        }
+      }
+    },
+    "expected_output_message": "💰 New Payment: $149.00 AUD from customer@example.com. Order ID: CS-ABC123-XYZ"
+  }
+}
+
+

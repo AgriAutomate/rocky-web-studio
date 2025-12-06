@@ -18,7 +18,7 @@ export type CustomSongsEvent =
   | "order_error";
 
 // Package types for analytics
-export type PackageType = "express" | "standard" | "wedding";
+export type PackageType = "test_package" | "express" | "standard" | "wedding";
 
 interface CustomSongsEventParams {
   event_category: "Custom Songs";
@@ -95,6 +95,7 @@ export function trackConversion(
  * Package price mapping for value tracking
  */
 export const packagePrices: Record<PackageType, number> = {
+  test_package: 1,
   express: 49,
   standard: 29,
   wedding: 149,
@@ -104,6 +105,7 @@ export const packagePrices: Record<PackageType, number> = {
  * Package name mapping for display
  */
 export const packageNames: Record<PackageType, string> = {
+  test_package: "Test Package",
   express: "Express Personal",
   standard: "Standard Occasion",
   wedding: "Wedding Trio",

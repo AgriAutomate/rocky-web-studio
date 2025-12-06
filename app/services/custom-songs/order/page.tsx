@@ -63,6 +63,7 @@ const occasionOptions = [
 ];
 
 const packageOptions = [
+  { value: "test_package", label: "Test Package - $1.00 (For testing payment flow only)", price: 1 },
   { value: "express", label: "Express Personal - $49 (24-48 hours)", price: 49 },
   { value: "standard", label: "Standard Occasion - $29 (3-5 days)", price: 29 },
   { value: "wedding", label: "Wedding Trio - $149 (5-7 days)", price: 149 },

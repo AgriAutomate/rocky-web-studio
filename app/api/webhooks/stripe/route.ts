@@ -15,6 +15,8 @@ import {
   trackSongRequestPurchasedServer,
 } from "@/lib/analytics/server";
 import type { StripePaymentIntentMetadata } from "@/types/stripe";
+import { createServerSupabaseClient } from "@/lib/supabase/client";
+import type { SongOrderInsert } from "@/types/supabase";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -211,6 +213,65 @@ async function handlePost(req: NextRequest, requestId: string) {
         orderId: metadata.orderId,
       }, analyticsError);
     });
+
+    // Save order to Supabase database
+    try {
+      const supabase = createServerSupabaseClient(true); // Use service role for bypass RLS
+
+      const orderData: SongOrderInsert = {
+        order_id: metadata.orderId,
+        stripe_payment_id: paymentIntent.id,
+        customer_name: metadata.customerName,
+        customer_email: metadata.customerEmail,
+        customer_phone: metadata.phone || null,
+        song_brief: metadata.storyDetails,
+        package_type: metadata.package,
+        occasion: metadata.occasion,
+        mood: metadata.mood || null,
+        genre: metadata.genre || null,
+        event_date: metadata.eventDate || null,
+        status: 'PENDING',
+        notes: metadata.additionalInfo || null,
+      };
+
+      const { data: insertedOrder, error: dbError } = await supabase
+        .from('song_orders')
+        .insert([orderData] as any)
+        .select()
+        .single() as { data: { id: string } | null; error: any };
+
+      if (dbError) {
+        stripeLogger.error("Failed to save order to Supabase", {
+          requestId,
+          eventId,
+          orderId: metadata.orderId,
+          paymentIntentId: paymentIntent.id,
+          error: dbError.message,
+          errorCode: dbError.code,
+          errorDetails: dbError.details,
+        });
+        // Don't throw - continue processing webhook even if DB save fails
+        // The order is still paid, we just need to handle it manually
+      } else if (insertedOrder) {
+        stripeLogger.info("Order saved to Supabase successfully", {
+          requestId,
+          eventId,
+          orderId: metadata.orderId,
+          paymentIntentId: paymentIntent.id,
+          databaseId: insertedOrder.id,
+        });
+      }
+    } catch (supabaseError) {
+      const error = supabaseError instanceof Error ? supabaseError : new Error("Unknown Supabase error");
+      stripeLogger.error("Exception while saving order to Supabase", {
+        requestId,
+        eventId,
+        orderId: metadata.orderId,
+        paymentIntentId: paymentIntent.id,
+        error: error.message,
+      }, error);
+      // Don't throw - continue processing webhook
+    }
 
     // Build email details from metadata
     const emailDetails: OrderEmailDetails = {

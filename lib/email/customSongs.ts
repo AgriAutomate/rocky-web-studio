@@ -22,6 +22,7 @@ export interface OrderEmailDetails {
  * Package pricing information
  */
 export const packagePrices: Record<string, { name: string; price: number; turnaround: string }> = {
+  test_package: { name: "Test Package", price: 1, turnaround: "For testing only" },
   express: { name: "Express Personal", price: 49, turnaround: "24-48 hours" },
   standard: { name: "Standard Occasion", price: 29, turnaround: "3-5 days" },
   wedding: { name: "Wedding Trio", price: 149, turnaround: "5-7 days" },

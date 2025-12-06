@@ -93,7 +93,7 @@ vercel env add STRIPE_SECRET_KEY development
 
 Based on earlier configuration, the test key should be:
 ```
-sk_test_51SZ8Xc28GEyQODXIjc5yWOJar7jKHEiwOoxbjq4eweupR4jN0tENrWpIcYyAHDXmoxat3IAno5qrQmpss0eqGTUD00NrQmpss0eqGTUD00N3hg60S
+[REPLACE_WITH_YOUR_TEST_KEY] (Format: sk_test_51...)
 ```
 
 **⚠️ IMPORTANT:** 
@@ -187,7 +187,7 @@ git push origin main
 
 ```bash
 # Check if key format is correct
-KEY="sk_test_51SZ8Xc28GEyQODXIjc5yWOJar7jKHEiwOoxbjq4eweupR4jN0tENrWpIcYyAHDXmoxat3IAno5qrQmpss0eqGTUD00NrQmpss0eqGTUD00N3hg60S"
+KEY="[REPLACE_WITH_YOUR_TEST_KEY]"  # Format: sk_test_51...
 
 # Check length
 echo "Key length: ${#KEY} characters"

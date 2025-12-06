@@ -9,7 +9,7 @@
 ## ✅ Updated to Live Keys
 
 ### 1. STRIPE_SECRET_KEY (LIVE)
-**Value:** `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`
+**Value:** `[REPLACE_WITH_YOUR_LIVE_KEY]` (Format: sk_live_51...)
 
 **Status:**
 - ✅ Production: Updated with LIVE key

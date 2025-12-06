@@ -8,7 +8,7 @@
 ## ✅ Updated Keys
 
 ### 1. STRIPE_SECRET_KEY
-**Value:** `sk_test_51SZ8Xc28GEyQODXIjc5yWOJar7jKHEiwOoxbjq4eweupR4jN0tENrWpIcYyAHDXmoxat3IAno5qrQmpss0eqGTUD00NZ3Ng60S`
+**Value:** `[REPLACE_WITH_YOUR_TEST_KEY]` (Format: sk_test_51...)
 
 **Status:**
 - ✅ Production: Updated (2m ago)

@@ -10,7 +10,7 @@ export function HeroSection() {
           {/* Transparent Logo - Top Right */}
           <div className="absolute top-8 right-8 lg:top-12 lg:right-12">
             <Image
-              src="/images/rws-logo-transparent.png"
+              src="/images/transparent-background.png"
               alt="Rocky Web Studio"
               width={200}
               height={200}

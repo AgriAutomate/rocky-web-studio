@@ -1,0 +1,190 @@
+{
+  "name": "Rocky Web Studio - AI Music Production (sunoapi.org V5)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "music-order",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook_node",
+      "name": "Webhook: Order Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $input.first().json.body;\n\nreturn {\n  json: {\n    orderId: `ord_${Date.now()}`,\n    customerEmail: body.customerEmail,\n    customerName: body.customerName,\n    recipientName: body.recipientName,\n    tier: body.tier,\n    genre: body.genre,\n    vocals: body.vocals,\n    instruments: body.instruments,\n    tone: body.emotionalTone,\n    intensity: body.intensity || 'medium',\n    personalDetails: body.personalDetails || {},\n    customLyrics: body.customLyrics || null,\n    frequencyHealing: body.frequencyHealing || null,\n    timestamp: new Date().toISOString(),\n    status: 'INTAKE_RECEIVED'\n  }\n};"
+      },
+      "id": "form_parser",
+      "name": "Node 2: Form Parser",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "const orderData = $input.first().json;\nconst personalDetails = orderData.personalDetails || {};\nconst tone = orderData.tone || 'uplifting';\nconst intensity = orderData.intensity || 'medium';\n\nfunction intensityToBPM(intensity) {\n  const map = { 'low': 80, 'medium': 95, 'high': 120 };\n  return map[intensity] || 95;\n}\n\nlet championshipPrompt = `[Start Anchor: ${orderData.genre}, ${orderData.frequencyHealing || 'Natural Harmony'}, Theme: ${personalDetails.occasion || 'Celebration'}, ${intensityToBPM(intensity)} BPM]\n[Emotional Arc: Personal Journey → Clarity → ${tone === 'melancholic' ? 'Acceptance' : 'Transcendence'}]\n\n[Intro]\n[Texture: Warm atmospheric foundation]\n(A soft kick establishes heartbeat at ${intensityToBPM(intensity)} BPM)\n\n[Verse 1]\n[Vocal Tone: ${orderData.vocals}, ${tone}, Close to Mic]\n(Championship lyrics with multisyllabic rhymes)\n\n[Chorus]\n[Energy: High, Anthemic]\n[Callback Phrase: \"${personalDetails.mantra || 'Forever Together'}\"]\n(MEMORABLE HOOK)\n\n[Verse 2]\n[Dynamics: Intimate, deepening narrative]\n(Continue story with wisdom)\n\n[Bridge]\n[Energy Peak: Maximum]\n(Turning point, revelation)\n\n[Final Chorus]\n[Energy: Maximum, Triumphant]\n(Extended hook—full vocal treatment)\n\n[Outro]\n[Fade Strategy: Gradual dissolution]\n\n[End Anchor: Maintain ${orderData.frequencyHealing || 'natural'} vibe]`;\n\nreturn {\n  json: {\n    ...orderData,\n    styleField: `${orderData.genre}, ${orderData.frequencyHealing || 'Natural'}, ${orderData.vocals}, ${tone}`.substring(0, 120),\n    lyricsField: championshipPrompt,\n    status: 'PROMPT_ENGINEERED'\n  }\n};"
+      },
+      "id": "prompt_engine",
+      "name": "Node 3: Prompt Engineering",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [650, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://api.sunoapi.org/api/v1/generate",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"gpt_description_prompt\": \"{{ $input.first().json.lyricsField }}\",\n  \"prompt\": \"{{ $input.first().json.lyricsField }}\",\n  \"style\": \"{{ $input.first().json.styleField }}\",\n  \"title\": \"{{ $input.first().json.recipientName }}'s Song\",\n  \"make_instrumental\": false,\n  \"model\": \"V5\"\n}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "sunoapi_generate",
+      "name": "Node 4: sunoapi.org Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 100],
+      "credentials": {
+        "httpHeaderAuth": "SunoApiKey"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Single incoming item from sunoapi_generate\nconst incomingData = $input.first().json;\nconst apiResponse = incomingData;\n\nif (!apiResponse.data || !apiResponse.data.taskId) {\n  throw new Error(`Generation failed: ${apiResponse.msg || 'Unknown error'}`);\n}\n\nreturn {\n  json: {\n    ...incomingData,\n    sunoTaskId: apiResponse.data.taskId,\n    generationStarted: new Date().toISOString(),\n    status: 'GENERATION_PENDING',\n    pollCount: 0,\n    maxPolls: 20\n  }\n};"
+      },
+      "id": "poll_init",
+      "name": "Node 5A: Poll Init",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [1050, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://api.sunoapi.org/api/v1/generate/record-info?taskId={{ $input.first().json.sunoTaskId }}",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "poll_status",
+      "name": "Node 5B: Poll Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 100],
+      "credentials": {
+        "httpHeaderAuth": "SunoApiKey"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const incomingData = $input.first().json;\nconst pollResponse = incomingData;\nconst pollCount = incomingData.pollCount || 0;\nconst maxPolls = incomingData.maxPolls || 20;\n\nif (pollResponse.data && pollResponse.data.status === 'SUCCESS') {\n  const audioData = pollResponse.data.response.data[0];\n  return {\n    json: {\n      ...incomingData,\n      audioUrl: audioData.audio_url,\n      audioId: audioData.id,\n      duration: audioData.duration || 0,\n      generatedAt: new Date().toISOString(),\n      status: 'GENERATION_SUCCESS'\n    }\n  };\n} else if (pollResponse.data && pollResponse.data.status === 'FAILED') {\n  throw new Error(`Generation failed: ${pollResponse.data.errorMessage || 'Unknown'}`);\n} else if (pollCount < maxPolls) {\n  return {\n    json: {\n      ...incomingData,\n      pollCount: pollCount + 1,\n      status: 'STILL_GENERATING'\n    }\n  };\n} else {\n  throw new Error('Generation timeout after 10 minutes');\n}"
+      },
+      "id": "poll_check",
+      "name": "Node 5C: Check Status",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [1450, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "nodeOutput": 0,
+          "conditions": [
+            {
+              "key": "status",
+              "condition": "equals",
+              "value": "GENERATION_SUCCESS"
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if_success",
+      "name": "If Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1650, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "const order = $input.first().json;\nconst duration = order.duration || 0;\nlet score = 100;\n\nif (duration < 30) score -= 30;\nif (duration > 600) score -= 10;\nif (order.customLyrics && order.audioUrl) score -= 5;\nif (order.frequencyHealing) score -= 3;\n\nconst emotionalMarkers = ['intro', 'verse', 'chorus', 'bridge', 'outro'];\nlet foundMarkers = 0;\nemotionalMarkers.forEach(marker => {\n  if (order.lyricsField && order.lyricsField.toLowerCase().includes(marker)) foundMarkers++;\n});\nscore = Math.round(score * (foundMarkers / emotionalMarkers.length));\n\nreturn {\n  json: {\n    ...order,\n    qaScore: Math.max(0, Math.min(100, score)),\n    qaTimestamp: new Date().toISOString(),\n    status: score >= 85 ? 'QA_PASSED' : (score >= 70 ? 'QA_REVIEW' : 'QA_FAILED')\n  }\n};"
+      },
+      "id": "qa_gates",
+      "name": "Node 6: QA Gates",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [1850, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "const order = $input.first().json;\nconst formats = ['MP3'];\n\nif (order.tier === 'deluxe' || order.tier === 'platinum') {\n  formats.push('WAV');\n}\nif (order.tier === 'platinum') {\n  formats.push('FLAC');\n}\n\nconst metadata = {\n  title: `${order.recipientName}'s Custom Song`,\n  artist: 'Rocky Web Studio',\n  genre: order.genre,\n  date: new Date().toISOString().split('T')[0],\n  duration: order.duration,\n  audioUrl: order.audioUrl\n};\n\nreturn {\n  json: {\n    ...order,\n    exportFormats: formats,\n    metadata: metadata,\n    status: 'READY_FOR_DELIVERY',\n    deliveryTimestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "post_process",
+      "name": "Node 7: Post-Process",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [2050, 100]
+    },
+    {
+      "parameters": {
+        "sendImmediately": false,
+        "toEmail": [
+          "{{ $input.first().json.customerEmail }}"
+        ],
+        "subject": "🎵 Your Custom Song is Ready",
+        "textOnly": false,
+        "htmlMessage": "<p>Dear {{ $input.first().json.customerName }},</p>\n<p>Your championship song for {{ $input.first().json.recipientName }} is ready!</p>\n<p><strong>📥 Download:</strong> <a href=\"{{ $input.first().json.audioUrl }}\">Click here</a></p>\n<p><strong>Duration:</strong> {{ $input.first().json.duration }}s</p>\n<p><strong>Quality Score:</strong> {{ $input.first().json.qaScore }}/100</p>\n<p>Thank you!<br>Rocky Web Studio</p>"
+      },
+      "id": "send_email",
+      "name": "Node 8: Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [2250, 100]
+    }
+  ],
+  "connections": {
+    "webhook_node": {
+      "main": [[{"node": "form_parser", "branch": 0}]]
+    },
+    "form_parser": {
+      "main": [[{"node": "prompt_engine", "branch": 0}]]
+    },
+    "prompt_engine": {
+      "main": [[{"node": "sunoapi_generate", "branch": 0}]]
+    },
+    "sunoapi_generate": {
+      "main": [[{"node": "poll_init", "branch": 0}]]
+    },
+    "poll_init": {
+      "main": [[{"node": "poll_status", "branch": 0}]]
+    },
+    "poll_status": {
+      "main": [[{"node": "poll_check", "branch": 0}]]
+    },
+    "poll_check": {
+      "main": [
+        [{"node": "if_success", "branch": 0}],
+        [{"node": "poll_status", "branch": 0}]
+      ]
+    },
+    "if_success": {
+      "main": [
+        [{"node": "qa_gates", "branch": 0}],
+        []
+      ]
+    },
+    "qa_gates": {
+      "main": [[{"node": "post_process", "branch": 0}]]
+    },
+    "post_process": {
+      "main": [[{"node": "send_email", "branch": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "Australia/Brisbane"
+  }
+}

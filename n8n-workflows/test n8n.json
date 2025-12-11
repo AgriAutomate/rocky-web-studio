@@ -1,0 +1,32 @@
+{
+  "name": "Test Suno Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "music-order",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook_node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "return { json: { status: 'ok' } };"
+      },
+      "id": "test_function",
+      "name": "Test Function",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [450, 100]
+    }
+  ],
+  "connections": {
+    "webhook_node": {
+      "main": [[{"node": "test_function", "branch": 0}]]
+    }
+  },
+  "active": false
+}

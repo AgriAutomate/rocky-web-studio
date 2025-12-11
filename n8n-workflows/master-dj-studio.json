@@ -1,0 +1,128 @@
+{
+  "name": "Master DJ Studio - Unified Architecture",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "master-dj-studio",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-master",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "master-dj-studio"
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://api.stripe.com/v1/payment_intents/={{$json.body.payment_intent_id}}",
+        "options": {}
+      },
+      "id": "stripe-verify",
+      "name": "Stripe - Verify Payment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "stripe-api",
+          "name": "Stripe API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are the RWS Set Architect AI. Return ONLY valid JSON. Generate exactly 12 tracks for a complete DJ set. schema: { \"set_metadata\": { \"genre\": \"...\", \"vibe\": \"...\", \"total_duration_minutes\": 60, \"avg_bpm\": 120, \"key_signature_start\": \"...\", \"key_signature_end\": \"...\", \"created_for\": \"...\", \"service\": \"...\", \"package_type\": \"...\" }, \"tracks\": [ { \"track_number\": 1, \"role\": \"intro\", \"title\": \"...\", \"bpm\": 120, \"key_camelot\": \"...\", \"key_name\": \"...\", \"duration_target_seconds\": 300, \"energy_level\": 50, \"mix_in_time\": \"...\", \"mix_out_time\": \"...\", \"transition_note\": \"...\", \"breakdown_timing\": \"...\", \"prompt_brief\": \"...\" } ] }"
+            },
+            {
+              "role": "user",
+              "content": "Client Request:\nPackage: {{$('Webhook').item.json.body.package_type}}\nName: {{$('Webhook').item.json.body.client_name}}\nEmail: {{$('Webhook').item.json.body.client_email}}\nGenre: {{$('Webhook').item.json.body.genre}}\nVibe: {{$('Webhook').item.json.body.vibe}}\nDuration: {{$('Webhook').item.json.body.duration_minutes}} minutes\n\nGenerate 12-track set."
+            }
+          ]
+        },
+        "options": {
+          "outputFormat": {
+            "type": "json"
+          }
+        }
+      },
+      "id": "architect-brain",
+      "name": "The Brain - Set Architect AI",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        680,
+        400
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// Extract and prepare data for email generation\nconst response = $input.first().json;\n// Access webhook data safely - handling different n8n versions/structures\nlet webhookData = {};\ntry {\n  // Try modern syntax first\n  webhookData = $('Webhook').item.json.body;\n} catch (e) {\n  // Fallback or default\n  webhookData = { client_email: 'unknown@example.com' };\n}\n\n// Parse the AI response safely\nlet djSet;\ntry {\n  let content = response.message?.content || response;\n  if (typeof content === 'string') {\n    // Remove markdown code block wrappers if present\n    content = content.replace(/^``````$/, '');\n    djSet = JSON.parse(content);\n  } else {\n    djSet = content;\n  }\n} catch (error) {\n  throw new Error('Failed to parse Set Architect AI response: ' + error.message);\n}\n\nconst { set_metadata, tracks } = djSet;\n\nif (!Array.isArray(tracks) || tracks.length !== 12) {\n  throw new Error('Expected 12 tracks, got ' + (tracks?.length || 0));\n}\n\n// Calculate BPM range and energy\nconst bpms = tracks.map(t => t.bpm);\nconst bpmMin = Math.min(...bpms);\nconst bpmMax = Math.max(...bpms);\nconst energies = tracks.map(t => t.energy_level);\nconst energyStart = energies[0];\nconst energyPeak = Math.max(...energies);\nconst energyEnd = energies[energies.length - 1];\n\n// Generate Email HTML\nlet html = `\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body { font-family: 'Courier New', monospace; background: #000; color: #fff; }\n    .container { max-width: 680px; margin: 0 auto; border: 1px solid #1a1a1a; }\n    .header { padding: 40px 30px; border-bottom: 2px solid #00ff41; }\n    .title { color: #00ff41; font-size: 24px; font-weight: bold; text-transform: uppercase; }\n    .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 20px; border-bottom: 1px solid #1a1a1a; }\n    .track-row { padding: 15px; border-bottom: 1px solid #1a1a1a; }\n    .track-title { color: #00ff41; font-weight: bold; }\n    .prompt { background: #111; padding: 10px; margin-top: 5px; color: #ccc; font-size: 12px; border: 1px solid #333; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"title\">RWS Set Architecture</div>\n      <div>${set_metadata.genre} // ${set_metadata.vibe}</div>\n    </div>\n    <div class=\"meta-grid\">\n      <div>BPM: ${bpmMin}-${bpmMax}</div>\n      <div>Keys: ${set_metadata.key_signature_start} -> ${set_metadata.key_signature_end}</div>\n      <div>Energy: ${energyStart}-${energyPeak}-${energyEnd}</div>\n    </div>\n`;\n\nfor (const track of tracks) {\n  html += `\n    <div class=\"track-row\">\n      <div class=\"track-title\">${track.track_number}. ${track.title} (${track.bpm} BPM)</div>\n      <div>Key: ${track.key_camelot} | Role: ${track.role}</div>\n      <div class=\"prompt\">${track.prompt_brief}</div>\n      <div style=\"font-size: 11px; color: #888; margin-top: 5px;\">Tip: ${track.transition_note}</div>\n    </div>\n  `;\n}\n\nhtml += `\n    <div style=\"padding: 20px; text-align: center; font-size: 12px; color: #555;\">\n      GENERATED BY ROCKY WEB STUDIO AI\n    </div>\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    html: html,\n    recipient_email: webhookData.client_email || \"\",\n    subject: `Your DJ Set: ${set_metadata.genre}`\n  }\n};\n"
+      },
+      "id": "html-generator",
+      "name": "Generate Email HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Stripe - Verify Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe - Verify Payment": {
+      "main": [
+        [
+          {
+            "node": "The Brain - Set Architect AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "The Brain - Set Architect AI": {
+      "main": [
+        [
+          {
+            "node": "Generate Email HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

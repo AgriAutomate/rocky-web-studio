@@ -1,0 +1,497 @@
+{
+  "name": "Custom Song Order Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stripe-payment-webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-stripe-payment",
+      "name": "Stripe Payment Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "stripe-payment-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.type}}",
+              "operation": "equals",
+              "value2": "payment_intent.succeeded"
+            }
+          ]
+        }
+      },
+      "id": "filter-payment-succeeded",
+      "name": "Filter: Payment Succeeded",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract order details from Stripe webhook\nconst paymentIntent = $input.item.json.data.object;\nconst metadata = paymentIntent.metadata;\n\nreturn {\n  orderId: metadata.orderId,\n  stripePaymentId: paymentIntent.id,\n  customerName: metadata.customerName,\n  customerEmail: metadata.customerEmail,\n  customerPhone: metadata.phone || null,\n  occasion: metadata.occasion,\n  packageType: metadata.package,\n  storyDetails: metadata.storyDetails,\n  mood: metadata.mood || null,\n  genre: metadata.genre || null,\n  eventDate: metadata.eventDate || null,\n  additionalInfo: metadata.additionalInfo || null,\n  amount: paymentIntent.amount,\n  currency: paymentIntent.currency || 'aud'\n};"
+      },
+      "id": "extract-order-data",
+      "name": "Extract Order Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-3-5-sonnet-20241022\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a creative AI assistant helping to generate prompts for Suno AI music generation.\\n\\nCustomer Story:\\n{{$json.storyDetails}}\\n\\nOccasion: {{$json.occasion}}\\nMood: {{$json.mood}}\\nGenre: {{$json.genre}}\\nAdditional Info: {{$json.additionalInfo}}\\n\\nGenerate a concise, creative Suno prompt (max 200 characters) that captures the essence of this story for a custom song. Focus on the emotion, key moments, and musical style.\\n\\nRespond with ONLY the prompt text, no explanation.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "generate-suno-prompt",
+      "name": "Generate Suno Prompt (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "claude-api-key",
+          "name": "Claude API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the generated prompt from Claude response\nconst claudeResponse = $input.item.json;\nconst generatedPrompt = claudeResponse.content[0].text;\n\n// Combine with previous data\nreturn {\n  ...$('Extract Order Data').item.json,\n  generatedPrompt: generatedPrompt\n};"
+      },
+      "id": "parse-claude-response",
+      "name": "Parse Claude Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "insert",
+        "tableId": "song_orders",
+        "options": {
+          "returnFields": "id,order_id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_id": "={{$json.orderId}}",
+            "stripe_payment_id": "={{$json.stripePaymentId}}",
+            "customer_name": "={{$json.customerName}}",
+            "customer_email": "={{$json.customerEmail}}",
+            "customer_phone": "={{$json.customerPhone}}",
+            "song_brief": "={{$json.storyDetails}}",
+            "generated_prompt": "={{$json.generatedPrompt}}",
+            "status": "PENDING",
+            "package_type": "={{$json.packageType}}",
+            "occasion": "={{$json.occasion}}",
+            "mood": "={{$json.mood}}",
+            "genre": "={{$json.genre}}",
+            "event_date": "={{$json.eventDate}}",
+            "notes": "={{$json.additionalInfo}}"
+          }
+        }
+      },
+      "id": "save-to-supabase",
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1250, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "url": "={{$env.SLACK_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"🎵 New Custom Song Order\",\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"🎵 New Song Order Received\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Order ID:*\\n{{$json.orderId}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Customer:*\\n{{$json.customerName}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Email:*\\n{{$json.customerEmail}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Package:*\\n{{$json.packageType}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Occasion:*\\n{{$json.occasion}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Amount:*\\n${{$json.amount / 100}} {{$json.currency.toUpperCase()}}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Story Brief:*\\n{{$json.storyDetails}}\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Generated Suno Prompt:*\\n_{{$json.generatedPrompt}}_\"\n      }\n    },\n    {\n      \"type\": \"context\",\n      \"elements\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"Mood: {{$json.mood}} | Genre: {{$json.genre}}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": {\n            \"type\": \"plain_text\",\n            \"text\": \"View in Supabase\"\n          },\n          \"url\": \"https://supabase.com/dashboard/project/gtjhtmrtbinegydatrnx/editor\",\n          \"style\": \"primary\"\n        },\n        {\n          \"type\": \"button\",\n          \"text\": {\n            \"type\": \"plain_text\",\n            \"text\": \"View in Stripe\"\n          },\n          \"url\": \"https://dashboard.stripe.com/payments/{{$json.stripePaymentId}}\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "slack-new-order",
+      "name": "Slack: New Order Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "suno-track-complete",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-suno-complete",
+      "name": "Webhook: Suno Track Complete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 600],
+      "webhookId": "suno-track-complete"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract Suno completion data\nconst webhook = $input.item.json;\n\nreturn {\n  orderId: webhook.orderId,\n  sunoUrl: webhook.sunoUrl,\n  sunoEmbedUrl: webhook.embedUrl,\n  trackTitle: webhook.title || 'Your Custom Song',\n  completedAt: new Date().toISOString()\n};"
+      },
+      "id": "parse-suno-webhook",
+      "name": "Parse Suno Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "tableId": "song_orders",
+        "filterType": "manual",
+        "matchingColumns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_id": "={{$json.orderId}}"
+          }
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "suno_url": "={{$json.sunoUrl}}",
+            "suno_embed_url": "={{$json.sunoEmbedUrl}}",
+            "status": "COMPLETED",
+            "completed_at": "={{$json.completedAt}}"
+          }
+        }
+      },
+      "id": "update-supabase-completed",
+      "name": "Update Supabase: Completed",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 600],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "get",
+        "tableId": "song_orders",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "manual",
+        "matchingColumns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_id": "={{$json.orderId}}"
+          }
+        }
+      },
+      "id": "get-order-details",
+      "name": "Get Order Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [850, 600],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "apiKey",
+        "fromEmail": "music@rockywebstudio.com.au",
+        "toEmail": "={{$json.customer_email}}",
+        "subject": "🎵 Your Custom Song is Ready! - Order {{$json.order_id}}",
+        "emailType": "html",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n</head>\n<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;\">\n  <div style=\"background: linear-gradient(135deg, #0d9488, #14b8a6); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;\">\n    <h1 style=\"color: white; margin: 0; font-size: 28px;\">🎵 Your Custom Song is Ready!</h1>\n  </div>\n  \n  <div style=\"background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none;\">\n    <p style=\"font-size: 18px;\">Hi <strong>{{$json.customer_name}}</strong>,</p>\n    \n    <p style=\"font-size: 16px;\">We're thrilled to share your custom song with you! Diamonds McFly has crafted something truly special based on your story.</p>\n    \n    <div style=\"background: #f8fafc; border-radius: 8px; padding: 20px; margin: 25px 0;\">\n      <h2 style=\"color: #0d9488; margin-top: 0;\">Your Song</h2>\n      <iframe \n        style=\"border-radius: 12px; width: 100%; height: 152px; border: none;\" \n        src=\"{{$('Parse Suno Webhook').item.json.sunoEmbedUrl}}\" \n        allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" \n        loading=\"lazy\">\n      </iframe>\n      <p style=\"margin-top: 15px; text-align: center;\">\n        <a href=\"{{$('Parse Suno Webhook').item.json.sunoUrl}}\" \n           style=\"display: inline-block; background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;\">\n          Open in Suno\n        </a>\n      </p>\n    </div>\n    \n    <div style=\"background: #ecfdf5; border-left: 4px solid #0d9488; padding: 15px; margin: 25px 0;\">\n      <h3 style=\"margin-top: 0; color: #0d9488;\">Order Details</h3>\n      <table style=\"width: 100%; border-collapse: collapse;\">\n        <tr>\n          <td style=\"padding: 8px 0; color: #64748b;\">Order ID:</td>\n          <td style=\"padding: 8px 0; font-weight: bold;\">{{$json.order_id}}</td>\n        </tr>\n        <tr>\n          <td style=\"padding: 8px 0; color: #64748b;\">Package:</td>\n          <td style=\"padding: 8px 0;\">{{$json.package_type}}</td>\n        </tr>\n        <tr>\n          <td style=\"padding: 8px 0; color: #64748b;\">Occasion:</td>\n          <td style=\"padding: 8px 0;\">{{$json.occasion}}</td>\n        </tr>\n      </table>\n    </div>\n    \n    <h3 style=\"color: #334155;\">What's Next?</h3>\n    <ul style=\"color: #475569; line-height: 1.8;\">\n      <li>Download your song from Suno (link above)</li>\n      <li>Share it with friends and family</li>\n      <li>Need revisions? Reply to this email</li>\n      <li>Love it? Leave us a review!</li>\n    </ul>\n    \n    <p style=\"margin-top: 30px; font-size: 16px;\">Thank you for choosing Rocky Web Studio for your special moment. We hope this song brings joy for years to come!</p>\n    \n    <p style=\"margin-top: 20px;\">With gratitude,<br>\n    <strong>Diamonds McFly & The Rocky Web Studio Team</strong></p>\n  </div>\n  \n  <div style=\"background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; font-size: 14px; color: #64748b;\">\n    <p>Questions? Reply to this email or contact us at <a href=\"mailto:music@rockywebstudio.com.au\" style=\"color: #0d9488;\">music@rockywebstudio.com.au</a></p>\n    <p style=\"margin-top: 10px;\">&copy; 2025 Rocky Web Studio. All rights reserved.</p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-completion-email",
+      "name": "Send Completion Email (Resend)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 600],
+      "credentials": {
+        "resendApi": {
+          "id": "resend-api-key",
+          "name": "Resend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "=https://api.stripe.com/v1/payment_intents/{{$('Get Order Details').item.json.stripe_payment_id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "metadata[suno_url]",
+              "value": "={{$('Parse Suno Webhook').item.json.sunoUrl}}"
+            },
+            {
+              "name": "metadata[status]",
+              "value": "completed"
+            },
+            {
+              "name": "metadata[completed_at]",
+              "value": "={{$('Parse Suno Webhook').item.json.completedAt}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-stripe-metadata",
+      "name": "Update Stripe Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 600],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "stripe-api-key",
+          "name": "Stripe API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "url": "={{$env.SLACK_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"✅ Song Order Completed\",\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"✅ Song Order Completed\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Order ID:*\\n{{$('Get Order Details').item.json.order_id}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Customer:*\\n{{$('Get Order Details').item.json.customer_name}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Email Sent:*\\n{{$('Get Order Details').item.json.customer_email}}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Status:*\\nCOMPLETED ✅\"\n        }\n      ]\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Suno Track:*\\n<{{$('Parse Suno Webhook').item.json.sunoUrl}}|Listen on Suno>\"\n      }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": {\n            \"type\": \"plain_text\",\n            \"text\": \"View Order\"\n          },\n          \"url\": \"https://supabase.com/dashboard/project/gtjhtmrtbinegydatrnx/editor\",\n          \"style\": \"primary\"\n        },\n        {\n          \"type\": \"button\",\n          \"text\": {\n            \"type\": \"plain_text\",\n            \"text\": \"Play Song\"\n          },\n          \"url\": \"{{$('Parse Suno Webhook').item.json.sunoUrl}}\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "slack-completion",
+      "name": "Slack: Completion Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={ \"received\": true, \"status\": \"ok\" }",
+        "options": {}
+      },
+      "id": "respond-to-stripe",
+      "name": "Respond to Stripe",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={ \"received\": true, \"status\": \"processing\" }",
+        "options": {}
+      },
+      "id": "respond-to-suno",
+      "name": "Respond to Suno Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1650, 600]
+    }
+  ],
+  "connections": {
+    "Stripe Payment Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter: Payment Succeeded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Payment Succeeded": {
+      "main": [
+        [
+          {
+            "node": "Extract Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Order Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Suno Prompt (Claude)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Suno Prompt (Claude)": {
+      "main": [
+        [
+          {
+            "node": "Parse Claude Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Claude Response": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Slack: New Order Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: New Order Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Stripe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Suno Track Complete": {
+      "main": [
+        [
+          {
+            "node": "Parse Suno Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Suno Webhook": {
+      "main": [
+        [
+          {
+            "node": "Update Supabase: Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Supabase: Completed": {
+      "main": [
+        [
+          {
+            "node": "Get Order Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order Details": {
+      "main": [
+        [
+          {
+            "node": "Send Completion Email (Resend)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Completion Email (Resend)": {
+      "main": [
+        [
+          {
+            "node": "Update Stripe Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Stripe Metadata": {
+      "main": [
+        [
+          {
+            "node": "Slack: Completion Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Completion Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Suno Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 2,
+  "updatedAt": "2025-12-07T00:00:00.000Z",
+  "versionId": "1"
+}

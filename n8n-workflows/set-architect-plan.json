@@ -1,0 +1,116 @@
+{
+  "name": "RWS - Set Architect Service",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "set-architect-plan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "set-architect-plan"
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://api.stripe.com/v1/payment_intents/{{$json.body.payment_intent_id}}",
+        "options": {}
+      },
+      "id": "stripe-verify",
+      "name": "Stripe - Verify Payment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "stripe-header-auth",
+          "name": "Stripe API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are the RWS Set Architect AI. Return a strict JSON object only, no extra text. Use this exact schema:\n\n{\n  \"set_metadata\": {\n    \"genre\": \"<genre>\",\n    \"vibe\": \"<vibe>\",\n    \"total_duration_minutes\": 60,\n    \"avg_bpm\": <number>,\n    \"key_signature_start\": \"<Camelot>\",\n    \"key_signature_end\": \"<Camelot>\",\n    \"created_for\": \"<client_name>\",\n    \"service\": \"Set Architect Plan - A$19\"\n  },\n  \"tracks\": [\n    {\n      \"track_number\": 1,\n      \"role\": \"intro\",\n      \"title\": \"<descriptive title>\",\n      \"bpm\": 124,\n      \"key_camelot\": \"8A\",\n      \"key_name\": \"Am\",\n      \"duration_target_seconds\": 300,\n      \"energy_level\": 65,\n      \"mix_in_time\": \"0:00\",\n      \"mix_out_time\": \"4:45\",\n      \"transition_note\": \"<DJ mixing instruction>\",\n      \"breakdown_timing\": \"2:30-3:00\",\n      \"prompt_brief\": \"<2500-3000 char Suno v5 prompt with natural language, structural tags [Intro], [Verse], [Chorus], [Bridge], [Outro], BPM/key enforcement, instruments, atmosphere, DJ mixing context>\"\n    }\n  ]\n}\n\nYou must extend this to 12 tracks, ensuring coherent progression, keys, and BPM for a 60-minute set."
+            },
+            {
+              "role": "user",
+              "content": "Client Request:\n\nName: {{$json.body.client_name}}\nEmail: {{$json.body.client_email}}\nGenre: {{$json.body.genre}}\nVibe: {{$json.body.vibe}}\nDuration: {{$json.body.duration_minutes}} minutes\nVenue: {{$json.body.venue}}\n\nGenerate a complete 12-track DJ set plan following the system instructions."
+            }
+          ]
+        },
+        "options": {
+          "outputFormat": {
+            "type": "json"
+          }
+        }
+      },
+      "id": "architect-ai",
+      "name": "Set Architect AI",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Extract and prepare data for PDF generation\nconst response = $input.first().json;\n\n// Parse the AI response\nlet djSet;\ntry {\n  if (typeof response.message?.content === 'string') {\n    djSet = JSON.parse(response.message.content);\n  } else {\n    djSet = response.message?.content ?? response;\n  }\n} catch (error) {\n  throw new Error('Failed to parse Set Architect AI response: ' + error.message);\n}\n\nconst { set_metadata, tracks } = djSet;\n\nif (!Array.isArray(tracks) || tracks.length !== 12) {\n  throw new Error('Expected 12 tracks, got ' + (tracks?.length || 0));\n}\n\n// TODO: continue your HTML string and return [{ json: { html, set_metadata, tracks } }];\n\nreturn [{ json: { set_metadata, tracks } }];"
+      },
+      "id": "code-pdf",
+      "name": "Prepare PDF HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "webhook-1": {
+      "main": [
+        [
+          {
+            "node": "Stripe - Verify Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe - Verify Payment": {
+      "main": [
+        [
+          {
+            "node": "Set Architect AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Architect AI": {
+      "main": [
+        [
+          {
+            "node": "Prepare PDF HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

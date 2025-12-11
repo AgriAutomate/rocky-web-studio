@@ -33,6 +33,7 @@
     "date-fns": "^4.1.0",
     "libphonenumber-js": "^1.12.26",
     "lucide-react": "^0.554.0",
+    "n8n": "^1.123.5",
     "next": "16.0.7",
     "next-auth": "^5.0.0-beta.30",
     "react": "^19.2.1",

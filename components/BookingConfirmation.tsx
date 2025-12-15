@@ -66,22 +66,22 @@ export default function BookingConfirmation({
     switch (smsStatus) {
       case "sending":
         return {
-          icon: <Loader2 className="h-5 w-5 animate-spin text-blue-500" />,
+          icon: <Loader2 className="h-5 w-5 animate-spin text-primary" />,
           text: "📱 Sending confirmation SMS...",
-          color: "text-blue-600",
+          color: "text-primary",
         };
       case "success":
         return {
-          icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />,
+          icon: <CheckCircle2 className="h-5 w-5 text-primary" />,
           text: `✅ Confirmation SMS sent to ${maskPhone(phone)}`,
-          color: "text-emerald-600",
+          color: "text-primary",
         };
       case "error":
         return {
-          icon: <AlertTriangle className="h-5 w-5 text-amber-600" />,
+          icon: <AlertTriangle className="h-5 w-5 text-destructive" />,
           text:
             "⚠️ SMS couldn't be sent, but email confirmation was delivered",
-          color: "text-amber-600",
+          color: "text-destructive",
         };
       default:
         return null;
@@ -101,9 +101,9 @@ export default function BookingConfirmation({
     smsError instanceof Error ? smsError.message : smsError ?? "Unknown error";
 
   return (
-    <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+    <div className="relative rounded-2xl border border-border bg-muted p-4 shadow-sm">
       <button
-        className="absolute right-3 top-3 rounded-full border border-transparent p-1 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+        className="absolute right-3 top-3 rounded-full border border-transparent p-1 text-muted-foreground transition hover:border-border hover:text-foreground"
         onClick={() => {
           setVisible(false);
           onClose?.();
@@ -118,11 +118,11 @@ export default function BookingConfirmation({
         </p>
       </div>
       {smsStatus === "error" && (
-        <div className="mt-3 space-y-1 text-xs text-slate-600">
+        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
           <p>Hi {customerName}, your booking confirmed via email on {formattedDate}.</p>
           <p>Reply to the confirmation email if you need help.</p>
           {smsErrorMessage && (
-            <p className="text-rose-600">Details: {smsErrorMessage}</p>
+            <p className="text-destructive">Details: {smsErrorMessage}</p>
           )}
         </div>
       )}

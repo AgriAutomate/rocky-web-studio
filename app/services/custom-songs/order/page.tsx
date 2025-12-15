@@ -178,23 +178,23 @@ function PaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-      <div className="bg-slate-50 rounded-lg p-4 sm:p-6 border border-slate-200">
+      <div className="bg-muted rounded-lg p-4 sm:p-6 border border-border">
         <PaymentElement />
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+          <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-red-800 break-words">Payment Error</p>
-            <p className="text-sm text-red-700 mt-1 break-words">{error}</p>
+            <p className="text-sm font-medium text-destructive break-words">Payment Error</p>
+            <p className="text-sm text-muted-foreground mt-1 break-words">{error}</p>
           </div>
         </div>
       )}
 
       <Button
         type="submit"
-        className="w-full bg-teal-600 hover:bg-teal-700 text-base sm:text-lg py-4 sm:py-6 min-h-[44px] sm:min-h-0 font-semibold"
+        className="w-full bg-primary hover:bg-primary/90 text-base sm:text-lg py-4 sm:py-6 min-h-[44px] sm:min-h-0 font-semibold"
         disabled={!stripe || isProcessing}
       >
         {isProcessing ? (
@@ -429,36 +429,36 @@ function CustomSongOrderPageContent() {
 
   if (step === "payment" && clientSecret) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 sm:py-12 md:py-16">
+      <div className="min-h-screen bg-background py-8 sm:py-12 md:py-16">
         <div className="container max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4 px-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4 px-2">
               Complete Your Payment
             </h1>
-            <p className="text-base sm:text-lg text-slate-600 px-2">
+            <p className="text-base sm:text-lg text-muted-foreground px-2">
               Secure payment powered by Stripe
             </p>
           </div>
 
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8">
+          <div className="bg-card rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8">
             <div className="mb-6">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4">Order Summary</h2>
-              <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Order Summary</h2>
+              <div className="bg-muted rounded-lg p-6 border border-border">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-600">
+                    <span className="text-muted-foreground">
                       {selectedPackage?.label.split(" - ")[0]}
                     </span>
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-foreground">
                       ${basePrice.toFixed(2)}
                     </span>
                   </div>
                   
                   {discountApplied && (
-                    <div className="flex justify-between items-center text-green-600">
+                    <div className="flex justify-between items-center text-primary">
                       <span className="flex items-center gap-2">
                         <span>Discount (20% off)</span>
-                        <span className="text-xs bg-green-100 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-primary/20 px-2 py-0.5 rounded-full">
                           {appliedPromoCode}
                         </span>
                       </span>
@@ -468,9 +468,9 @@ function CustomSongOrderPageContent() {
                     </div>
                   )}
                   
-                  <div className="flex justify-between items-center pt-3 border-t border-slate-300">
-                    <span className="font-semibold text-lg text-slate-900">Total</span>
-                    <span className="text-2xl font-bold text-teal-600">
+                  <div className="flex justify-between items-center pt-3 border-t border-border">
+                    <span className="font-semibold text-lg text-foreground">Total</span>
+                    <span className="text-2xl font-bold text-primary">
                       ${finalPrice.toFixed(2)} AUD
                     </span>
                   </div>
@@ -506,17 +506,17 @@ function CustomSongOrderPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 sm:py-12 md:py-16">
+    <div className="min-h-screen bg-background py-8 sm:py-12 md:py-16">
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-10 md:mb-12">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-            <Music className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600" />
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+            <Music className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4 px-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4 px-2">
             Order Your Custom Song
           </h1>
-          <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto px-2">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto px-2">
             Tell us about your special moment and we'll create a personalized song that captures your story perfectly.
           </p>
         </div>
@@ -530,11 +530,11 @@ function CustomSongOrderPageContent() {
                 e.preventDefault();
                 handleCreatePaymentIntent();
               }}
-              className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8"
+              className="bg-card rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8"
             >
           {/* Contact Information */}
           <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">Contact Information</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3 sm:mb-4">Contact Information</h2>
             <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm sm:text-base">Full Name *</Label>
@@ -585,7 +585,7 @@ function CustomSongOrderPageContent() {
 
           {/* Package Selection */}
           <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">Select Your Package</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3 sm:mb-4">Select Your Package</h2>
             <div className="grid gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="package" className="text-sm sm:text-base">Package *</Label>
@@ -630,7 +630,7 @@ function CustomSongOrderPageContent() {
 
           {/* Song Details */}
           <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">Song Details</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3 sm:mb-4">Song Details</h2>
             <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
               <div className="space-y-2">
                 <Label htmlFor="mood" className="text-sm sm:text-base">Desired Mood</Label>
@@ -696,17 +696,17 @@ function CustomSongOrderPageContent() {
 
           {/* Promo Code Section */}
           <div className="mb-6 sm:mb-8 border-t pt-4 sm:pt-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">Promo Code</h2>
-            <div className="bg-white border rounded-lg p-3 sm:p-4 transition-colors duration-200"
-              style={{
-                borderColor: discountApplied 
-                  ? "#10b981" // green-500
-                  : promoError 
-                  ? "#ef4444" // red-500
-                  : "#e5e7eb" // gray-200
-              }}
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3 sm:mb-4">Promo Code</h2>
+            <div
+              className={`bg-card border rounded-lg p-3 sm:p-4 transition-colors duration-200 ${
+                discountApplied
+                  ? "border-primary"
+                  : promoError
+                  ? "border-destructive"
+                  : "border-border"
+              }`}
             >
-              <Label htmlFor="promoCode" className="text-sm sm:text-base font-medium text-slate-900 mb-2 block">
+              <Label htmlFor="promoCode" className="text-sm sm:text-base font-medium text-foreground mb-2 block">
                 Promo Code (optional)
               </Label>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
@@ -725,15 +725,15 @@ function CustomSongOrderPageContent() {
                     disabled={discountApplied}
                     className={`flex-1 transition-colors duration-200 text-base h-11 sm:h-9 min-h-[44px] sm:min-h-0 ${
                       discountApplied
-                        ? "border-green-500 bg-green-50 pr-10"
+                        ? "border-primary bg-primary/10 pr-10"
                         : promoError
-                        ? "border-red-500 bg-red-50"
+                        ? "border-destructive bg-destructive/10"
                         : ""
                     }`}
                     aria-invalid={!!promoError}
                   />
                   {discountApplied && (
-                    <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
+                    <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                   )}
                 </div>
                 {!discountApplied && (
@@ -741,7 +741,7 @@ function CustomSongOrderPageContent() {
                     type="button"
                     onClick={handleApplyPromoCode}
                     disabled={isValidatingPromo || !formData.promoCode?.trim()}
-                    className="w-full sm:w-auto whitespace-nowrap bg-teal-600 hover:bg-teal-700 text-white min-h-[44px] sm:min-h-0 text-base sm:text-sm"
+                    className="w-full sm:w-auto whitespace-nowrap bg-primary hover:bg-primary/90 text-primary-foreground min-h-[44px] sm:min-h-0 text-base sm:text-sm"
                   >
                     {isValidatingPromo ? (
                       <>
@@ -758,15 +758,15 @@ function CustomSongOrderPageContent() {
 
               {/* Success Message */}
               {discountApplied && (
-                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-2">
                     <div className="flex items-start gap-2 flex-1 min-w-0">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-green-800 break-words">
+                        <p className="text-sm font-medium text-foreground break-words">
                           Discount applied! Code: {appliedPromoCode}
                         </p>
-                        <p className="text-sm text-green-700 mt-1 break-words">
+                        <p className="text-sm text-muted-foreground mt-1 break-words">
                           Save ${discountAmount.toFixed(2)} (20% off)
                         </p>
                       </div>
@@ -774,7 +774,7 @@ function CustomSongOrderPageContent() {
                     <button
                       type="button"
                       onClick={handleRemovePromoCode}
-                      className="text-sm text-green-700 hover:text-green-900 underline font-medium self-start sm:self-auto min-h-[44px] sm:min-h-0 px-2 sm:px-0"
+                      className="text-sm text-primary hover:text-primary underline font-medium self-start sm:self-auto min-h-[44px] sm:min-h-0 px-2 sm:px-0"
                     >
                       Remove
                     </button>
@@ -784,18 +784,18 @@ function CustomSongOrderPageContent() {
 
               {/* Error Message */}
               {promoError && !discountApplied && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="mt-3 p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-red-800">Invalid Code</p>
-                    <p className="text-sm text-red-700 mt-1">{promoError}</p>
+                    <p className="text-sm font-medium text-destructive">Invalid Code</p>
+                    <p className="text-sm text-muted-foreground mt-1">{promoError}</p>
                   </div>
                 </div>
               )}
 
               {/* Helper Text */}
               {!discountApplied && !promoError && !formData.promoCode && (
-                <div className="mt-2 text-slate-500 text-sm">
+                <div className="mt-2 text-muted-foreground text-sm">
                   Enter "LAUNCH20" for 20% off your order
                 </div>
               )}
@@ -804,27 +804,27 @@ function CustomSongOrderPageContent() {
 
           {/* Error Message */}
           {formError && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="mb-6 bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-red-800">Error</p>
-                <p className="text-sm text-red-700 mt-1">{formError}</p>
+                <p className="text-sm font-medium text-destructive">Error</p>
+                <p className="text-sm text-muted-foreground mt-1">{formError}</p>
               </div>
             </div>
           )}
 
           {/* Terms & Submit */}
           <div className="border-t pt-4 sm:pt-6">
-            <p className="text-xs sm:text-sm text-slate-500 mb-4 sm:mb-6 leading-relaxed">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
               By proceeding to payment, you agree to our{" "}
-              <Link href="/services/custom-songs/terms" className="text-teal-600 hover:underline break-words">
+              <Link href="/services/custom-songs/terms" className="text-primary hover:underline break-words">
                 Terms & Conditions
               </Link>{" "}
               and acknowledge that songs are created using Suno AI technology with human creative direction by Diamonds McFly.
             </p>
             <Button
               type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700 text-base sm:text-lg py-4 sm:py-6 min-h-[44px] sm:min-h-0 font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-base sm:text-lg py-4 sm:py-6 min-h-[44px] sm:min-h-0 font-semibold"
               disabled={isCreatingIntent || !isFormValid()}
             >
               {isCreatingIntent ? (
@@ -841,7 +841,7 @@ function CustomSongOrderPageContent() {
         </form>
 
             {/* AI Transparency Notice */}
-            <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-slate-500 px-2">
+            <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground px-2">
               <p className="break-words">
                 Our songs are created using Suno AI technology with human creative direction and curation by Diamonds McFly.
               </p>
@@ -883,10 +883,10 @@ export default function CustomSongOrderPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-16 flex items-center justify-center">
+        <div className="min-h-screen bg-background py-16 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-teal-600 mx-auto mb-4" />
-            <p className="text-slate-600">Loading order form...</p>
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading order form...</p>
           </div>
         </div>
       }

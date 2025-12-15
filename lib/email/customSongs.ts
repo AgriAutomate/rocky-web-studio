@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { getFromAddress, getReplyToAddress, EMAIL_CONFIG } from "./config";
+import { getEmailThemeSync } from "@/lib/email-templates/theme";
 
 /**
  * Order email details interface
@@ -39,6 +40,7 @@ export async function sendOrderConfirmationEmail(details: OrderEmailDetails): Pr
     return;
   }
 
+  const theme = getEmailThemeSync("light");
   const packageInfo = packagePrices[details.packageType] || { name: details.packageType, price: 0, turnaround: "TBD" };
   const formattedEventDate = details.eventDate ? format(new Date(details.eventDate), "EEEE, MMMM d, yyyy") : "Not specified";
 
@@ -78,44 +80,44 @@ hello@rockywebstudio.com.au
 
   const htmlBody = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <div style="background: linear-gradient(135deg, #0d9488, #14b8a6); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-    <h1 style="color: white; margin: 0;">🎵 Custom Song Order Confirmed</h1>
+  <div style="background: linear-gradient(135deg, ${theme.brandFrom}, ${theme.brandTo}); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+    <h1 style="color: ${theme.brandForeground}; margin: 0;">🎵 Custom Song Order Confirmed</h1>
   </div>
   
-  <div style="padding: 30px; background: #ffffff;">
+  <div style="padding: 30px; background: ${theme.card};">
     <p style="font-size: 16px;">Hi <strong>${details.customerName}</strong>,</p>
     <p style="font-size: 16px;">Thank you for your custom song order with Rocky Web Studio! We're excited to create something special for you.</p>
     
-    <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
-      <h2 style="color: #0d9488; margin-top: 0;">Order Details</h2>
+    <div style="background: ${theme.background}; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h2 style="color: ${theme.primary}; margin-top: 0;">Order Details</h2>
       <table style="width: 100%; border-collapse: collapse;">
-        <tr><td style="padding: 8px 0; color: #64748b;">Order ID:</td><td style="padding: 8px 0; font-weight: bold;">${details.orderId}</td></tr>
-        <tr><td style="padding: 8px 0; color: #64748b;">Package:</td><td style="padding: 8px 0;">${packageInfo.name} ($${packageInfo.price})</td></tr>
-        <tr><td style="padding: 8px 0; color: #64748b;">Occasion:</td><td style="padding: 8px 0;">${details.occasion}</td></tr>
-        <tr><td style="padding: 8px 0; color: #64748b;">Turnaround:</td><td style="padding: 8px 0;">${packageInfo.turnaround}</td></tr>
-        <tr><td style="padding: 8px 0; color: #64748b;">Event Date:</td><td style="padding: 8px 0;">${formattedEventDate}</td></tr>
+        <tr><td style="padding: 8px 0; color: ${theme.mutedForeground};">Order ID:</td><td style="padding: 8px 0; font-weight: bold; color: ${theme.foreground};">${details.orderId}</td></tr>
+        <tr><td style="padding: 8px 0; color: ${theme.mutedForeground};">Package:</td><td style="padding: 8px 0; color: ${theme.foreground};">${packageInfo.name} ($${packageInfo.price})</td></tr>
+        <tr><td style="padding: 8px 0; color: ${theme.mutedForeground};">Occasion:</td><td style="padding: 8px 0; color: ${theme.foreground};">${details.occasion}</td></tr>
+        <tr><td style="padding: 8px 0; color: ${theme.mutedForeground};">Turnaround:</td><td style="padding: 8px 0; color: ${theme.foreground};">${packageInfo.turnaround}</td></tr>
+        <tr><td style="padding: 8px 0; color: ${theme.mutedForeground};">Event Date:</td><td style="padding: 8px 0; color: ${theme.foreground};">${formattedEventDate}</td></tr>
       </table>
     </div>
     
-    <h3 style="color: #334155;">What happens next?</h3>
-    <ol style="color: #475569; line-height: 1.8;">
+    <h3 style="color: ${theme.foreground};">What happens next?</h3>
+    <ol style="color: ${theme.mutedForeground}; line-height: 1.8;">
       <li>Diamonds McFly will review your story and requirements</li>
       <li>We'll reach out if we need any clarification</li>
       <li>Your custom song will be crafted with care</li>
       <li>You'll receive your song via email within the turnaround time</li>
     </ol>
     
-    <div style="background: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; color: #0d9488;"><strong>Your Story:</strong></p>
-      <p style="margin: 10px 0 0 0; color: #475569;">${details.storyDetails}</p>
+    <div style="background: ${theme.brandSoft}; border-left: 4px solid ${theme.primary}; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0; color: ${theme.primary};"><strong>Your Story:</strong></p>
+      <p style="margin: 10px 0 0 0; color: ${theme.mutedForeground};">${details.storyDetails}</p>
     </div>
     
-    <p style="color: #64748b; font-size: 14px;">Questions? Reply to this email or contact us at <a href="mailto:music@rockywebstudio.com.au" style="color: #0d9488;">music@rockywebstudio.com.au</a></p>
+    <p style="color: ${theme.mutedForeground}; font-size: 14px;">Questions? Reply to this email or contact us at <a href="mailto:music@rockywebstudio.com.au" style="color: ${theme.primary};">music@rockywebstudio.com.au</a></p>
   </div>
   
-  <div style="background: #1e293b; padding: 20px; text-align: center; border-radius: 0 0 12px 12px;">
-    <p style="color: #94a3b8; margin: 0;">Diamonds McFly & The Rocky Web Studio Team</p>
-    <p style="color: #64748b; margin: 5px 0 0 0; font-size: 12px;">Custom AI Songs for Central Queensland</p>
+  <div style="background: ${theme.foreground}; padding: 20px; text-align: center; border-radius: 0 0 12px 12px;">
+    <p style="color: rgba(248,250,252,0.85); margin: 0;">Diamonds McFly & The Rocky Web Studio Team</p>
+    <p style="color: rgba(248,250,252,0.65); margin: 5px 0 0 0; font-size: 12px;">Custom AI Songs for Central Queensland</p>
   </div>
 </div>
   `.trim();

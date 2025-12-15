@@ -1,4 +1,5 @@
 import { Link } from "@react-email/components";
+import { getEmailThemeSync } from "@/lib/email-templates/theme";
 
 interface ButtonProps {
   href: string;
@@ -7,7 +8,7 @@ interface ButtonProps {
 }
 
 export function Button({ href, children, variant = "primary" }: ButtonProps) {
-  const BRAND_TEAL = "#218081";
+  const theme = getEmailThemeSync("light");
 
   return (
     <Link
@@ -15,9 +16,9 @@ export function Button({ href, children, variant = "primary" }: ButtonProps) {
       style={
         variant === "primary"
           ? {
-              backgroundColor: BRAND_TEAL,
+              backgroundColor: theme.primary,
               borderRadius: "6px",
-              color: "#ffffff",
+              color: theme.primaryForeground,
               fontSize: "16px",
               fontWeight: "600",
               textDecoration: "none",
@@ -29,7 +30,7 @@ export function Button({ href, children, variant = "primary" }: ButtonProps) {
           : {
               backgroundColor: "transparent",
               borderRadius: "6px",
-              color: BRAND_TEAL,
+              color: theme.primary,
               fontSize: "16px",
               fontWeight: "600",
               textDecoration: "none",
@@ -37,7 +38,7 @@ export function Button({ href, children, variant = "primary" }: ButtonProps) {
               display: "inline-block",
               padding: "12px 24px",
               lineHeight: "1.5",
-              border: `2px solid ${BRAND_TEAL}`,
+              border: `2px solid ${theme.primary}`,
             }
       }
     >

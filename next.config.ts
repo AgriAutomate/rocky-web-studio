@@ -1,8 +1,18 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  turbopack: {
+    // Fix: ensure Turbopack resolves workspace root correctly on Windows/Cursor setups.
+    // Without this, Next may infer `app/` as root and fail to locate `next/package.json`.
+    root: path.join(__dirname),
+  },
+  images: {
+    // Suppress "unconfigured qualities" warnings when using quality={95} for hero imagery.
+    qualities: [70, 75, 95],
+  },
   async headers() {
     return [
       {

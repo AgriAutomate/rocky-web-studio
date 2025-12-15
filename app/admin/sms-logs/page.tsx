@@ -112,28 +112,28 @@ const getStatusBadge = (status: SMSLog["status"]) => {
   switch (status) {
     case "sent":
       return (
-        <Badge className="bg-green-100 text-green-800 border-green-300">
+        <Badge className="bg-primary/10 text-primary border-primary/20">
           <CheckCircle2 className="w-3 h-3 mr-1" />
           Sent
         </Badge>
       );
     case "delivered":
       return (
-        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300">
+        <Badge className="bg-primary/10 text-primary border-primary/20">
           <CheckCircle2 className="w-3 h-3 mr-1" />
           Delivered
         </Badge>
       );
     case "failed":
       return (
-        <Badge className="bg-red-100 text-red-800 border-red-300">
+        <Badge className="bg-destructive/10 text-destructive border-destructive/30">
           <XCircle className="w-3 h-3 mr-1" />
           Failed
         </Badge>
       );
     case "pending":
       return (
-        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+        <Badge className="bg-muted text-muted-foreground border-border">
           <Clock className="w-3 h-3 mr-1" />
           Pending
         </Badge>
@@ -275,7 +275,7 @@ export default function AdminSMSLogsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">SMS Delivery Logs</h1>
-          <p className="text-slate-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Monitor and manage SMS notifications
           </p>
         </div>
@@ -293,22 +293,22 @@ export default function AdminSMSLogsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total SMS</CardTitle>
-              <MessageSquare className="w-4 h-4 text-slate-600" />
+              <MessageSquare className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-slate-600 mt-1">All time</p>
+              <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <CheckCircle2 className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.successRate}%</div>
-              <p className="text-xs text-slate-600 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {stats.sent + stats.delivered} sent, {stats.failed} failed
               </p>
             </CardContent>
@@ -317,26 +317,26 @@ export default function AdminSMSLogsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Credits</CardTitle>
-              <DollarSign className="w-4 h-4 text-slate-600" />
+              <DollarSign className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {stats.creditsRemaining}
               </div>
-              <p className="text-xs text-slate-600 mt-1">Remaining</p>
+              <p className="text-xs text-muted-foreground mt-1">Remaining</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-              <DollarSign className="w-4 h-4 text-slate-600" />
+              <DollarSign className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 ${stats.totalCost.toFixed(2)}
               </div>
-              <p className="text-xs text-slate-600 mt-1">AUD</p>
+              <p className="text-xs text-muted-foreground mt-1">AUD</p>
             </CardContent>
           </Card>
         </div>
@@ -418,10 +418,10 @@ export default function AdminSMSLogsPage() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-slate-600" />
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div className="text-center py-12 text-slate-600">
+            <div className="text-center py-12 text-muted-foreground">
               No SMS logs found
             </div>
           ) : (
@@ -441,11 +441,11 @@ export default function AdminSMSLogsPage() {
                 </thead>
                 <tbody>
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="border-b hover:bg-slate-50">
+                    <tr key={log.id} className="border-b hover:bg-muted">
                       <td className="p-3">
                         <Link
                           href={`/admin/bookings/${log.bookingId}`}
-                          className="text-blue-600 hover:underline"
+                          className="text-primary hover:underline"
                         >
                           {log.bookingId}
                         </Link>
@@ -456,14 +456,14 @@ export default function AdminSMSLogsPage() {
                       <td className="p-3 text-sm">
                         {maskPhoneNumber(log.phoneNumber)}
                       </td>
-                      <td className="p-3 text-sm text-slate-600 max-w-xs truncate">
+                      <td className="p-3 text-sm text-muted-foreground max-w-xs truncate">
                         {log.messagePreview}
                       </td>
                       <td className="p-3">{getStatusBadge(log.status)}</td>
-                      <td className="p-3 text-sm text-slate-600 font-mono">
+                      <td className="p-3 text-sm text-muted-foreground font-mono">
                         {log.messageId || "-"}
                       </td>
-                      <td className="p-3 text-sm text-slate-600">
+                      <td className="p-3 text-sm text-muted-foreground">
                         {new Date(log.sentAt).toLocaleString("en-AU", {
                           dateStyle: "short",
                           timeStyle: "short",
@@ -485,7 +485,7 @@ export default function AdminSMSLogsPage() {
                           </Button>
                         )}
                         {log.error && (
-                          <div className="mt-1 text-xs text-red-600 max-w-xs truncate" title={log.error}>
+                          <div className="mt-1 text-xs text-destructive max-w-xs truncate" title={log.error}>
                             <AlertCircle className="w-3 h-3 inline mr-1" />
                             {log.error}
                           </div>

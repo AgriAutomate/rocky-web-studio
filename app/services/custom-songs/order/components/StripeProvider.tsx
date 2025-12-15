@@ -15,7 +15,7 @@ interface StripeProviderProps {
 export function StripeProvider({ children, clientSecret }: StripeProviderProps) {
   if (!publishableKey) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+      <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-destructive">
         <p className="font-semibold">Payment Configuration Error</p>
         <p className="text-sm mt-1">
           Stripe publishable key is not configured. Please contact support.
@@ -26,9 +26,11 @@ export function StripeProvider({ children, clientSecret }: StripeProviderProps) 
 
   if (!stripePromise) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
+      <div className="bg-muted border border-border rounded-lg p-4 text-foreground">
         <p className="font-semibold">Loading Payment System...</p>
-        <p className="text-sm mt-1">Please wait while we initialize the payment form.</p>
+        <p className="text-sm mt-1 text-muted-foreground">
+          Please wait while we initialize the payment form.
+        </p>
       </div>
     );
   }
@@ -41,10 +43,10 @@ export function StripeProvider({ children, clientSecret }: StripeProviderProps) 
         appearance: {
           theme: "stripe",
           variables: {
-            colorPrimary: "#0d9488",
-            colorBackground: "#ffffff",
-            colorText: "#1e293b",
-            colorDanger: "#ef4444",
+            colorPrimary: "var(--primary)",
+            colorBackground: "var(--background)",
+            colorText: "var(--foreground)",
+            colorDanger: "var(--destructive)",
             fontFamily: "system-ui, sans-serif",
             spacingUnit: "4px",
             borderRadius: "8px",

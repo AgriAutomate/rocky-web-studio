@@ -62,7 +62,7 @@ export function AVOBBadgeWithText({
   return (
     <div className="flex flex-col items-center gap-3 text-center">
       <AVOBBadge variant={variant} size={size} link={true} />
-      <div className="text-sm font-semibold text-gray-700">
+      <div className="text-sm font-semibold text-muted-foreground">
         <p>Certified Australian</p>
         <p>Veteran Owned Business</p>
       </div>

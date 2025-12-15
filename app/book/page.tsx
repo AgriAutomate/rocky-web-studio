@@ -255,14 +255,14 @@ export default function BookPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-muted py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
         {/* Page Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-slate-900 sm:text-5xl">
+          <h1 className="text-4xl font-bold text-foreground sm:text-5xl">
             Book a Consultation
           </h1>
-          <p className="mt-3 text-lg text-slate-600">
+          <p className="mt-3 text-lg text-muted-foreground">
             Schedule a meeting with Rocky Web Studio
           </p>
         </div>
@@ -283,10 +283,10 @@ export default function BookPage() {
                     <div
                       className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all ${
                         isActive
-                          ? "border-teal-600 bg-teal-600 text-white"
+                          ? "border-primary bg-primary text-primary-foreground"
                           : isCompleted
-                          ? "border-teal-600 bg-teal-600 text-white"
-                          : "border-slate-300 bg-white text-slate-400"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-muted-foreground"
                       }`}
                     >
                       <StepIcon className="h-6 w-6" />
@@ -294,10 +294,10 @@ export default function BookPage() {
                     <span
                       className={`mt-2 text-xs font-medium ${
                         isActive
-                          ? "text-teal-600"
+                          ? "text-primary"
                           : isCompleted
-                          ? "text-teal-600"
-                          : "text-slate-400"
+                          ? "text-primary"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {stepItem.label}
@@ -306,7 +306,7 @@ export default function BookPage() {
                   {index < steps.length - 1 && (
                     <div
                       className={`mx-2 h-0.5 w-16 ${
-                        isCompleted ? "bg-teal-600" : "bg-slate-300"
+                        isCompleted ? "bg-primary" : "bg-border"
                       }`}
                     />
                   )}
@@ -317,7 +317,7 @@ export default function BookPage() {
         </div>
 
         {/* Main Card */}
-        <div className="rounded-2xl bg-white p-6 shadow-xl sm:p-8 md:p-10">
+        <div className="rounded-2xl bg-card p-6 shadow-xl sm:p-8 md:p-10">
           {/* Step 1: Calendar */}
           {step === "calendar" && (
             <div>
@@ -334,13 +334,13 @@ export default function BookPage() {
             <div className="space-y-6">
               {/* Selected Date/Time Display */}
               {selectedDate && selectedTime && (
-                <div className="rounded-lg border-2 border-teal-200 bg-teal-50 p-4">
+                <div className="rounded-lg border-2 border-primary/20 bg-primary/10 p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-teal-900">
+                      <p className="text-sm font-medium text-foreground">
                         Selected Date & Time
                       </p>
-                      <p className="mt-1 text-base text-teal-700">
+                      <p className="mt-1 text-base text-primary">
                         {format(
                           parse(selectedDate, "yyyy-MM-dd", new Date()),
                           "EEEE, MMMM d, yyyy"
@@ -357,7 +357,7 @@ export default function BookPage() {
                         setSelectedTime("");
                         // Keep the date selected, just clear time so user can pick again
                       }}
-                      className="text-teal-600 hover:text-teal-700 hover:bg-teal-100"
+                      className="text-primary hover:text-primary hover:bg-primary/10"
                     >
                       Change date/time
                     </Button>
@@ -367,8 +367,8 @@ export default function BookPage() {
 
               {/* Error Display */}
               {error && (
-                <div className="rounded-lg border-2 border-red-200 bg-red-50 p-4">
-                  <p className="text-sm font-medium text-red-800">{error}</p>
+                <div className="rounded-lg border-2 border-destructive/30 bg-destructive/10 p-4">
+                  <p className="text-sm font-medium text-destructive">{error}</p>
                 </div>
               )}
 
@@ -376,8 +376,8 @@ export default function BookPage() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Service Type */}
                 <div className="space-y-2">
-                  <Label htmlFor="serviceType" className="text-slate-900">
-                    Service Type <span className="text-red-500">*</span>
+                  <Label htmlFor="serviceType" className="text-foreground">
+                    Service Type <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     value={formData.serviceType}
@@ -404,8 +404,8 @@ export default function BookPage() {
 
                 {/* Full Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-900">
-                    Full Name <span className="text-red-500">*</span>
+                  <Label htmlFor="name" className="text-foreground">
+                    Full Name <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="name"
@@ -421,8 +421,8 @@ export default function BookPage() {
 
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-900">
-                    Email <span className="text-red-500">*</span>
+                  <Label htmlFor="email" className="text-foreground">
+                    Email <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="email"
@@ -440,8 +440,8 @@ export default function BookPage() {
 
                 {/* Phone */}
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-slate-900">
-                    Phone <span className="text-red-500">*</span>
+                  <Label htmlFor="phone" className="text-foreground">
+                    Phone <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="phone"
@@ -455,13 +455,13 @@ export default function BookPage() {
                     aria-invalid={error.includes("phone")}
                     className="w-full"
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Australian mobile number (any format accepted)
                   </p>
                 </div>
 
                 {/* SMS Opt-in */}
-                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-start gap-3 rounded-lg border border-border bg-muted p-4">
                   <input
                     type="checkbox"
                     id="smsOptIn"
@@ -472,16 +472,16 @@ export default function BookPage() {
                         smsOptIn: e.target.checked,
                       }));
                     }}
-                    className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring"
                   />
                   <div className="flex-1">
                     <Label
                       htmlFor="smsOptIn"
-                      className="text-sm font-medium text-slate-900 cursor-pointer"
+                      className="text-sm font-medium text-foreground cursor-pointer"
                     >
                       Send SMS confirmations and reminders
                     </Label>
-                    <p className="mt-1 text-xs text-slate-600">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Receive booking confirmation and reminder texts. You can opt out anytime by replying STOP.
                     </p>
                   </div>
@@ -489,7 +489,7 @@ export default function BookPage() {
 
                 {/* Message */}
                 <div className="space-y-2">
-                  <Label htmlFor="message" className="text-slate-900">
+                  <Label htmlFor="message" className="text-foreground">
                     Message (Optional)
                   </Label>
                   <Textarea
@@ -518,7 +518,7 @@ export default function BookPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-teal-600 text-white hover:bg-teal-700 sm:w-auto"
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto"
                   >
                     {loading ? (
                       <>
@@ -539,22 +539,22 @@ export default function BookPage() {
             <div className="space-y-8 text-center">
               {/* Success Icon */}
               <div className="flex justify-center">
-                <CheckCircle className="h-20 w-20 text-green-600" />
+                <CheckCircle className="h-20 w-20 text-primary" />
               </div>
 
               {/* Heading */}
               <div>
-                <h2 className="text-3xl font-bold text-green-600">
+                <h2 className="text-3xl font-bold text-primary">
                   Booking Confirmed!
                 </h2>
-                <p className="mt-4 text-base text-gray-600">
+                <p className="mt-4 text-base text-muted-foreground">
                   Your consultation has been booked successfully. We'll contact you shortly to confirm.
                 </p>
               </div>
 
               {/* Success Banner */}
-              <div className="mx-auto max-w-2xl rounded-lg border border-green-200 bg-green-50 p-4">
-                <p className="text-sm font-medium text-green-800">
+              <div className="mx-auto max-w-2xl rounded-lg border border-primary/20 bg-primary/10 p-4">
+                <p className="text-sm font-medium text-foreground">
                   ✓ Your booking has been received and confirmed
                 </p>
               </div>
@@ -571,22 +571,22 @@ export default function BookPage() {
               />
 
               {/* Booking Details Card */}
-              <div className="mx-auto max-w-2xl rounded-lg border border-gray-200 bg-white p-8 shadow-lg text-left">
-                <h3 className="mb-6 text-xl font-semibold text-gray-900">
+              <div className="mx-auto max-w-2xl rounded-lg border border-border bg-card p-8 shadow-lg text-left">
+                <h3 className="mb-6 text-xl font-semibold text-foreground">
                   Booking Details
                 </h3>
                 <dl className="space-y-4">
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">
+                    <dt className="text-sm font-medium text-muted-foreground">
                       Booking ID
                     </dt>
-                    <dd className="mt-1 font-mono text-base font-semibold text-blue-600">
+                    <dd className="mt-1 font-mono text-base font-semibold text-primary">
                       {bookingId}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Date</dt>
-                    <dd className="mt-1 text-base text-gray-900">
+                    <dt className="text-sm font-medium text-muted-foreground">Date</dt>
+                    <dd className="mt-1 text-base text-foreground">
                       {format(
                         parse(selectedDate, "yyyy-MM-dd", new Date()),
                         "EEEE, MMMM d, yyyy"
@@ -594,40 +594,40 @@ export default function BookPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Time</dt>
-                    <dd className="mt-1 text-base text-gray-900">
+                    <dt className="text-sm font-medium text-muted-foreground">Time</dt>
+                    <dd className="mt-1 text-base text-foreground">
                       {formatTimeDisplay(selectedTime)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">
+                    <dt className="text-sm font-medium text-muted-foreground">
                       Service Type
                     </dt>
-                    <dd className="mt-1 text-base text-gray-900">
+                    <dd className="mt-1 text-base text-foreground">
                       {formData.serviceType}
                     </dd>
                   </div>
-                  <div className="border-t border-gray-200 pt-4">
-                    <dt className="text-sm font-medium text-gray-600">
+                  <div className="border-t border-border pt-4">
+                    <dt className="text-sm font-medium text-muted-foreground">
                       Your Name
                     </dt>
-                    <dd className="mt-1 text-base text-gray-900">
+                    <dd className="mt-1 text-base text-foreground">
                       {formData.name}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">
+                    <dt className="text-sm font-medium text-muted-foreground">
                       Your Email
                     </dt>
-                    <dd className="mt-1 text-base text-gray-900">
+                    <dd className="mt-1 text-base text-foreground">
                       {formData.email}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">
+                    <dt className="text-sm font-medium text-muted-foreground">
                       Your Phone
                     </dt>
-                    <dd className="mt-1 text-base text-gray-900">
+                    <dd className="mt-1 text-base text-foreground">
                       {formatForDisplay(formData.phone)}
                     </dd>
                   </div>
@@ -651,7 +651,7 @@ export default function BookPage() {
                       smsOptIn: false,
                     });
                   }}
-                  className="bg-teal-600 text-white hover:bg-teal-700"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                   size="lg"
                 >
                   Book Another Consultation
@@ -660,7 +660,7 @@ export default function BookPage() {
                   asChild
                   variant="outline"
                   size="lg"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="border-border text-foreground hover:bg-muted"
                 >
                   <a href="/">Return to Home</a>
                 </Button>

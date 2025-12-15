@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -69,7 +69,7 @@ export function ContactForm() {
   return (
     <section
       id="contact"
-      className="grid gap-10 rounded-[32px] bg-white p-8 shadow-sm lg:grid-cols-[1.1fr_0.9fr]"
+      className="grid gap-10 rounded-[32px] bg-card p-8 shadow-sm lg:grid-cols-[1.1fr_0.9fr]"
     >
       <div className="space-y-4">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground">
@@ -82,7 +82,7 @@ export function ContactForm() {
           Share a snapshot of your goals, timeline, and tech stack. We typically
           respond within 1-2 business days with a recommended engagement.
         </p>
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
           <p className="font-semibold text-foreground">What to expect</p>
           <ul className="mt-3 space-y-2">
             <li>- A quick chemistry call with our strategy lead</li>
@@ -93,7 +93,7 @@ export function ContactForm() {
       </div>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-6 rounded-3xl border border-gray-200 bg-gray-50 p-6 shadow-sm md:p-8"
+        className="space-y-6 rounded-3xl border border-border bg-muted p-6 shadow-sm md:p-8"
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -193,7 +193,7 @@ export function ContactForm() {
           )}
         </Button>
         {status === 'success' ? (
-          <p className="text-sm text-[#06b6d4]">
+          <p className="text-sm text-primary">
             Thanks! We typically respond within 1-2 business days.
           </p>
         ) : null}

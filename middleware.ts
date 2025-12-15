@@ -5,17 +5,27 @@ import { auth } from "@/auth";
  * Middleware proxy handler (Next.js 16+ convention)
  * 
  * Migrated from deprecated middleware file convention to proxy pattern.
- * Protects admin routes by checking authentication before allowing access.
+ * Protects private routes by checking authentication before allowing access.
  *
- * - If a request targets /admin/* and the user is not authenticated,
+ * - If a request targets /admin/* or /consciousness/* and the user is not authenticated,
  *   redirect to /login with a callbackUrl back to the original page.
+ * - If a request targets /api/consciousness/* and the user is not authenticated,
+ *   return 401 JSON.
  */
 export async function middleware(request: NextRequest) {
   const session = await auth();
   const isLoggedIn = !!session?.user;
   const { nextUrl } = request;
 
-  if (nextUrl.pathname.startsWith("/admin") && !isLoggedIn) {
+  const isAdmin = nextUrl.pathname.startsWith("/admin");
+  const isConsciousnessPage = nextUrl.pathname.startsWith("/consciousness");
+  const isConsciousnessApi = nextUrl.pathname.startsWith("/api/consciousness");
+
+  if (isConsciousnessApi && !isLoggedIn) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if ((isAdmin || isConsciousnessPage) && !isLoggedIn) {
     const loginUrl = new URL("/login", nextUrl.origin);
     loginUrl.searchParams.set("callbackUrl", nextUrl.toString());
     return NextResponse.redirect(loginUrl);
@@ -25,7 +35,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/consciousness/:path*", "/api/consciousness/:path*"],
 };
 
 

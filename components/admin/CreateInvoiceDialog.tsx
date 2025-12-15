@@ -177,7 +177,7 @@ export function CreateInvoiceDialog({
                   placeholder="John Doe"
                 />
                 {errors.contactName && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-destructive mt-1">
                     {errors.contactName.message}
                   </p>
                 )}
@@ -191,7 +191,7 @@ export function CreateInvoiceDialog({
                   placeholder="john@example.com"
                 />
                 {errors.contactEmail && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-destructive mt-1">
                     {errors.contactEmail.message}
                   </p>
                 )}
@@ -236,7 +236,7 @@ export function CreateInvoiceDialog({
                       placeholder="Service description"
                     />
                     {errors.lineItems?.[index]?.description && (
-                      <p className="text-sm text-red-600 mt-1">
+                      <p className="text-sm text-destructive mt-1">
                         {errors.lineItems[index]?.description?.message}
                       </p>
                     )}
@@ -254,7 +254,7 @@ export function CreateInvoiceDialog({
                       placeholder="1"
                     />
                     {errors.lineItems?.[index]?.quantity && (
-                      <p className="text-sm text-red-600 mt-1">
+                      <p className="text-sm text-destructive mt-1">
                         {errors.lineItems[index]?.quantity?.message}
                       </p>
                     )}
@@ -272,7 +272,7 @@ export function CreateInvoiceDialog({
                       placeholder="0.00"
                     />
                     {errors.lineItems?.[index]?.unitAmount && (
-                      <p className="text-sm text-red-600 mt-1">
+                      <p className="text-sm text-destructive mt-1">
                         {errors.lineItems[index]?.unitAmount?.message}
                       </p>
                     )}
@@ -294,7 +294,7 @@ export function CreateInvoiceDialog({
                         size="icon"
                         onClick={() => remove(index)}
                       >
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
                   </div>
@@ -302,7 +302,7 @@ export function CreateInvoiceDialog({
               ))}
             </div>
             {errors.lineItems && (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-destructive">
                 {errors.lineItems.message || "At least one line item is required"}
               </p>
             )}
@@ -320,7 +320,7 @@ export function CreateInvoiceDialog({
                   {...register("dueDate")}
                 />
                 {errors.dueDate && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-destructive mt-1">
                     {errors.dueDate.message}
                   </p>
                 )}
@@ -338,18 +338,18 @@ export function CreateInvoiceDialog({
 
           {/* Status Messages */}
           {submitStatus === "success" && (
-            <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <p className="text-sm text-green-800">
+            <div className="flex items-center gap-2 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <p className="text-sm text-foreground">
                 Invoice created successfully!
               </p>
             </div>
           )}
 
           {submitStatus === "error" && (
-            <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <XCircle className="h-5 w-5 text-red-600" />
-              <p className="text-sm text-red-800">
+            <div className="flex items-center gap-2 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <XCircle className="h-5 w-5 text-destructive" />
+              <p className="text-sm text-destructive">
                 {errorMessage || "Failed to create invoice"}
               </p>
             </div>

@@ -1,4 +1,5 @@
 import { Section, Heading, Hr } from "@react-email/components";
+import { getEmailThemeSync } from "@/lib/email-templates/theme";
 
 interface DetailsBoxProps {
   title: string;
@@ -11,12 +12,12 @@ export function DetailsBox({
   children,
   showDivider = false,
 }: DetailsBoxProps) {
-  const BRAND_CREAM = "#fcfcf9";
+  const theme = getEmailThemeSync("light");
 
   return (
     <Section
       style={{
-        backgroundColor: BRAND_CREAM,
+        backgroundColor: theme.background,
         borderRadius: "8px",
         padding: "20px",
         margin: "20px 0",
@@ -24,7 +25,7 @@ export function DetailsBox({
     >
       <Heading
         style={{
-          color: "#218081",
+          color: theme.primary,
           fontSize: "18px",
           fontWeight: "bold",
           marginTop: "0",
@@ -37,7 +38,7 @@ export function DetailsBox({
       {showDivider && (
         <Hr
           style={{
-            borderColor: "#cbd5e1",
+            borderColor: theme.border,
             margin: "16px 0",
           }}
         />

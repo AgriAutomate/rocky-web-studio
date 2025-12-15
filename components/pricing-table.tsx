@@ -1,4 +1,4 @@
-﻿import { Check, Sparkle } from "lucide-react";
+import { Check, Sparkle } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export function PricingTable() {
   return (
     <section
       id="pricing"
-      className="space-y-6 rounded-[32px] border border-gray-100 bg-gray-50 p-8"
+      className="space-y-6 rounded-[32px] border border-border bg-muted p-8"
     >
       <div className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground">
@@ -80,9 +80,8 @@ export function PricingTable() {
           <Card
             key={plan.name}
             className={cn(
-              "border border-gray-200 bg-white shadow-lg",
-              plan.highlighted &&
-                "border-teal-500 shadow-[0_10px_40px_rgba(20,184,166,0.25)]"
+              "border border-border bg-card shadow-lg",
+              plan.highlighted && "border-primary shadow-xl"
             )}
           >
             <CardHeader className="space-y-3">

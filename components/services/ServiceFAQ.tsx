@@ -15,21 +15,21 @@ export function ServiceFAQ({
   description = "Direct answers so you know what to expect working together.",
 }: ServiceFAQProps) {
   return (
-    <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-12">
+    <section className="space-y-6 rounded-3xl border border-border bg-card p-8 shadow-sm md:p-12">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground">
           FAQ
         </p>
-        <h2 className="mt-3 text-3xl font-semibold text-slate-900">{title}</h2>
-        <p className="mt-2 text-base text-slate-600 md:text-lg">{description}</p>
+        <h2 className="mt-3 text-3xl font-semibold text-foreground">{title}</h2>
+        <p className="mt-2 text-base text-muted-foreground md:text-lg">{description}</p>
       </div>
-      <div className="space-y-4 divide-y divide-slate-100">
+      <div className="space-y-4 divide-y divide-border">
         {faqs.map((faq) => (
           <div key={faq.question} className="pt-4 first:pt-0">
-            <p className="text-lg font-semibold text-slate-900">
+            <p className="text-lg font-semibold text-foreground">
               {faq.question}
             </p>
-            <p className="mt-2 text-sm text-slate-600">{faq.answer}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{faq.answer}</p>
           </div>
         ))}
       </div>

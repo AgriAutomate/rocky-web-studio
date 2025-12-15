@@ -15,12 +15,12 @@ interface ServicePricingProps {
 
 export default function ServicePricing({ tiers, defaultLink = "/book" }: ServicePricingProps) {
   return (
-    <section className="py-16 px-6 bg-gray-50">
+    <section className="py-16 px-6 bg-muted">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-4">
           Transparent Pricing
         </h2>
-        <p className="text-center text-gray-600 mb-12">
+        <p className="text-center text-muted-foreground mb-12">
           Choose the package that fits your needs
         </p>
         <div className="grid md:grid-cols-3 gap-8">
@@ -29,26 +29,26 @@ export default function ServicePricing({ tiers, defaultLink = "/book" }: Service
               key={idx}
               className={`p-8 rounded-lg ${
                 tier.highlighted
-                  ? "bg-blue-600 text-white shadow-2xl scale-105"
-                  : "bg-white border"
+                  ? "bg-primary text-primary-foreground shadow-2xl scale-105"
+                  : "bg-card border border-border"
               }`}
             >
               <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
               <div className="mb-2">
                 <div className={`text-4xl font-bold ${
-                  tier.highlighted ? "text-white" : "text-teal-600"
+                  tier.highlighted ? "text-primary-foreground" : "text-primary"
                 }`}>
                   {tier.price}
                 </div>
                 <div className={`text-sm mt-1 ${
-                  tier.highlighted ? "text-blue-100" : "text-gray-500"
+                  tier.highlighted ? "text-primary-foreground/80" : "text-muted-foreground"
                 }`}>
                   AUD
                 </div>
               </div>
               <p
                 className={`mb-6 ${
-                  tier.highlighted ? "text-blue-100" : "text-gray-600"
+                  tier.highlighted ? "text-primary-foreground/80" : "text-muted-foreground"
                 }`}
               >
                 {tier.description}
@@ -65,8 +65,8 @@ export default function ServicePricing({ tiers, defaultLink = "/book" }: Service
                 href={tier.orderLink || defaultLink}
                 className={`block text-center py-3 rounded-lg font-semibold transition ${
                   tier.highlighted
-                    ? "bg-white text-blue-600 hover:bg-gray-100"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
+                    ? "bg-card text-primary hover:bg-card/90"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
                 }`}
               >
                 Get Started

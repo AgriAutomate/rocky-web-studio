@@ -1,5 +1,6 @@
 export { AVOBBadge, AVOBBadgeWithText } from './avob-badge';
 export { Badge, badgeVariants } from './badge';
+export { BackButton } from './back-button';
 export { Button, buttonVariants } from './button';
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './card';
 export { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from './dialog';

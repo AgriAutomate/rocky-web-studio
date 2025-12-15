@@ -1,4 +1,4 @@
-﻿import {
+import {
   Card,
   CardContent,
   CardDescription,
@@ -10,7 +10,7 @@ export function TestimonialsCarousel() {
   return (
     <section
       id="testimonials"
-      className="space-y-6 rounded-[32px] bg-white p-8 shadow-sm"
+      className="space-y-6 rounded-[32px] bg-card p-8 shadow-sm"
     >
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground">
@@ -20,7 +20,7 @@ export function TestimonialsCarousel() {
           Case studies in development.
         </h2>
       </div>
-      <Card className="border border-gray-200 bg-gray-50">
+      <Card className="border border-border bg-muted">
         <CardHeader>
           <CardTitle>Client testimonials available upon request.</CardTitle>
           <CardDescription>

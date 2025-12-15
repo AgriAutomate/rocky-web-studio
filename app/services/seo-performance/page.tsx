@@ -1,6 +1,7 @@
 import ServiceHero from "@/components/services/ServiceHero";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
+import ServiceCtaBand from "@/components/services/ServiceCtaBand";
 
 export default function SeoPerformancePage() {
   const features = [
@@ -119,18 +120,18 @@ export default function SeoPerformancePage() {
 
       <ServicePricing tiers={pricingTiers} />
 
-      <section className="py-16 px-6 bg-white">
+      <section className="py-16 px-6 bg-background">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Our Process</h2>
           <div className="space-y-8">
             {process.map((item) => (
               <div key={item.step} className="flex gap-6">
-                <div className="text-5xl font-bold text-gray-200">
+                <div className="text-5xl font-bold text-muted-foreground/25">
                   {item.step}
                 </div>
                 <div>
                   <h3 className="text-2xl font-semibold mb-2">{item.title}</h3>
-                  <p className="text-gray-600">{item.description}</p>
+                  <p className="text-muted-foreground">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -138,20 +139,10 @@ export default function SeoPerformancePage() {
         </div>
       </section>
 
-      <section className="py-16 px-6 bg-blue-600 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">Boost performance without guesswork.</h2>
-          <p className="text-xl mb-8 opacity-90">
-            Share your latest metrics and we’ll map the fixes that move the needle.
-          </p>
-          <a
-            href="/book"
-            className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition shadow-lg"
-          >
-            Book Free Consultation
-          </a>
-        </div>
-      </section>
+      <ServiceCtaBand
+        title="Boost performance without guesswork."
+        description="Share your latest metrics and we’ll map the fixes that move the needle."
+      />
     </>
   );
 }

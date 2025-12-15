@@ -1,6 +1,7 @@
 import ServiceHero from "@/components/services/ServiceHero";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
+import ServiceCtaBand from "@/components/services/ServiceCtaBand";
 
 export default function CustomSongsPage() {
   const features = [
@@ -86,12 +87,15 @@ export default function CustomSongsPage() {
 
       <ServicePricing tiers={pricingTiers} />
 
-      <section className="py-16 px-6 bg-white">
+      <section className="py-16 px-6 bg-background">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Portfolio</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {portfolio.map((song, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+              <div
+                key={index}
+                className="rounded-xl bg-card p-6 shadow-sm border border-border"
+              >
                 {song.videoUrl && (
                   <video 
                     className="w-full rounded-lg mb-4" 
@@ -102,31 +106,19 @@ export default function CustomSongsPage() {
                     Your browser does not support the video tag.
                   </video>
                 )}
-                <h3 className="font-semibold text-slate-900 mb-1">{song.title}</h3>
-                <p className="text-sm text-slate-600">{song.occasion}</p>
-                <p className="text-sm text-slate-600">{song.genre}</p>
+                <h3 className="font-semibold text-foreground mb-1">{song.title}</h3>
+                <p className="text-sm text-muted-foreground">{song.occasion}</p>
+                <p className="text-sm text-muted-foreground">{song.genre}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-16 px-6 bg-blue-600 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to create your custom song?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Share your vision and we'll bring it to life with original music.
-          </p>
-          <a
-            href="/book"
-            className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition shadow-lg"
-          >
-            Book Free Consultation
-          </a>
-        </div>
-      </section>
+      <ServiceCtaBand
+        title="Ready to create your custom song?"
+        description="Share your vision and we'll bring it to life with original music."
+      />
     </>
   );
 }

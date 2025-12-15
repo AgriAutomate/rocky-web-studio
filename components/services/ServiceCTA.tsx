@@ -19,23 +19,23 @@ export function ServiceCTA({
   secondaryHref = "/#projects",
 }: ServiceCTAProps) {
   return (
-    <section className="rounded-3xl bg-gradient-to-br from-teal-600 to-emerald-500 p-8 text-white shadow-lg md:p-12">
+    <section className="rounded-3xl bg-gradient-to-br from-brand-from to-brand-to p-8 text-brand-foreground shadow-lg md:p-12">
       <div className="space-y-4">
         <p className="text-sm font-semibold uppercase tracking-[0.35em]">
           Ready when you are
         </p>
         <h2 className="text-3xl font-semibold md:text-4xl">{title}</h2>
-        <p className="text-base text-teal-50 md:text-lg">{description}</p>
+        <p className="text-base text-brand-foreground/90 md:text-lg">{description}</p>
       </div>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Button asChild size="lg" className="bg-white text-teal-700 hover:bg-slate-100">
+        <Button asChild size="lg" className="bg-card text-primary hover:bg-card/90">
           <Link href={primaryHref}>{primaryLabel}</Link>
         </Button>
         <Button
           asChild
           size="lg"
           variant="outline"
-          className="border-white/40 bg-transparent text-white hover:bg-white/10"
+          className="border-brand-foreground/40 bg-transparent text-brand-foreground hover:bg-brand-foreground/10"
         >
           <Link href={secondaryHref}>{secondaryLabel}</Link>
         </Button>

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import {
   Bot,
   LifeBuoy,
@@ -30,7 +30,7 @@ const services = [
       "Responsive layouts & forms",
       "Foundational SEO setup",
     ],
-    accent: "bg-teal-50 text-teal-600",
+    accent: "bg-accent text-primary",
     href: "/services/website-design-development",
   },
   {
@@ -44,7 +44,7 @@ const services = [
       "Mobile responsiveness",
       "Content migration support",
     ],
-    accent: "bg-cyan-50 text-cyan-600",
+    accent: "bg-accent text-primary",
     href: "/services/website-redesign-refresh",
   },
   {
@@ -58,7 +58,7 @@ const services = [
       "Stripe/PayPal payments",
       "Basic inventory workflows",
     ],
-    accent: "bg-emerald-50 text-emerald-600",
+    accent: "bg-accent text-primary",
     href: "/services/ecommerce",
   },
   {
@@ -72,7 +72,7 @@ const services = [
       "Image & asset optimization",
       "Core Web Vitals improvements",
     ],
-    accent: "bg-blue-50 text-blue-600",
+    accent: "bg-accent text-primary",
     href: "/services/seo-performance",
   },
   {
@@ -86,7 +86,7 @@ const services = [
       "Backup and uptime monitoring",
       "1–2 business day response",
     ],
-    accent: "bg-slate-50 text-slate-700",
+    accent: "bg-muted text-foreground",
     href: "/services/support-maintenance",
   },
   {
@@ -100,7 +100,7 @@ const services = [
       "Knowledge base hand-offs",
       "Partner referrals for bespoke AI",
     ],
-    accent: "bg-indigo-50 text-indigo-600",
+    accent: "bg-accent text-primary",
     href: "/services/ai-automation",
   },
   {
@@ -114,7 +114,7 @@ const services = [
       "Sales notifications",
       "Collaboration with your ops team",
     ],
-    accent: "bg-purple-50 text-purple-600",
+    accent: "bg-accent text-primary",
     href: "/services/crm-integration",
   },
     {
@@ -128,7 +128,7 @@ const services = [
       "Multiple formats (MP3, WAV, video)",
       "Wedding, birthday, anniversary packages",
     ],
-    accent: "bg-teal-50 text-teal-600",
+    accent: "bg-accent text-primary",
     href: "/services/custom-songs",
   },
 ];
@@ -137,7 +137,7 @@ export function ServicesGrid() {
   return (
     <section
       id="services"
-      className="space-y-6 rounded-[32px] border border-gray-100 bg-gray-50 p-8 shadow-sm"
+      className="space-y-6 rounded-[32px] border border-border bg-muted p-8 shadow-sm"
     >
       <div className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-muted-foreground">
@@ -156,9 +156,9 @@ export function ServicesGrid() {
           <Link
             key={service.title}
             href={service.href}
-            className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+            className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <Card className="border border-gray-200 bg-white shadow-lg transition-transform group-hover:-translate-y-1">
+            <Card className="border border-border bg-card shadow-lg transition-transform group-hover:-translate-y-1">
               <CardHeader className="flex flex-row items-start gap-4">
                 <div className={`rounded-2xl p-3 ${service.accent}`}>
                   <service.icon className="size-6" />
@@ -186,7 +186,7 @@ export function ServicesGrid() {
           </Link>
         ))}
       </div>
-      <div className="space-y-2 rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm text-muted-foreground">
+      <div className="space-y-2 rounded-2xl border border-border bg-card/80 p-4 text-sm text-muted-foreground">
         <p>
           We specialize in professional websites and simple e-commerce. For
           complex applications, enterprise solutions, or specialized needs, we

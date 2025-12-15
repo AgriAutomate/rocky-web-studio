@@ -113,7 +113,7 @@ export function XeroConnectionStatus() {
           <div className="flex items-center gap-3">
             {status?.connected ? (
               <>
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
                 <div>
                   <div className="font-medium">Connected</div>
                   {status.organizationName && (
@@ -125,7 +125,7 @@ export function XeroConnectionStatus() {
               </>
             ) : (
               <>
-                <XCircle className="h-5 w-5 text-red-600" />
+                <XCircle className="h-5 w-5 text-destructive" />
                 <div>
                   <div className="font-medium">Not Connected</div>
                   <div className="text-sm text-muted-foreground">

@@ -1,0 +1,191 @@
+import path from "node:path";
+import { readFile } from "node:fs/promises";
+import puppeteer, { Browser } from "puppeteer-core";
+import { logError } from "@/lib/utils/logger";
+
+/**
+ * Single deep‑dive challenge section included in the report.
+ */
+export interface ReportChallenge {
+  /** Display order / identifier for the challenge (e.g. 1, 2, 3) */
+  number: number;
+  /** Short, human‑readable title for the challenge */
+  title: string;
+  /** Bullet‑point style sections or talking points for this challenge */
+  sections: string[];
+  /** Expected ROI time horizon (e.g. "3–6 months") */
+  roiTimeline: string;
+  /** Human‑readable project budget range (e.g. "$15k–$30k") */
+  projectCostRange: string;
+}
+
+/**
+ * Structured data required to render a client report.
+ */
+export interface ReportData {
+  /** Primary client contact name, used in greetings */
+  clientName: string;
+  /** Name of the client business */
+  businessName: string;
+  /** Primary sector this report is tailored to (e.g. "Healthcare") */
+  sector: string;
+  /** Top 2–3 recommended challenges / initiatives for this client */
+  topChallenges: ReportChallenge[];
+  /** Pre‑formatted date string to display on the report (e.g. "12 March 2025") */
+  generatedDate: string;
+}
+
+/**
+ * Escape user‑supplied text for safe HTML injection.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Render the HTML for the list of challenge sections.
+ *
+ * @param challenges - Array of challenge descriptors to render.
+ * @returns Concatenated HTML string of all challenge sections.
+ */
+export function renderChallengesSections(challenges: ReportData["topChallenges"]): string {
+  if (!challenges || challenges.length === 0) {
+    return "";
+  }
+
+  return challenges
+    .map((challenge) => {
+      const sectionsHtml = (challenge.sections ?? [])
+        .map((section) => `<li>${escapeHtml(section)}</li>`)
+        .join("");
+
+      return `<div class="challenge-section">
+  <h2 class="challenge-title">
+    <span class="challenge-number">${escapeHtml(String(challenge.number))}.</span>
+    <span class="challenge-heading">${escapeHtml(challenge.title)}</span>
+  </h2>
+  <p class="challenge-meta">
+    <strong>Expected ROI timeline:</strong> ${escapeHtml(challenge.roiTimeline)}
+    &nbsp;·&nbsp;
+    <strong>Recommended investment range:</strong> ${escapeHtml(challenge.projectCostRange)}
+  </p>
+  <ul class="challenge-points">
+    ${sectionsHtml}
+  </ul>
+</div>`;
+    })
+    .join("\n");
+}
+
+/**
+ * Load the base HTML template and inject dynamic data from the report.
+ *
+ * The template at `lib/pdf/templates/reportTemplate.html` must contain the
+ * following placeholders, which will be replaced:
+ *
+ * - {{CLIENT_NAME}}
+ * - {{BUSINESS_NAME}}
+ * - {{SECTOR}}
+ * - {{GENERATED_DATE}}
+ * - {{CHALLENGES_HTML}}
+ *
+ * @param data - Fully prepared report data.
+ * @returns Resolved HTML string ready for PDF rendering.
+ */
+export async function generateHtmlTemplate(data: ReportData): Promise<string> {
+  const templatePath = path.join(process.cwd(), "lib", "pdf", "templates", "reportTemplate.html");
+
+  let template: string;
+  try {
+    template = await readFile(templatePath, "utf8");
+  } catch (error) {
+    await logError("Failed to read PDF report template", error, { templatePath });
+    throw error;
+  }
+
+  const replacements: Record<string, string> = {
+    CLIENT_NAME: escapeHtml(data.clientName),
+    BUSINESS_NAME: escapeHtml(data.businessName),
+    SECTOR: escapeHtml(data.sector),
+    GENERATED_DATE: escapeHtml(data.generatedDate),
+    CHALLENGES_HTML: renderChallengesSections(data.topChallenges),
+  };
+
+  let html = template;
+  for (const [key, value] of Object.entries(replacements)) {
+    const pattern = new RegExp(`{{${key}}}`, "g");
+    html = html.replace(pattern, value);
+  }
+
+  return html;
+}
+
+/**
+ * Generate an A4 PDF report for a given set of report data.
+ *
+ * - Launches a headless Puppeteer browser
+ * - Renders the HTML from `generateHtmlTemplate`
+ * - Exports a PDF with A4 format and 20px margins
+ * - Ensures the browser is always closed, even on failures
+ *
+ * @param reportData - Structured report content to render into the template.
+ * @returns A PDF byte array suitable for converting to a Node Buffer.
+ */
+export async function generatePdfReport(reportData: ReportData): Promise<Uint8Array> {
+  let browser: Browser | null = null;
+
+  try {
+    const html = await generateHtmlTemplate(reportData);
+
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      timeout: 15_000,
+    });
+
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1200, height: 1600 });
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    const pdfBuffer = await Promise.race([
+      page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: {
+          top: "20px",
+          right: "20px",
+          bottom: "20px",
+          left: "20px",
+        },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("PDF generation timeout")), 15_000)
+      ),
+    ]);
+
+    return pdfBuffer;
+  } catch (error) {
+    await logError("Failed to generate PDF report", error, {
+      clientName: reportData.clientName,
+      businessName: reportData.businessName,
+      sector: reportData.sector,
+    });
+    throw error;
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        await logError("Failed to close Puppeteer browser after report generation", closeError);
+      }
+    }
+  }
+}
+
+// Backwards‑compatible alias for existing imports.
+export { generatePdfReport as generateClientReport };

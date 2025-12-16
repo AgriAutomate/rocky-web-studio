@@ -21,6 +21,8 @@ export interface QuestionConfig {
   sector?: Sector;
   followUp?: string;
   required?: boolean;
+  introText?: string;
+  outroText?: string;
 }
 
 export interface QuestionSet {
@@ -49,19 +51,35 @@ export const QUESTION_SETS: QuestionSet[] = [
         type: "radio",
         label: "Which sector best fits your business?",
         required: true,
+        introText:
+          "Rocky Web Studio can service a diverse range of sectors across Central Queensland, with a strong focus on small to medium-sized businesses and organizations. Based on current strategy and capabilities, the studio serves the following sectors:",
         options: [
-          { value: "hospitality", label: "Hospitality (restaurants, cafes, hotels, venues)" },
-          { value: "trades", label: "Trades (plumbers, electricians, builders, etc.)" },
-          { value: "retail", label: "Retail (stores, e-commerce, marketplaces)" },
-          { value: "professional", label: "Professional Services (consulting, agencies, freelancers)" },
+          { value: "professional-services", label: "Professional Services (lawyers, accountants, consultants)" },
+          { value: "healthcare-allied", label: "Healthcare & Allied Health (medical clinics, physiotherapy, dentists)" },
+          { value: "hospitality", label: "Hospitality (cafes, restaurants, hotels, pubs)" },
+          { value: "retail", label: "Retail (local shops, boutiques, gift stores)" },
+          { value: "automotive-mechanical", label: "Automotive & Mechanical (mechanics, car dealerships, auto repairs)" },
+          { value: "trades-construction", label: "Trades & Construction (builders, electricians, plumbers, landscapers)" },
+          { value: "education-training", label: "Education & Training (schools, tutoring, private training providers)" },
+          { value: "non-profit-community", label: "Non-Profit & Community Groups (charities, clubs, local associations)" },
+          { value: "agriculture-rural", label: "Agriculture & Rural Services (farms, agribusinesses, rural suppliers)" },
+          { value: "veterans-defence", label: "Veterans & Defence Organizations (support groups, veteran-owned businesses)" },
+          { value: "arts-music-creative", label: "Arts, Music & Creative Industries (artists, musicians, photographers, designers)" },
+          { value: "government-council", label: "Government & Local Council Contractors (procurement-ready for public sector contracts)" },
+          { value: "fitness-wellness", label: "Fitness & Wellness (gyms, personal trainers, yoga studios)" },
+          { value: "real-estate-property", label: "Real Estate & Property (agents, property managers, rental services)" },
+          { value: "transport-logistics", label: "Transport & Logistics (couriers, trucking, delivery services)" },
+          { value: "events-entertainment", label: "Event Management & Entertainment (event planners, venues, festivals)" },
         ],
+        outroText:
+          "All sectors benefit from the studio’s AI-first, rapid deployment model and local expertise in Rockhampton and the wider Central Queensland region.",
       },
       { id: "q1", type: "text", label: "Business name", validation: min2Max100, required: true },
       { id: "q2", type: "text", label: "Website or social link", required: false },
       {
         id: "q3",
         type: "radio",
-        label: "What are your top 3 goals?",
+        label: "What are your goals?",
         required: true,
         validation: required,
         options: [
@@ -77,12 +95,22 @@ export const QUESTION_SETS: QuestionSet[] = [
         label: "Biggest challenges right now?",
         required: true,
         validation: required,
+        introText:
+          "The 10 biggest challenges for businesses in Central Queensland—and the types we can assist with—are:",
         options: [
-          { value: "reduce-costs", label: "Reduce costs and improve profitability" },
-          { value: "win-customers", label: "Win more customers and grow revenue" },
-          { value: "modernise", label: "Modernise and digitise operations" },
-          { value: "other", label: "Something Else" },
+          { value: "operating-costs", label: "High Operating Costs & Inflation — Rising energy, supply, and wage costs are severely impacting profitability and margins for local SMEs." },
+          { value: "cash-flow", label: "Cash Flow Strain & Declining Profitability — Delayed payments, customer concentration risk, and reduced access to capital are causing cash flow crises and threatening survival." },
+          { value: "compliance", label: "Complex Regulatory & Compliance Burdens — Small businesses spend excessive time and resources on compliance, diverting attention from growth and customer service." },
+          { value: "digital-transformation", label: "Digital Transformation Difficulties — Many businesses struggle to adopt new technologies due to lack of time, expertise, or funding." },
+          { value: "cybersecurity", label: "Cybersecurity Threats — SMEs are frequent targets of cyberattacks and often lack the resources or knowledge to protect themselves adequately." },
+          { value: "labour-shortages", label: "Labour Shortages & Rising Wage Costs — Recruiting and retaining skilled staff is difficult and expensive, especially in regional areas." },
+          { value: "reduced-demand", label: "Reduced Consumer Spending & Demand — Falling discretionary spending and cautious consumer behaviour are reducing revenue for many sectors." },
+          { value: "logistics", label: "Market Access & Logistics Barriers — Distance from major commercial hubs makes distribution and market reach more difficult and costly." },
+          { value: "connectivity", label: "Digital Connectivity Limitations — Some areas still experience poor internet and mobile coverage, hindering operations and growth." },
+          { value: "leadership-strategy", label: "Lack of Leadership & Strategic Planning — Efficient management structures and clear strategies are often missing, impacting resilience and innovation." },
         ],
+        outroText:
+          "Rocky Web Studio provides targeted solutions for these challenges through rapid web deployment, AI-driven automation, cybersecurity advice, and expert digital marketing and business strategy support, tailored for the regional Queensland market.",
       },
       {
         id: "q5",

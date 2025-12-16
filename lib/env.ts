@@ -1,3 +1,22 @@
+import { z } from "zod";
+
+const envSchema = z.object({
+  RESEND_API_KEY: z.string().min(1, "Missing RESEND_API_KEY"),
+  SUPABASE_URL: z.string().url("Invalid SUPABASE_URL"),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "Missing SUPABASE_SERVICE_ROLE_KEY"),
+  SLACK_WEBHOOK_URL: z.string().url().optional(),
+  CALENDLY_URL: z.string().url().optional(),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  // eslint-disable-next-line no-console
+  console.error("❌ Invalid environment configuration:", parsed.error.flatten().fieldErrors);
+  throw new Error("Invalid environment configuration");
+}
+
+export const env = parsed.data;
 /**
  * Environment Variable Type Definitions
  * 

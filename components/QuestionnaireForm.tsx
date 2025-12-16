@@ -291,7 +291,13 @@ export function QuestionnaireForm() {
           {currentQuestion.label}
           {currentQuestion.required && <span className="text-destructive ml-1">*</span>}
         </Label>
+        {"introText" in currentQuestion && currentQuestion.introText ? (
+          <p className="text-sm text-muted-foreground">{currentQuestion.introText}</p>
+        ) : null}
         {renderQuestionInput()}
+        {"outroText" in currentQuestion && currentQuestion.outroText ? (
+          <p className="text-sm text-muted-foreground">{currentQuestion.outroText}</p>
+        ) : null}
       </div>
 
       {/* Navigation buttons */}

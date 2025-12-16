@@ -11,7 +11,8 @@
     "preflight": "npm run type-check && npm run lint && npm run build",
     "deploy": "npm run preflight && echo '✅ All checks passed! Safe to push to GitHub'",
     "prepare": "husky install",
-    "verify-sms-templates": "ts-node scripts/verify-sms-templates.ts"
+    "verify-sms-templates": "ts-node scripts/verify-sms-templates.ts",
+    "compare-deploy": "python scripts/compare_deploy.py"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

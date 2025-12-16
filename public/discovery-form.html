@@ -155,6 +155,20 @@
             font-family: inherit;
         }
 
+        /* Ensure all select options are visible - prevent CSS from hiding them */
+        .form-group select option {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Prevent any option from being hidden */
+        select option[value],
+        select option {
+            display: block !important;
+            visibility: visible !important;
+        }
+
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
@@ -396,7 +410,7 @@
 
                     <div class="form-group">
                         <label>Industry <span class="required">*</span></label>
-                        <select name="industry" required>
+                        <select name="industry" id="industrySelect">
                             <option value="">Select industry...</option>
                             <option value="retail">Retail/E-commerce</option>
                             <option value="healthcare">Healthcare</option>
@@ -406,9 +420,13 @@
                             <option value="real-estate">Real Estate</option>
                             <option value="hospitality">Hospitality</option>
                             <option value="manufacturing">Manufacturing</option>
-                            <option value="other">Other</option>
                         </select>
                         <div class="error-message">Please select an industry</div>
+                    </div>
+
+                    <div class="form-group" style="display: block;">
+                        <label>Or specify other industry:</label>
+                        <input type="text" name="industryOther" placeholder="Other" id="industryOther" style="display: block; width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: inherit; margin-top: 0;">
                     </div>
 
                     <div class="form-actions">
@@ -424,14 +442,112 @@
 
                     <div class="form-group">
                         <label>Main Problem or Challenge <span class="required">*</span></label>
-                        <textarea name="mainProblem" required placeholder="Describe the primary problem you're trying to solve..."></textarea>
-                        <div class="error-message">Please describe your main challenge</div>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Select all that apply:</p>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="outdated-website">
+                                <span>Outdated Website Design</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="not-mobile-friendly">
+                                <span>Not Mobile-Friendly</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="low-traffic">
+                                <span>Low Website Traffic</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="poor-seo">
+                                <span>Poor Search Engine Rankings (SEO)</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="no-online-booking">
+                                <span>No Online Booking System</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="difficult-to-update">
+                                <span>Difficult to Update Content</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="slow-loading">
+                                <span>Slow Loading Speed</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="no-online-presence">
+                                <span>No Online Presence</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="poor-lead-generation">
+                                <span>Poor Lead Generation</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="customer-communication">
+                                <span>Inefficient Customer Communication</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="no-ecommerce">
+                                <span>Need Online Sales / E-commerce</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="competitor-advantage">
+                                <span>Competitors Have Better Online Presence</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="mainProblem" value="other">
+                                <span>Other (please specify)</span>
+                            </div>
+                        </div>
+                        <input type="text" name="mainProblemOther" placeholder="Specify other problem or challenge..." style="margin-top: 12px; display: none;" id="mainProblemOther">
+                        <div class="error-message">Please select at least one problem or challenge</div>
                     </div>
 
                     <div class="form-group">
                         <label>Success Metric <span class="required">*</span></label>
-                        <textarea name="successMetric" required placeholder="How will you measure success? (e.g., increase sales by 30%, reduce bounce rate, etc.)"></textarea>
-                        <div class="error-message">Please describe how you'll measure success</div>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Select all that apply:</p>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="increase-sales">
+                                <span>Increase Sales / Revenue</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="more-leads">
+                                <span>Generate More Leads</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="reduce-bounce-rate">
+                                <span>Reduce Bounce Rate</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="increase-traffic">
+                                <span>Increase Website Traffic</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="improve-engagement">
+                                <span>Improve User Engagement</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="better-conversions">
+                                <span>Improve Conversion Rate</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="brand-awareness">
+                                <span>Increase Brand Awareness</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="customer-satisfaction">
+                                <span>Improve Customer Satisfaction</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="operational-efficiency">
+                                <span>Improve Operational Efficiency</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="successMetric" value="other">
+                                <span>Other (please specify)</span>
+                            </div>
+                        </div>
+                        <input type="text" name="successMetricOther" placeholder="Specify other success metric..." style="margin-top: 12px; display: none;" id="successMetricOther">
+                        <div class="error-message">Please select at least one success metric</div>
                     </div>
 
                     <div class="form-group">
@@ -682,7 +798,10 @@
 
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="prevSection()">← Back</button>
-                        <button type="button" class="btn btn-success" onclick="submitForm()">Submit & Download</button>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">← Back to Homepage</button>
+                            <button type="button" class="btn btn-success" onclick="submitForm()">Submit & Download</button>
+                        </div>
                     </div>
                 </div>
 
@@ -691,7 +810,10 @@
                     <div class="success-icon">✅</div>
                     <h2 style="color: #4CAF50; margin-bottom: 16px;">Form Submitted Successfully!</h2>
                     <p style="color: #666; margin-bottom: 24px;">Your discovery form has been downloaded as JSON.</p>
-                    <button type="button" class="btn btn-primary" onclick="resetForm()">Start New Form</button>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">← Back to Homepage</button>
+                        <button type="button" class="btn btn-primary" onclick="resetForm()">Start New Form</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -717,6 +839,28 @@
                     } else {
                         item.classList.remove('checked');
                     }
+                    
+                    // Show/hide "Other" text input for successMetric
+                    if (this.name === 'successMetric' && this.value === 'other') {
+                        const otherInput = document.getElementById('successMetricOther');
+                        if (otherInput) {
+                            otherInput.style.display = this.checked ? 'block' : 'none';
+                            if (!this.checked) {
+                                otherInput.value = '';
+                            }
+                        }
+                    }
+                    
+                    // Show/hide "Other" text input for mainProblem
+                    if (this.name === 'mainProblem' && this.value === 'other') {
+                        const otherInput = document.getElementById('mainProblemOther');
+                        if (otherInput) {
+                            otherInput.style.display = this.checked ? 'block' : 'none';
+                            if (!this.checked) {
+                                otherInput.value = '';
+                            }
+                        }
+                    }
                 });
             });
 
@@ -727,6 +871,47 @@
                         r.closest('.radio-item').classList.remove('checked');
                     });
                     this.closest('.radio-item').classList.add('checked');
+                });
+            });
+
+            // Industry "Other" - clear text box when dropdown is selected
+            const industrySelect = document.getElementById('industrySelect');
+            const industryOther = document.getElementById('industryOther');
+            
+            if (industrySelect && industryOther) {
+                // Safety check: Ensure all options are visible
+                Array.from(industrySelect.options).forEach(option => {
+                    option.style.display = '';
+                    option.style.visibility = '';
+                    option.hidden = false;
+                });
+                
+                industrySelect.addEventListener('change', function() {
+                    if (this.value !== '') {
+                        industryOther.value = ''; // Clear "Other" text box when dropdown selection is made
+                    }
+                    // Re-ensure options are visible after change
+                    Array.from(this.options).forEach(option => {
+                        option.style.display = '';
+                        option.style.visibility = '';
+                        option.hidden = false;
+                    });
+                });
+                
+                // Clear dropdown when text box is filled
+                industryOther.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        industrySelect.value = '';
+                    }
+                });
+            }
+            
+            // Global safety check: Ensure all select options are visible on page load
+            document.querySelectorAll('select').forEach(select => {
+                Array.from(select.options).forEach(option => {
+                    option.style.display = '';
+                    option.style.visibility = '';
+                    option.hidden = false;
                 });
             });
 
@@ -756,7 +941,9 @@
                 brandPersonality: Array.from(document.querySelectorAll('input[name="brandPersonality"]:checked')).map(cb => cb.value),
                 features: Array.from(document.querySelectorAll('input[name="features"]:checked')).map(cb => cb.value),
                 integrations: Array.from(document.querySelectorAll('input[name="integrations"]:checked')).map(cb => cb.value),
-                aiFeatures: Array.from(document.querySelectorAll('input[name="aiFeatures"]:checked')).map(cb => cb.value)
+                aiFeatures: Array.from(document.querySelectorAll('input[name="aiFeatures"]:checked')).map(cb => cb.value),
+                successMetric: Array.from(document.querySelectorAll('input[name="successMetric"]:checked')).map(cb => cb.value),
+                mainProblem: Array.from(document.querySelectorAll('input[name="mainProblem"]:checked')).map(cb => cb.value)
             };
             
             const progressData = {
@@ -787,6 +974,26 @@
                                     checkbox.dispatchEvent(new Event('change'));
                                 }
                             });
+                        } else if (key === 'successMetricOther' && data[key]) {
+                            // Handle successMetricOther text input
+                            const otherInput = document.getElementById('successMetricOther');
+                            if (otherInput) {
+                                otherInput.value = data[key];
+                                otherInput.style.display = 'block';
+                            }
+                        } else if (key === 'mainProblemOther' && data[key]) {
+                            // Handle mainProblemOther text input
+                            const otherInput = document.getElementById('mainProblemOther');
+                            if (otherInput) {
+                                otherInput.value = data[key];
+                                otherInput.style.display = 'block';
+                            }
+                        } else if (key === 'industryOther' && data[key]) {
+                            // Handle industryOther text input
+                            const industryOtherInput = document.getElementById('industryOther');
+                            if (industryOtherInput) {
+                                industryOtherInput.value = data[key];
+                            }
                         } else {
                             const input = document.querySelector(`[name="${key}"]`);
                             if (input && input.type !== 'checkbox' && input.type !== 'radio') {
@@ -816,7 +1023,7 @@
                 if (field.type === 'checkbox' || field.type === 'radio') {
                     const name = field.name;
                     const checked = sectionElement.querySelectorAll(`input[name="${name}"]:checked`).length > 0;
-                    if (!checked) {
+                    if (!checked && field.hasAttribute('required')) {
                         isValid = false;
                         formGroup.classList.add('error');
                     }
@@ -832,6 +1039,53 @@
                 }
             });
 
+            // Custom validation for industry in section 1 - ensure either dropdown OR text box is filled
+            if (section === 1) {
+                const industrySelect = document.getElementById('industrySelect');
+                const industryOther = document.getElementById('industryOther');
+                if (industrySelect && industryOther) {
+                    const industryGroup = industrySelect.closest('.form-group');
+                    const hasDropdownSelection = industrySelect.value !== '';
+                    const hasOtherText = industryOther.value.trim() !== '';
+                    
+                    if (!hasDropdownSelection && !hasOtherText) {
+                        isValid = false;
+                        industryGroup.classList.add('error');
+                    } else {
+                        industryGroup.classList.remove('error');
+                    }
+                }
+            }
+
+            // Custom validation for checkbox groups in section 2
+            if (section === 2) {
+                // Validate mainProblem checkboxes
+                const mainProblemCheckboxes = sectionElement.querySelectorAll('input[name="mainProblem"]');
+                if (mainProblemCheckboxes.length > 0) {
+                    const mainProblemGroup = mainProblemCheckboxes[0].closest('.form-group');
+                    const checkedProblems = sectionElement.querySelectorAll('input[name="mainProblem"]:checked');
+                    if (checkedProblems.length === 0) {
+                        isValid = false;
+                        mainProblemGroup.classList.add('error');
+                    } else {
+                        mainProblemGroup.classList.remove('error');
+                    }
+                }
+                
+                // Validate successMetric checkboxes
+                const successMetricCheckboxes = sectionElement.querySelectorAll('input[name="successMetric"]');
+                if (successMetricCheckboxes.length > 0) {
+                    const successMetricGroup = successMetricCheckboxes[0].closest('.form-group');
+                    const checkedMetrics = sectionElement.querySelectorAll('input[name="successMetric"]:checked');
+                    if (checkedMetrics.length === 0) {
+                        isValid = false;
+                        successMetricGroup.classList.add('error');
+                    } else {
+                        successMetricGroup.classList.remove('error');
+                    }
+                }
+            }
+
             return isValid;
         }
 
@@ -844,22 +1098,35 @@
                 currentSection++;
                 showSection(currentSection);
                 updateProgress();
+                saveProgress(); // Save progress when going forward
             }
         }
+        
+        // Make nextSection globally accessible
+        window.nextSection = nextSection;
 
         function prevSection() {
             if (currentSection > 1) {
                 currentSection--;
                 showSection(currentSection);
                 updateProgress();
+                saveProgress(); // Save progress when going back
             }
         }
+        
+        // Make prevSection globally accessible
+        window.prevSection = prevSection;
 
         function showSection(section) {
             document.querySelectorAll('.form-section').forEach(sec => {
                 sec.classList.remove('active');
             });
-            document.getElementById(`section${section}`).classList.add('active');
+            const targetSection = document.getElementById(`section${section}`);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            } else {
+                console.error(`Section ${section} not found`);
+            }
 
             // Populate review section
             if (section === 6) {
@@ -882,16 +1149,22 @@
             const features = Array.from(document.querySelectorAll('input[name="features"]:checked')).map(cb => cb.value);
             const integrations = Array.from(document.querySelectorAll('input[name="integrations"]:checked')).map(cb => cb.value);
             const aiFeatures = Array.from(document.querySelectorAll('input[name="aiFeatures"]:checked')).map(cb => cb.value);
+            const mainProblem = Array.from(document.querySelectorAll('input[name="mainProblem"]:checked')).map(cb => cb.value);
+            const mainProblemOther = document.querySelector('input[name="mainProblemOther"]').value;
+            const successMetric = Array.from(document.querySelectorAll('input[name="successMetric"]:checked')).map(cb => cb.value);
+            const successMetricOther = document.querySelector('input[name="successMetricOther"]').value;
+            const industryOther = document.querySelector('input[name="industryOther"]').value;
+            const industryDisplay = industryOther ? industryOther : (data.industry || 'N/A');
 
             const reviewHTML = `
                 <div style="line-height: 1.8;">
                     <p><strong>Company:</strong> ${data.companyName || 'N/A'}</p>
                     <p><strong>Email:</strong> ${data.email || 'N/A'}</p>
                     <p><strong>Company Size:</strong> ${data.companySize || 'N/A'}</p>
-                    <p><strong>Industry:</strong> ${data.industry || 'N/A'}</p>
+                    <p><strong>Industry:</strong> ${industryDisplay}</p>
                     <hr style="margin: 16px 0; border: none; border-top: 1px solid #ddd;">
-                    <p><strong>Main Problem:</strong> ${data.mainProblem || 'N/A'}</p>
-                    <p><strong>Success Metric:</strong> ${data.successMetric || 'N/A'}</p>
+                    <p><strong>Main Problem:</strong> ${mainProblem.length > 0 ? mainProblem.join(', ') + (mainProblemOther ? ' (' + mainProblemOther + ')' : '') : 'N/A'}</p>
+                    <p><strong>Success Metric:</strong> ${successMetric.length > 0 ? successMetric.join(', ') + (successMetricOther ? ' (' + successMetricOther + ')' : '') : 'N/A'}</p>
                     <p><strong>Target Customer:</strong> ${data.targetCustomer || 'N/A'}</p>
                     <hr style="margin: 16px 0; border: none; border-top: 1px solid #ddd;">
                     <p><strong>Brand Personality:</strong> ${brandPersonality.join(', ') || 'N/A'}</p>
@@ -922,6 +1195,11 @@
             const features = Array.from(document.querySelectorAll('input[name="features"]:checked')).map(cb => cb.value);
             const integrations = Array.from(document.querySelectorAll('input[name="integrations"]:checked')).map(cb => cb.value);
             const aiFeatures = Array.from(document.querySelectorAll('input[name="aiFeatures"]:checked')).map(cb => cb.value);
+            const mainProblem = Array.from(document.querySelectorAll('input[name="mainProblem"]:checked')).map(cb => cb.value);
+            const mainProblemOther = document.querySelector('input[name="mainProblemOther"]').value;
+            const successMetric = Array.from(document.querySelectorAll('input[name="successMetric"]:checked')).map(cb => cb.value);
+            const successMetricOther = document.querySelector('input[name="successMetricOther"]').value;
+            const industryOther = document.querySelector('input[name="industryOther"]').value;
 
             const submissionData = {
                 ...data,
@@ -929,6 +1207,11 @@
                 features,
                 integrations,
                 aiFeatures,
+                mainProblem,
+                mainProblemOther: mainProblemOther || undefined,
+                successMetric,
+                successMetricOther: successMetricOther || undefined,
+                industryOther: industryOther || undefined,
                 submittedAt: new Date().toISOString()
             };
 

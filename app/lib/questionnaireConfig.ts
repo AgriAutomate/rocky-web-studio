@@ -44,6 +44,18 @@ export const QUESTION_SETS: QuestionSet[] = [
     id: "trunk",
     sector: "universal",
     questions: [
+      {
+        id: "sector",
+        type: "radio",
+        label: "Which sector best fits your business?",
+        required: true,
+        options: [
+          { value: "hospitality", label: "Hospitality (restaurants, cafes, hotels, venues)" },
+          { value: "trades", label: "Trades (plumbers, electricians, builders, etc.)" },
+          { value: "retail", label: "Retail (stores, e-commerce, marketplaces)" },
+          { value: "professional", label: "Professional Services (consulting, agencies, freelancers)" },
+        ],
+      },
       { id: "q1", type: "text", label: "Business name", validation: min2Max100, required: true },
       { id: "q2", type: "text", label: "Website or social link", required: false },
       {

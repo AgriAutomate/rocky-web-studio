@@ -53,7 +53,15 @@ npm run dev
 
 ### Environment Variables
 
-Copy `.env.example` to `.env.local` and configure:
+Copy `.env.example` (or the provided `.env.local.example`) to `.env.local` and configure:
+
+#### Questionnaire & Consciousness Portal
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `PERPLEXITY_API_KEY`, `NEXT_PUBLIC_PERPLEXITY_SPACE_ID`
+- `N8N_SUNO_WEBHOOK_URL`, `SUNO_WEBHOOK_SECRET`
+- `OWNER_EMAIL`, `RESEND_API_KEY` (or `SENDGRID_API_KEY`)
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 
 #### Mobile Message SMS API (Required)
 

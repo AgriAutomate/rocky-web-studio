@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   QUESTION_SETS,
-  questionOrderForSector,
   type QuestionConfig,
   type Sector,
 } from "@/app/lib/questionnaireConfig";
@@ -37,38 +36,80 @@ export function QuestionnaireForm() {
   const leavesSet = QUESTION_SETS.find((set) => set.id === "leaves");
   const leavesQuestions = leavesSet?.questions || [];
 
+  // Check if we need to show sector selection (after q5 is answered)
+  // Show sector selection on the step immediately after trunk questions
+  const isSectorSelectionStep = currentStep === trunkQuestions.length;
+  const shouldShowSectorSelection = formData["q5"] && isSectorSelectionStep;
+
   // Determine current question based on step
   const getCurrentQuestion = (): QuestionConfig | null => {
+    // Show trunk questions first
     if (currentStep < trunkQuestions.length) {
-      return trunkQuestions[currentStep];
+      return trunkQuestions[currentStep] || null;
     }
-    if (selectedSector) {
-      const sectorStep = currentStep - trunkQuestions.length;
-      if (sectorStep < sectorQuestions.length) {
-        return sectorQuestions[sectorStep];
+    
+    // If we're on the sector selection step, show sector selection (allows changing selection if going back)
+    if (shouldShowSectorSelection) {
+      return {
+        id: "sector-selection",
+        type: "radio",
+        label: "Which sector best describes your business?",
+        required: true,
+        options: [
+          { value: "hospitality", label: "Hospitality (restaurants, cafes, hotels, venues)" },
+          { value: "trades", label: "Trades (plumbers, electricians, builders, etc.)" },
+          { value: "retail", label: "Retail (stores, e-commerce, marketplaces)" },
+          { value: "professional", label: "Professional Services (consulting, agencies, freelancers)" },
+        ],
+      };
+    }
+    
+    // Show sector-specific questions after sector is selected and we've passed the sector selection step
+    if (selectedSector && currentStep > trunkQuestions.length) {
+      // We've passed trunk questions (length) and sector selection (1 step), so subtract both
+      const sectorStep = currentStep - trunkQuestions.length - 1;
+      if (sectorStep >= 0 && sectorStep < sectorQuestions.length) {
+        return sectorQuestions[sectorStep] || null;
       }
     }
-    const leavesStep = currentStep - trunkQuestions.length - (selectedSector ? sectorQuestions.length : 0);
-    if (leavesStep < leavesQuestions.length) {
-      return leavesQuestions[leavesStep];
+    
+    // Show leaves questions last
+    // Calculate how many steps we've taken: trunk + (sector selection if done) + (sector questions if done)
+    const stepsBeforeLeaves = trunkQuestions.length + (selectedSector ? 1 + sectorQuestions.length : 0);
+    const leavesStep = currentStep - stepsBeforeLeaves;
+    if (leavesStep >= 0 && leavesStep < leavesQuestions.length) {
+      return leavesQuestions[leavesStep] || null;
     }
     return null;
   };
 
   const currentQuestion = getCurrentQuestion();
-  const totalSteps = trunkQuestions.length + (selectedSector ? sectorQuestions.length : 0) + leavesQuestions.length;
+  // Calculate total steps: trunk + sector selection (always if q5 answered) + sector questions (if selected) + leaves
+  const sectorSelectionStepCount = formData["q5"] ? 1 : 0;
+  const totalSteps = trunkQuestions.length + sectorSelectionStepCount + (selectedSector ? sectorQuestions.length : 0) + leavesQuestions.length;
   const isLastStep = currentStep === totalSteps - 1;
 
   // Handle sector selection from q5 (Primary offer question)
   const handleAnswer = (questionId: string, value: any) => {
     const updatedData = { ...formData, [questionId]: value };
-    setFormData(updatedData);
-
-    // If this is q5 (Primary offer), determine sector
-    if (questionId === "q5" && value === "services") {
-      // You might want to add logic here to determine sector based on previous answers
-      // For now, we'll need to add a sector selection step or use a default
+    
+    // Handle sector selection
+    if (questionId === "sector-selection") {
+      const sector = value as Sector;
+      if (sector !== "universal") {
+        // If sector is changing, clear answers from the previous sector's questions
+        if (selectedSector && selectedSector !== sector) {
+          const previousSectorSet = QUESTION_SETS.find((set) => set.sector === selectedSector);
+          const previousSectorQuestionIds = previousSectorSet?.questions.map((q) => q.id) || [];
+          previousSectorQuestionIds.forEach((qId) => {
+            delete updatedData[qId];
+          });
+        }
+        setSelectedSector(sector);
+      }
     }
+    
+    setFormData(updatedData);
 
     // Clear error for this question
     if (errors[questionId]) {
@@ -102,8 +143,7 @@ export function QuestionnaireForm() {
       return;
     }
 
-    // If we're on the last trunk question (q5), we might need sector selection
-    // For now, we'll proceed to leaves if no sector is selected
+    // Move to next step or submit if on last step
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
     } else {

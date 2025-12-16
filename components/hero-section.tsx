@@ -52,7 +52,7 @@ export function HeroSection() {
                   size="lg"
                   className="bg-card text-primary hover:bg-card/90 font-medium"
                 >
-                  <Link href="#contact">Start a project</Link>
+                  <Link href="/questionnaire">Start a project</Link>
                 </Button>
                 <Button
                   asChild

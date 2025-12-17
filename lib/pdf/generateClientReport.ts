@@ -112,9 +112,10 @@ export async function generateHtmlTemplate(data: ReportData): Promise<string> {
   // Get base URL for images (works in both local and production)
   // In production, this will be https://rockywebstudio.com.au
   // For Puppeteer, we need full URLs, not relative paths
+  // In local dev, use localhost:3000 if NEXT_PUBLIC_URL is not set
   const baseUrl = process.env.NEXT_PUBLIC_URL 
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-    || "https://rockywebstudio.com.au";
+    || (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://rockywebstudio.com.au");
 
   const replacements: Record<string, string> = {
     CLIENT_NAME: escapeHtml(data.clientName),
@@ -201,6 +202,19 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
         setTimeout(() => reject(new Error("PDF generation timeout after 25 seconds")), 25_000)
       ),
     ]);
+
+    // DEV-ONLY: Write PDF to disk for local testing
+    if (process.env.NODE_ENV !== "production" && process.env.DEBUG_PDF === "true") {
+      try {
+        const { writeFileSync } = await import("node:fs");
+        const testPdfPath = path.join(process.cwd(), "test-report.pdf");
+        writeFileSync(testPdfPath, Buffer.from(pdfBuffer));
+        console.log(`[DEV] PDF written to disk for inspection: ${testPdfPath}`);
+      } catch (writeError) {
+        // Ignore write errors in dev
+        console.warn("[DEV] Failed to write test PDF:", writeError);
+      }
+    }
 
     return pdfBuffer;
   } catch (error) {

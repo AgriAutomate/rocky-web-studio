@@ -19,6 +19,20 @@ const RESEND_FROM = "noreply@rockywebstudio.com.au";
 /**
  * Handle questionnaire submissions and orchestrate report generation,
  * storage, and email delivery.
+ *
+ * PDF ATTACHMENT CONDITIONS:
+ * - SUCCESS (PDF attached): pdfBase64 is non-empty string → attachment included in email
+ * - NO ATTACHMENT: pdfBase64 is null/empty → email sent without PDF (form still succeeds)
+ * - ERROR: Resend API throws → email not sent, but request continues (form still succeeds)
+ *
+ * LOGGING BRANCHES:
+ * - Success with PDF: logs "Email sent successfully with PDF attachment" with size estimate
+ * - Success without PDF: logs "Email sent successfully without PDF attachment" with reason
+ * - Failure: logs "Resend email send failed" with full error object (name, message, stack, response data)
+ *
+ * DEV-ONLY FEATURES:
+ * - Sanitized Resend payload logging (attachments metadata without full base64)
+ * - PDF file write to disk when DEBUG_PDF=true (for local inspection)
  */
 export async function POST(request: NextRequest) {
   const start = Date.now();
@@ -192,6 +206,24 @@ export async function POST(request: NextRequest) {
           pdfBase64IsNull: pdfBase64 === null,
           pdfBase64IsEmpty: pdfBase64 === "",
           pdfBase64Length: pdfBase64?.length ?? 0,
+        });
+      }
+
+      // DEV-ONLY: Log sanitized Resend payload for local testing
+      if (process.env.NODE_ENV !== "production") {
+        const attachmentMeta = emailOptions.attachments?.map((a) => ({
+          filename: a.filename,
+          contentType: a.contentType,
+          contentLength: typeof a.content === "string" ? a.content.length : 0,
+          contentPreview: typeof a.content === "string" ? a.content.substring(0, 50) + "..." : "N/A",
+        }));
+        console.log("[DEV] Resend email options (sanitized)", {
+          from: emailOptions.from,
+          to: emailOptions.to,
+          subject: emailOptions.subject,
+          hasAttachments: !!emailOptions.attachments?.length,
+          attachmentsCount: emailOptions.attachments?.length ?? 0,
+          attachments: attachmentMeta,
         });
       }
 

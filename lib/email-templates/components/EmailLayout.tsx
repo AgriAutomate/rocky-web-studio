@@ -64,10 +64,17 @@ export function EmailLayout({
               Veteran-Owned Business Certified
             </Text>
             <Text style={styles.avobText}>
-              Rocky Web Studio is a certified Australian Veteran Owned Business.
+              Rocky Web Studio is a{" "}
+              <Link
+                href="https://www.avob.org.au/"
+                style={styles.avobLink}
+              >
+                certified Australian Veteran Owned Business
+              </Link>
+              .
             </Text>
             <Link
-              href="https://avob.org.au"
+              href="https://www.avob.org.au/"
               style={styles.avobLink}
             >
               Verify Our Certification →

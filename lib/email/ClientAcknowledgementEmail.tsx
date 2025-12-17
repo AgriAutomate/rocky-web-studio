@@ -125,7 +125,12 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
                 style={{ display: "inline-block" }}
               />
               <Text style={{ ...footerText, marginTop: 8 }}>
-                Certified Australian Veteran Owned Business
+                <Link
+                  href="https://www.avob.org.au/"
+                  style={link}
+                >
+                  Certified Australian Veteran Owned Business
+                </Link>
               </Text>
             </Section>
           </Section>

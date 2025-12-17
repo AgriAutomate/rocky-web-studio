@@ -35,7 +35,7 @@ export function VeteranOwnedCallout() {
             </li>
           </ul>
           <a
-            href="https://avob.org.au"
+            href="https://www.avob.org.au/"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm font-semibold text-brand-soft underline decoration-brand-soft decoration-2 underline-offset-4 hover:text-background transition-colors"

@@ -41,7 +41,7 @@ export function AVOBBadge({
   if (link) {
     return (
       <Link
-        href="https://avob.org.au"
+        href="https://www.avob.org.au/"
         target="_blank"
         rel="noopener noreferrer"
         title="Verify Rocky Web Studio's AVOB certification"

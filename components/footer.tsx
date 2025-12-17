@@ -30,12 +30,19 @@ export function Footer() {
         {/* AVOB Certification Section */}
         <div className="flex flex-col items-center gap-4 border-t border-background/20 pt-6">
           <p className="text-sm text-background/70">
-            Certified Australian Veteran Owned Business
+            <a
+              href="https://www.avob.org.au/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              Certified Australian Veteran Owned Business
+            </a>
           </p>
           <AVOBBadge variant="standard" size="small" link={true} />
           <p className="text-xs text-background/60">
             <a
-              href="https://avob.org.au"
+              href="https://www.avob.org.au/"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-brand-soft underline transition-colors"

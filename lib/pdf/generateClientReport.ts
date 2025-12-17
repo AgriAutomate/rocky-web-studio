@@ -109,12 +109,23 @@ export async function generateHtmlTemplate(data: ReportData): Promise<string> {
     throw error;
   }
 
+  // Get base URL for images (works in both local and production)
+  // In production, this will be https://rockywebstudio.com.au
+  // For Puppeteer, we need full URLs, not relative paths
+  const baseUrl = process.env.NEXT_PUBLIC_URL 
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+    || "https://rockywebstudio.com.au";
+
   const replacements: Record<string, string> = {
     CLIENT_NAME: escapeHtml(data.clientName),
     BUSINESS_NAME: escapeHtml(data.businessName),
     SECTOR: escapeHtml(data.sector),
     GENERATED_DATE: escapeHtml(data.generatedDate),
     CHALLENGES_HTML: renderChallengesSections(data.topChallenges),
+    // Image URLs - use full URLs for Puppeteer compatibility
+    RWS_LOGO_URL: `${baseUrl}/images/rws-logo.png`,
+    AVOB_BADGE_URL: `${baseUrl}/images/avob/AVOB_DF.png`, // Existing badge
+    AVOB_LOGO_URL: `${baseUrl}/images/avob-logo-transparent.png`, // New logo in footer
   };
 
   let html = template;

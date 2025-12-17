@@ -57,31 +57,75 @@ export async function storeQuestionnaireResponse(
   try {
     const supabase = createServerSupabaseClient(true);
     
-    const insertPayload = {
+    // Validate required fields before attempting insert
+    const requiredFields = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      businessName: formData.businessName,
+      businessEmail: formData.businessEmail,
+      businessPhone: formData.businessPhone,
+      sector: formData.sector,
+      employeeCount: formData.employeeCount,
+      selectedPainPoints: formData.selectedPainPoints,
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value || (Array.isArray(value) && value.length === 0))
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      await logger.error("Missing required fields for Supabase insert", {
+        clientId,
+        businessName: formData.businessName,
+        missingFields,
+      });
+      return null;
+    }
+
+    const insertPayload: Record<string, any> = {
       // Optional external reference for the client/report
-      client_id: clientId ?? undefined,
       first_name: formData.firstName,
       last_name: formData.lastName,
       business_name: formData.businessName,
       business_email: formData.businessEmail,
       business_phone: formData.businessPhone,
       sector: formData.sector,
-      annual_revenue: formData.annualRevenue,
       employee_count: formData.employeeCount,
       pain_points: formData.selectedPainPoints,
-      budget_range: formData.budget,
-      timeline: formData.timelineToImplement,
-      pdf_url: pdfUrl,
-      pdf_generated_at: pdfGeneratedAt ?? null,
-      // email_sent_at is set later by updateEmailSentTimestamp
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     };
+
+    // Add optional fields only if they have values
+    if (clientId) {
+      insertPayload.client_id = clientId;
+    }
+    if (formData.annualRevenue) {
+      insertPayload.annual_revenue = formData.annualRevenue;
+    }
+    if (formData.budget) {
+      insertPayload.budget_range = formData.budget;
+    }
+    if (formData.timelineToImplement) {
+      insertPayload.timeline = formData.timelineToImplement;
+    }
+    if (pdfUrl) {
+      insertPayload.pdf_url = pdfUrl;
+    }
+    if (pdfGeneratedAt) {
+      insertPayload.pdf_generated_at = pdfGeneratedAt;
+    }
 
     await logger.info("Attempting to store questionnaire response", {
       clientId,
       businessName: formData.businessName,
       hasPdfUrl: !!pdfUrl,
+      payloadKeys: Object.keys(insertPayload),
+      payloadPreview: {
+        first_name: insertPayload.first_name,
+        business_name: insertPayload.business_name,
+        business_email: insertPayload.business_email,
+        sector: insertPayload.sector,
+        pain_points_count: Array.isArray(insertPayload.pain_points) ? insertPayload.pain_points.length : 0,
+      },
     });
 
     const { data, error } = await (supabase as any)
@@ -98,7 +142,9 @@ export async function storeQuestionnaireResponse(
         errorHint: error.hint,
         clientId,
         businessName: formData.businessName,
+        businessEmail: formData.businessEmail,
         insertPayloadKeys: Object.keys(insertPayload),
+        fullError: JSON.stringify(error),
       });
       return null;
     }
@@ -107,20 +153,24 @@ export async function storeQuestionnaireResponse(
       await logger.error("Supabase insert returned no data object", {
         clientId,
         businessName: formData.businessName,
-        error: error ? error.message : "No error but no data",
+        hasError: !!error,
+        errorMessage: error?.message,
       });
       return null;
     }
 
-    // Handle both possible ID field names (id or the table's primary key)
-    const recordId = data.id || data[0]?.id || null;
+    // Extract ID - Supabase returns { id: ... } when using .single()
+    const recordId = data?.id;
 
     if (!recordId) {
       await logger.error("Supabase insert succeeded but returned no ID", {
         clientId,
         businessName: formData.businessName,
-        dataStructure: JSON.stringify(data),
-        dataKeys: Object.keys(data || {}),
+        dataType: typeof data,
+        dataIsArray: Array.isArray(data),
+        dataStructure: JSON.stringify(data, null, 2),
+        dataKeys: data ? Object.keys(data) : [],
+        rawData: data,
       });
       return null;
     }
@@ -129,6 +179,7 @@ export async function storeQuestionnaireResponse(
       clientId,
       storedId: recordId,
       businessName: formData.businessName,
+      businessEmail: formData.businessEmail,
     });
 
     return String(recordId); // Ensure we return a string
@@ -139,6 +190,7 @@ export async function storeQuestionnaireResponse(
       errorStack: err instanceof Error ? err.stack : undefined,
       clientId,
       businessName: formData.businessName,
+      businessEmail: formData.businessEmail,
     });
     return null;
   }

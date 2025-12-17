@@ -56,28 +56,37 @@ export async function storeQuestionnaireResponse(
 ): Promise<string | null> {
   try {
     const supabase = createServerSupabaseClient(true);
+    
+    const insertPayload = {
+      // Optional external reference for the client/report
+      client_id: clientId ?? undefined,
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      business_name: formData.businessName,
+      business_email: formData.businessEmail,
+      business_phone: formData.businessPhone,
+      sector: formData.sector,
+      annual_revenue: formData.annualRevenue,
+      employee_count: formData.employeeCount,
+      pain_points: formData.selectedPainPoints,
+      budget_range: formData.budget,
+      timeline: formData.timelineToImplement,
+      pdf_url: pdfUrl,
+      pdf_generated_at: pdfGeneratedAt ?? null,
+      // email_sent_at is set later by updateEmailSentTimestamp
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    await logger.info("Attempting to store questionnaire response", {
+      clientId,
+      businessName: formData.businessName,
+      hasPdfUrl: !!pdfUrl,
+    });
+
     const { data, error } = await (supabase as any)
       .from("questionnaire_responses")
-      .insert({
-        // Optional external reference for the client/report
-        client_id: clientId ?? undefined,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        business_name: formData.businessName,
-        business_email: formData.businessEmail,
-        business_phone: formData.businessPhone,
-        sector: formData.sector,
-        annual_revenue: formData.annualRevenue,
-        employee_count: formData.employeeCount,
-        pain_points: formData.selectedPainPoints,
-        budget_range: formData.budget,
-        timeline: formData.timelineToImplement,
-        pdf_url: pdfUrl,
-        pdf_generated_at: pdfGeneratedAt ?? null,
-        // email_sent_at is set later by updateEmailSentTimestamp
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select("id")
       .single();
 
@@ -87,25 +96,49 @@ export async function storeQuestionnaireResponse(
         errorCode: error.code,
         errorDetails: error.details,
         errorHint: error.hint,
-        formDataKeys: Object.keys(formData),
+        clientId,
+        businessName: formData.businessName,
+        insertPayloadKeys: Object.keys(insertPayload),
       });
       return null;
     }
 
-    if (!data || !data.id) {
+    if (!data) {
+      await logger.error("Supabase insert returned no data object", {
+        clientId,
+        businessName: formData.businessName,
+        error: error ? error.message : "No error but no data",
+      });
+      return null;
+    }
+
+    // Handle both possible ID field names (id or the table's primary key)
+    const recordId = data.id || data[0]?.id || null;
+
+    if (!recordId) {
       await logger.error("Supabase insert succeeded but returned no ID", {
-        data,
-        formDataKeys: Object.keys(formData),
+        clientId,
+        businessName: formData.businessName,
+        dataStructure: JSON.stringify(data),
+        dataKeys: Object.keys(data || {}),
       });
       return null;
     }
 
-    return data.id;
+    await logger.info("Successfully stored questionnaire response", {
+      clientId,
+      storedId: recordId,
+      businessName: formData.businessName,
+    });
+
+    return String(recordId); // Ensure we return a string
   } catch (err) {
     await logger.error("Unexpected error storing questionnaire response in Supabase", { 
       error: String(err),
       errorMessage: err instanceof Error ? err.message : String(err),
       errorStack: err instanceof Error ? err.stack : undefined,
+      clientId,
+      businessName: formData.businessName,
     });
     return null;
   }

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import puppeteer, { Browser } from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import { logError } from "@/lib/utils/logger";
 
 /**
@@ -142,44 +143,26 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
   try {
     const html = await generateHtmlTemplate(reportData);
 
-    // Configure Puppeteer for Vercel/serverless environments
+    // Configure Puppeteer for Vercel/serverless environments using @sparticuz/chromium
+    // This package provides a pre-built Chromium binary optimized for serverless
+    const chromiumArgs = (chromium as any).args || [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process",
+      "--disable-gpu",
+    ];
+    
     const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
-        "--single-process", // Important for serverless
-        "--disable-gpu",
-      ],
+      args: chromiumArgs,
+      defaultViewport: (chromium as any).defaultViewport || { width: 1200, height: 1600 },
+      executablePath: await chromium.executablePath(),
+      headless: (chromium as any).headless !== false ? true : false,
       timeout: 30_000, // Increased timeout for cold starts
     };
-
-    // On Vercel, use the Chrome executable from environment if available
-    if (process.env.CHROME_EXECUTABLE_PATH) {
-      launchOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
-    } else if (process.env.VERCEL) {
-      // Vercel provides Chrome at a specific path
-      // Try common Vercel Chrome paths
-      const possiblePaths = [
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium",
-        "/usr/bin/chromium-browser",
-      ];
-      for (const chromePath of possiblePaths) {
-        try {
-          const { access } = await import("node:fs/promises");
-          await access(chromePath);
-          launchOptions.executablePath = chromePath;
-          break;
-        } catch {
-          // Path doesn't exist, try next
-        }
-      }
-    }
 
     browser = await puppeteer.launch(launchOptions);
 
@@ -210,12 +193,19 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
 
     return pdfBuffer;
   } catch (error) {
+    let chromiumPath = "not available";
+    try {
+      chromiumPath = await chromium.executablePath();
+    } catch {
+      // Ignore error getting path
+    }
+    
     await logError("Failed to generate PDF report", error, {
       clientName: reportData.clientName,
       businessName: reportData.businessName,
       sector: reportData.sector,
       vercel: process.env.VERCEL,
-      chromePath: process.env.CHROME_EXECUTABLE_PATH,
+      chromiumExecutablePath: chromiumPath,
     });
     throw error;
   } finally {

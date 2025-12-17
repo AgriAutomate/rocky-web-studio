@@ -277,14 +277,53 @@ export function QuestionnaireForm() {
     return ["digital-transformation"]; // default fallback
   };
 
-  const mapGoalToApiFormat = (goal: any): string => {
+  const mapGoalToApiFormat = (goals: any): string => {
+    // Map new goal values to API enum values
+    // q3 is now a checkbox array, so handle both array and single string (for backwards compatibility)
     const goalMap: Record<string, string> = {
+      "reduce-operating-costs": "efficiency",
+      "increase-online-visibility": "growth",
+      "improve-digital-maturity": "innovation",
+      "enhance-customer-experience": "growth",
+      "streamline-operations": "efficiency",
+      "grow-revenue-ecommerce": "growth",
+      "better-security": "compliance",
+      "simplify-marketing": "growth",
+      "build-trust-professionalism": "growth",
+      "access-grants-support": "innovation",
+      // Legacy mappings for backwards compatibility
       "reduce-costs": "efficiency",
       "win-customers": "growth",
       "modernise": "innovation",
       "other": "multiple",
     };
-    return goalMap[goal] || "growth";
+    
+    // Handle array (checkbox selection)
+    if (Array.isArray(goals) && goals.length > 0) {
+      // Map all selected goals and pick the first one (or use priority logic)
+      // Priority: growth > innovation > efficiency > compliance > multiple
+      const priority = ["growth", "innovation", "efficiency", "compliance", "multiple"];
+      const mapped = goals
+        .map((goal) => goalMap[goal])
+        .filter((mapped) => mapped !== undefined);
+      
+      if (mapped.length > 0) {
+        // Return the highest priority goal
+        for (const p of priority) {
+          if (mapped.includes(p)) {
+            return p;
+          }
+        }
+        return mapped[0] ?? "growth"; // Fallback to first mapped
+      }
+    }
+    
+    // Handle single string (backwards compatibility)
+    if (typeof goals === "string") {
+      return goalMap[goals] || "growth";
+    }
+    
+    return "growth"; // default fallback
   };
 
   const mapBudgetToApiFormat = (budget: any): string => {
@@ -454,7 +493,7 @@ export function QuestionnaireForm() {
         ) : null}
         {renderQuestionInput()}
         {"outroText" in currentQuestion && currentQuestion.outroText ? (
-          <p className="text-sm text-muted-foreground">{currentQuestion.outroText}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-line">{currentQuestion.outroText}</p>
         ) : null}
       </div>
 

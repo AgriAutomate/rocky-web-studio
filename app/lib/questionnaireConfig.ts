@@ -78,16 +78,26 @@ export const QUESTION_SETS: QuestionSet[] = [
       { id: "q2", type: "text", label: "Website or social link", required: false },
       {
         id: "q3",
-        type: "radio",
+        type: "checkbox",
         label: "What are your goals?",
         required: true,
-        validation: required,
+        validation: (v) => Array.isArray(v) && v.length > 0,
+        introText:
+          "Here are the top ten common goals among Central Queensland SMEs that Rocky Web Studio can address, based on recent regional trends and business challenges:",
         options: [
-          { value: "reduce-costs", label: "Reduce costs and improve profitability" },
-          { value: "win-customers", label: "Win more customers and grow revenue" },
-          { value: "modernise", label: "Modernise and digitise operations" },
-          { value: "other", label: "Something Else" },
+          { value: "reduce-operating-costs", label: "1. Reduce Operating Costs — Many SMEs seek ways to cut expenses—especially in energy, marketing, and labor. Web solutions that improve efficiency and automate tasks help lower costs." },
+          { value: "increase-online-visibility", label: "2. Increase Online Visibility & Lead Generation — A major goal is getting more customers through digital channels. SEO, website optimization, and lead capture tools are key solutions." },
+          { value: "improve-digital-maturity", label: "3. Improve Digital Maturity — Businesses want better online systems for operations, sales, and customer engagement. Websites, booking systems, and digital payments are in high demand." },
+          { value: "enhance-customer-experience", label: "4. Enhance Customer Experience — Offering seamless, mobile-friendly experiences is a top priority. SMEs are investing in better websites, online forms, and chatbots." },
+          { value: "streamline-operations", label: "5. Streamline Operations with Automation — Automation tools for bookings, quotes, and workflows save time and reduce errors for busy businesses." },
+          { value: "grow-revenue-ecommerce", label: "6. Grow Revenue Through E-commerce — Expanding online sales—especially for retail and hospitality—is a major goal. Shopify and Stripe integrations are highly valued." },
+          { value: "better-security", label: "7. Better Security & Cyber Protection — SMEs are increasingly concerned about cyber threats. Secure website hosting and payment systems are critical." },
+          { value: "simplify-marketing", label: "8. Simplify Marketing & Social Media Management — Many SMEs want easier ways to promote themselves online, including integrated social media tools and marketing automation." },
+          { value: "build-trust-professionalism", label: "9. Build Trust & Professionalism Online — Having a professional website with testimonials, bios, and case studies helps SMEs compete and win more clients." },
+          { value: "access-grants-support", label: "10. Access Grants & Support for Digital Upgrades — Many SMEs are interested in government grants and programs for digital transformation. Providing guidance and access to these opportunities adds value." },
         ],
+        outroText:
+          "How Rocky Web Studio Addresses These Goals\n\n• Website & CMS: Builds professional, SEO-optimized sites for every industry.\n• E-commerce: Integrates Stripe or Shopify for secure online sales.\n• Automation: Implements chatbots, booking, and lead capture tools.\n• Support & Training: Guides SMEs on grant applications and best practices.\n• Security: Ensures safe, modern hosting and payment systems.\n\nThese goals reflect the most urgent priorities for CQ SMEs, and Rocky Web Studio's services are well-suited to address each one.",
       },
       {
         id: "q4",

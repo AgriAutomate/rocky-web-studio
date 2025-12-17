@@ -142,15 +142,55 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
   try {
     const html = await generateHtmlTemplate(reportData);
 
-    browser = await puppeteer.launch({
+    // Configure Puppeteer for Vercel/serverless environments
+    const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      timeout: 15_000,
-    });
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process", // Important for serverless
+        "--disable-gpu",
+      ],
+      timeout: 30_000, // Increased timeout for cold starts
+    };
+
+    // On Vercel, use the Chrome executable from environment if available
+    if (process.env.CHROME_EXECUTABLE_PATH) {
+      launchOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
+    } else if (process.env.VERCEL) {
+      // Vercel provides Chrome at a specific path
+      // Try common Vercel Chrome paths
+      const possiblePaths = [
+        "/usr/bin/google-chrome",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+      ];
+      for (const chromePath of possiblePaths) {
+        try {
+          const { access } = await import("node:fs/promises");
+          await access(chromePath);
+          launchOptions.executablePath = chromePath;
+          break;
+        } catch {
+          // Path doesn't exist, try next
+        }
+      }
+    }
+
+    browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 1600 });
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    
+    // Use a more lenient wait condition for serverless
+    await page.setContent(html, { 
+      waitUntil: "domcontentloaded", // Changed from networkidle0 for faster loading
+      timeout: 10_000,
+    });
 
     const pdfBuffer = await Promise.race([
       page.pdf({
@@ -164,7 +204,7 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
         },
       }),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("PDF generation timeout")), 15_000)
+        setTimeout(() => reject(new Error("PDF generation timeout after 25 seconds")), 25_000)
       ),
     ]);
 
@@ -174,6 +214,8 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
       clientName: reportData.clientName,
       businessName: reportData.businessName,
       sector: reportData.sector,
+      vercel: process.env.VERCEL,
+      chromePath: process.env.CHROME_EXECUTABLE_PATH,
     });
     throw error;
   } finally {

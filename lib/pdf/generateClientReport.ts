@@ -151,13 +151,32 @@ export async function generateHtmlTemplate(data: ReportData): Promise<string> {
  */
 export async function generatePdfReport(reportData: ReportData): Promise<Uint8Array> {
   let browser: Browser | null = null;
+  const isProd = process.env.NODE_ENV === "production";
+  const isDev = !isProd;
 
   try {
     const html = await generateHtmlTemplate(reportData);
 
-    // Configure Puppeteer for Vercel/serverless environments using @sparticuz/chromium
-    // This package provides a pre-built Chromium binary optimized for serverless
-    const chromiumArgs = (chromium as any).args || [
+    // Base launch options shared between environments
+    const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process",
+        "--disable-gpu",
+      ],
+      timeout: 30_000, // Increased timeout for cold starts
+    };
+
+    if (isProd) {
+      // PRODUCTION: Configure Puppeteer for Vercel/serverless environments using @sparticuz/chromium.
+      // This package provides a pre-built Chromium binary optimized for serverless.
+      const chromiumArgs = (chromium as any).args || launchOptions.args || [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
@@ -167,14 +186,35 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
       "--single-process",
       "--disable-gpu",
     ];
-    
-    const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
-      args: chromiumArgs,
-      defaultViewport: (chromium as any).defaultViewport || { width: 1200, height: 1600 },
-      executablePath: await chromium.executablePath(),
-      headless: (chromium as any).headless !== false ? true : false,
-      timeout: 30_000, // Increased timeout for cold starts
-    };
+      launchOptions.args = chromiumArgs;
+      launchOptions.defaultViewport = (chromium as any).defaultViewport || { width: 1200, height: 1600 };
+      launchOptions.executablePath = await chromium.executablePath();
+      launchOptions.headless = (chromium as any).headless !== false ? true : false;
+    } else if (isDev) {
+      // DEVELOPMENT: Use a locally installed Chrome/Edge via CHROME_EXECUTABLE_PATH.
+      // This avoids relying on a temporary chromium binary that may not exist on Windows.
+      const localExecutable = process.env.CHROME_EXECUTABLE_PATH;
+
+      if (!localExecutable) {
+        throw new Error(
+          "CHROME_EXECUTABLE_PATH is not set. " +
+            "In development, set CHROME_EXECUTABLE_PATH in .env.local to your local Chrome/Edge executable, " +
+            'e.g. CHROME_EXECUTABLE_PATH="C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe".'
+        );
+      }
+
+      launchOptions.executablePath = localExecutable;
+      // Reasonable default viewport for local dev
+      launchOptions.defaultViewport = { width: 1200, height: 1600 };
+    }
+
+    // DEV‑ONLY: Log launch options to help debug local PDF issues
+    if (!isProd) {
+      await logError("Puppeteer launch options (dev/prod)", null, {
+        isProd,
+        executablePath: launchOptions.executablePath,
+      });
+    }
 
     browser = await puppeteer.launch(launchOptions);
 
@@ -218,13 +258,16 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
 
     return pdfBuffer;
   } catch (error) {
-    let chromiumPath = "not available";
-    try {
-      chromiumPath = await chromium.executablePath();
-    } catch {
-      // Ignore error getting path
+    let chromiumPath = "not used in development";
+    if (isProd) {
+      chromiumPath = "not available";
+      try {
+        chromiumPath = await chromium.executablePath();
+      } catch {
+        // Ignore error getting path
+      }
     }
-    
+
     await logError("Failed to generate PDF report", error, {
       clientName: reportData.clientName,
       businessName: reportData.businessName,

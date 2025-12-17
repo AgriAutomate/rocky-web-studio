@@ -279,13 +279,13 @@ export async function POST(request: NextRequest) {
 
     // STEP 6: STORE IN SUPABASE (non-blocking best-effort, but we await to catch errors)
     const storedId = await storeQuestionnaireResponse(
-      formData, 
-      pdfUrl, 
-      clientId, 
+      formData,
+      pdfUrl,
+      clientId,
       pdfGeneratedAt ?? undefined
     ).catch(async (err) => {
-      await logger.error("storeQuestionnaireResponse failed", { 
-        error: String(err), 
+      await logger.error("storeQuestionnaireResponse failed", {
+        error: String(err),
         errorMessage: err instanceof Error ? err.message : String(err),
         clientId,
         businessName: formData.businessName,
@@ -293,19 +293,31 @@ export async function POST(request: NextRequest) {
       return null;
     });
 
-    if (storedId && pdfGeneratedAt) {
-      await updateEmailSentTimestamp(storedId, pdfGeneratedAt).catch((err) => {
-        void logger.error("updateEmailSentTimestamp failed", { 
-          error: String(err), 
-          clientId: storedId 
-        });
-      });
-    } else {
+    if (!storedId) {
+      // Supabase insert failed or returned no ID – this is a real error.
       await logger.error("Failed to store questionnaire response - storedId is null", {
         clientId,
         businessName: formData.businessName,
         businessEmail: formData.businessEmail,
+        hasPdf: !!pdfUrl,
       });
+    } else {
+      // We successfully stored the record.
+      if (pdfGeneratedAt) {
+        await updateEmailSentTimestamp(storedId, pdfGeneratedAt).catch((err) => {
+          void logger.error("updateEmailSentTimestamp failed", {
+            error: String(err),
+            clientId: storedId,
+          });
+        });
+      } else {
+        // PDF was missing or failed, but the questionnaire itself is stored.
+        await logger.info("Stored questionnaire without PDF timestamp (PDF missing or failed)", {
+          storedId,
+          businessName: formData.businessName,
+          businessEmail: formData.businessEmail,
+        });
+      }
     }
 
     // STEP 7: RETURN RESPONSE (50ms)

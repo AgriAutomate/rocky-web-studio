@@ -244,8 +244,9 @@ export function QuestionnaireForm() {
     return sectorMap[sector] || "other";
   };
 
-  const mapChallengesToPainPoints = (challenge: any): string[] => {
+  const mapChallengesToPainPoints = (challenges: any): string[] => {
     // Map q4 challenge values to API pain point enum
+    // q4 is now a checkbox array, so handle both array and single string (for backwards compatibility)
     const challengeMap: Record<string, string> = {
       "operating-costs": "high-operating-costs",
       "cash-flow": "cash-flow-strain",
@@ -259,11 +260,20 @@ export function QuestionnaireForm() {
       "leadership-strategy": "lack-of-leadership",
     };
     
-    // q4 is a single radio value, convert to array
-    if (typeof challenge === "string") {
-      const mapped = challengeMap[challenge];
+    // Handle array (checkbox selection)
+    if (Array.isArray(challenges)) {
+      const mapped = challenges
+        .map((challenge) => challengeMap[challenge])
+        .filter((mapped) => mapped !== undefined);
+      return mapped.length > 0 ? mapped : ["digital-transformation"]; // default fallback
+    }
+    
+    // Handle single string (backwards compatibility)
+    if (typeof challenges === "string") {
+      const mapped = challengeMap[challenges];
       return mapped ? [mapped] : ["digital-transformation"]; // default fallback
     }
+    
     return ["digital-transformation"]; // default fallback
   };
 

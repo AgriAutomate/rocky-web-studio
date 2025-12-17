@@ -91,10 +91,10 @@ export const QUESTION_SETS: QuestionSet[] = [
       },
       {
         id: "q4",
-        type: "radio",
+        type: "checkbox",
         label: "Biggest challenges right now?",
         required: true,
-        validation: required,
+        validation: (v) => Array.isArray(v) && v.length > 0,
         introText:
           "The 10 biggest challenges for businesses in Central Queensland—and the types we can assist with—are:",
         options: [

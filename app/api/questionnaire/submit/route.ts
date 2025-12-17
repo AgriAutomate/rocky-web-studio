@@ -108,19 +108,31 @@ export async function POST(request: NextRequest) {
       await logger.error("Resend email send failed", { error: String(emailError), clientId });
     }
 
-    // STEP 6: STORE IN SUPABASE (non-blocking best-effort)
-    void (async () => {
-      const storedId = await storeQuestionnaireResponse(formData, pdfUrl, clientId, pdfGeneratedAt).catch((err) => {
-        void logger.error("storeQuestionnaireResponse threw", { error: String(err) });
-        return null;
+    // STEP 6: STORE IN SUPABASE (non-blocking best-effort, but we await to catch errors)
+    const storedId = await storeQuestionnaireResponse(formData, pdfUrl, clientId, pdfGeneratedAt).catch(async (err) => {
+      await logger.error("storeQuestionnaireResponse failed", { 
+        error: String(err), 
+        errorMessage: err instanceof Error ? err.message : String(err),
+        clientId,
+        businessName: formData.businessName,
       });
+      return null;
+    });
 
-      if (storedId) {
-        await updateEmailSentTimestamp(storedId, pdfGeneratedAt).catch((err) => {
-          void logger.error("updateEmailSentTimestamp threw", { error: String(err), clientId: storedId });
+    if (storedId) {
+      await updateEmailSentTimestamp(storedId, pdfGeneratedAt).catch((err) => {
+        void logger.error("updateEmailSentTimestamp failed", { 
+          error: String(err), 
+          clientId: storedId 
         });
-      }
-    })();
+      });
+    } else {
+      await logger.error("Failed to store questionnaire response - storedId is null", {
+        clientId,
+        businessName: formData.businessName,
+        businessEmail: formData.businessEmail,
+      });
+    }
 
     // STEP 7: RETURN RESPONSE (50ms)
     const durationMs = Date.now() - start;

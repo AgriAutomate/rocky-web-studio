@@ -50,8 +50,21 @@ export function getSupabaseBrowserClient(): SupabaseClient<Database> {
  * Can optionally use service role key for admin operations
  */
 export function createServerSupabaseClient(useServiceRole = false) {
-  const { supabaseUrl, supabaseAnonKey } = getPublicSupabaseEnv();
+  // When using service role, prefer SUPABASE_URL from lib/env.ts, otherwise fall back to NEXT_PUBLIC_SUPABASE_URL
+  const supabaseUrl = useServiceRole 
+    ? (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)
+    : process.env.NEXT_PUBLIC_SUPABASE_URL;
+  
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const key = useServiceRole ? process.env.SUPABASE_SERVICE_ROLE_KEY : supabaseAnonKey;
+
+  if (!supabaseUrl) {
+    throw new Error(
+      useServiceRole
+        ? "Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL environment variable"
+        : "Missing NEXT_PUBLIC_SUPABASE_URL environment variable"
+    );
+  }
 
   if (!key) {
     throw new Error(

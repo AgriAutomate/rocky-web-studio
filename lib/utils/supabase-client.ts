@@ -82,13 +82,31 @@ export async function storeQuestionnaireResponse(
       .single();
 
     if (error) {
-      await logger.error("Failed to store questionnaire response in Supabase", { error: error.message });
+      await logger.error("Failed to store questionnaire response in Supabase", { 
+        error: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        formDataKeys: Object.keys(formData),
+      });
       return null;
     }
 
-    return data?.id ?? null;
+    if (!data || !data.id) {
+      await logger.error("Supabase insert succeeded but returned no ID", {
+        data,
+        formDataKeys: Object.keys(formData),
+      });
+      return null;
+    }
+
+    return data.id;
   } catch (err) {
-    await logger.error("Unexpected error storing questionnaire response in Supabase", { error: String(err) });
+    await logger.error("Unexpected error storing questionnaire response in Supabase", { 
+      error: String(err),
+      errorMessage: err instanceof Error ? err.message : String(err),
+      errorStack: err instanceof Error ? err.stack : undefined,
+    });
     return null;
   }
 }

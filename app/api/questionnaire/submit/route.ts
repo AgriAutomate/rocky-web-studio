@@ -56,28 +56,74 @@ export async function POST(request: NextRequest) {
     };
 
     // STEP 3: GENERATE PDF (8-10 seconds, but don't block on failure)
+    // Conditions that will cause PDF not to be attached:
+    // 1. PDF generation throws an error (caught below)
+    // 2. PDF buffer is empty or null
+    // 3. Base64 conversion fails or produces empty string
     let pdfBuffer: Uint8Array | null = null;
     let pdfBase64: string | null = null;
     let pdfGeneratedAt: string | null = null;
     
+    await logger.info("Starting PDF generation", {
+      clientName: reportData.clientName,
+      businessName: reportData.businessName,
+      sector: reportData.sector,
+    });
+
     try {
       pdfBuffer = await generatePdfReport(reportData);
-      const nodeBuffer = Buffer.from(pdfBuffer);
-      pdfGeneratedAt = new Date().toISOString();
-      pdfBase64 = nodeBuffer.toString("base64");
-      await logger.info("PDF generated successfully", { 
-        size: pdfBuffer.length,
-        clientName: reportData.clientName,
-      });
+      
+      // Verify PDF buffer is non-empty
+      if (!pdfBuffer || pdfBuffer.length === 0) {
+        await logger.error("PDF generation returned empty buffer", {
+          clientName: reportData.clientName,
+          bufferType: typeof pdfBuffer,
+          bufferLength: pdfBuffer?.length ?? 0,
+        });
+        pdfBuffer = null;
+      } else {
+        await logger.info("PDF buffer generated", {
+          bufferLength: pdfBuffer.length,
+          bufferType: pdfBuffer.constructor.name,
+          clientName: reportData.clientName,
+        });
+
+        // Convert to Node Buffer then to base64
+        const nodeBuffer = Buffer.from(pdfBuffer);
+        pdfGeneratedAt = new Date().toISOString();
+        pdfBase64 = nodeBuffer.toString("base64");
+
+        // Verify base64 conversion succeeded
+        if (!pdfBase64 || pdfBase64.length === 0) {
+          await logger.error("Base64 conversion produced empty string", {
+            clientName: reportData.clientName,
+            originalBufferLength: pdfBuffer.length,
+            nodeBufferLength: nodeBuffer.length,
+          });
+          pdfBase64 = null;
+        } else {
+          await logger.info("PDF converted to base64 successfully", {
+            clientName: reportData.clientName,
+            pdfBufferLength: pdfBuffer.length,
+            base64Length: pdfBase64.length,
+            base64Preview: pdfBase64.substring(0, 50) + "...",
+            pdfGeneratedAt,
+          });
+        }
+      }
     } catch (err) {
       // Log error but continue - we'll still store data and send email
       await logger.error("PDF generation failed - continuing without PDF", { 
         error: String(err),
         errorMessage: err instanceof Error ? err.message : String(err),
+        errorStack: err instanceof Error ? err.stack : undefined,
+        errorName: err instanceof Error ? err.name : typeof err,
         clientName: reportData.clientName,
         businessName: reportData.businessName,
       });
       // Don't return error - continue with submission without PDF
+      pdfBuffer = null;
+      pdfBase64 = null;
     }
 
     // STEP 4: UPLOAD PDF TO STORAGE (2-3 seconds, optional - only if PDF was generated)
@@ -93,6 +139,15 @@ export async function POST(request: NextRequest) {
     }
 
     // STEP 5: SEND EMAIL (3-5 seconds)
+    // Email attachment conditions:
+    // - SUCCESS: pdfBase64 is non-empty string → attachment included
+    // - NO ATTACHMENT: pdfBase64 is null/empty → email sent without PDF
+    // - ERROR: Resend API throws → email not sent, but request continues
+    // 
+    // Logging branches:
+    // - Success: logs email sent with attachment metadata (filename, size estimate)
+    // - No PDF: logs email sent without attachment
+    // - Failure: logs full Resend error object (name, message, stack, response data)
     const resend = new Resend(env.RESEND_API_KEY);
     try {
       const emailOptions: Parameters<typeof resend.emails.send>[0] = {
@@ -106,29 +161,88 @@ export async function POST(request: NextRequest) {
         }),
       };
 
-      // Only attach PDF if generation succeeded
-      if (pdfBase64) {
+      // Only attach PDF if generation succeeded and base64 is valid
+      if (pdfBase64 && pdfBase64.length > 0) {
+        // Verify base64 is valid (starts with expected pattern and has reasonable length)
+        const estimatedSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
         emailOptions.attachments = [
           {
             filename: "RockyWebStudio-Deep-Dive-Report.pdf",
-            content: pdfBase64,
-            contentType: "application/pdf",
+            content: pdfBase64, // Must be base64 string, not Buffer
+            contentType: "application/pdf", // Must be exactly "application/pdf"
           },
         ];
+
+        await logger.info("Email options prepared with PDF attachment", {
+          clientId,
+          to: formData.businessEmail,
+          hasAttachment: true,
+          attachmentFilename: "RockyWebStudio-Deep-Dive-Report.pdf",
+          attachmentContentType: "application/pdf",
+          attachmentSizeEstimateBytes: estimatedSizeBytes,
+          attachmentSizeEstimateKB: Math.round(estimatedSizeBytes / 1024),
+          base64Length: pdfBase64.length,
+          base64IsString: typeof pdfBase64 === "string",
+        });
+      } else {
+        await logger.info("Email options prepared without PDF attachment", {
+          clientId,
+          to: formData.businessEmail,
+          hasAttachment: false,
+          pdfBase64IsNull: pdfBase64 === null,
+          pdfBase64IsEmpty: pdfBase64 === "",
+          pdfBase64Length: pdfBase64?.length ?? 0,
+        });
       }
 
       await resend.emails.send(emailOptions);
-      await logger.info("Email sent successfully", { 
-        clientId,
-        hasPdfAttachment: !!pdfBase64,
-      });
+      
+      // Log success with attachment status
+      if (pdfBase64 && pdfBase64.length > 0) {
+        await logger.info("Email sent successfully with PDF attachment", { 
+          clientId,
+          to: formData.businessEmail,
+          hasPdfAttachment: true,
+          attachmentSizeEstimateKB: Math.round((Math.floor((pdfBase64.length * 3) / 4)) / 1024),
+        });
+      } else {
+        await logger.info("Email sent successfully without PDF attachment", {
+          clientId,
+          to: formData.businessEmail,
+          hasPdfAttachment: false,
+          reason: pdfBase64 === null ? "PDF generation failed" : "PDF base64 conversion failed",
+        });
+      }
     } catch (emailError) {
       // Do not fail the overall request; log for manual follow-up.
-      await logger.error("Resend email send failed", { 
+      // Log full error object including Resend-specific response data
+      const errorDetails: Record<string, unknown> = {
         error: String(emailError),
         errorMessage: emailError instanceof Error ? emailError.message : String(emailError),
+        errorName: emailError instanceof Error ? emailError.name : typeof emailError,
+        errorStack: emailError instanceof Error ? emailError.stack : undefined,
         clientId,
-      });
+        to: formData.businessEmail,
+        attemptedWithAttachment: !!pdfBase64,
+      };
+
+      // If it's a Resend API error, extract response data
+      if (emailError && typeof emailError === "object") {
+        const resendError = emailError as any;
+        if (resendError.response) {
+          errorDetails.resendResponseStatus = resendError.response.status;
+          errorDetails.resendResponseStatusText = resendError.response.statusText;
+          errorDetails.resendResponseBody = resendError.response.data || resendError.response.body;
+        }
+        if (resendError.status) {
+          errorDetails.resendStatus = resendError.status;
+        }
+        if (resendError.message) {
+          errorDetails.resendMessage = resendError.message;
+        }
+      }
+
+      await logger.error("Resend email send failed", errorDetails);
     }
 
     // STEP 6: STORE IN SUPABASE (non-blocking best-effort, but we await to catch errors)

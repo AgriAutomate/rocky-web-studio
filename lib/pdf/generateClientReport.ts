@@ -124,9 +124,9 @@ export async function generateHtmlTemplate(data: ReportData): Promise<string> {
     GENERATED_DATE: escapeHtml(data.generatedDate),
     CHALLENGES_HTML: renderChallengesSections(data.topChallenges),
     // Image URLs - use full URLs for Puppeteer compatibility
-    RWS_LOGO_URL: `${baseUrl}/images/rws-logo.png`,
-    AVOB_BADGE_URL: `${baseUrl}/images/avob/AVOB_DF.png`, // Existing badge
-    AVOB_LOGO_URL: `${baseUrl}/images/avob/AVOB_DF.png`, // AVOB logo in footer (using existing badge)
+    RWS_LOGO_URL: `${baseUrl}/images/rws-logo-transparent.png`,
+    AVOB_BADGE_URL: `${baseUrl}/images/avob-logo-transparent.png`, // AVOB badge on cover
+    AVOB_LOGO_URL: `${baseUrl}/images/avob-logo-transparent.png`, // AVOB logo in footer
   };
 
   let html = template;

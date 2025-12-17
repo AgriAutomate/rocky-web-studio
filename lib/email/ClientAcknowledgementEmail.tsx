@@ -47,7 +47,7 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
           {/* Logo */}
           <Section style={logoSection}>
             <Img
-              src="https://rockywebstudio.com.au/images/rws-logo.png"
+              src="https://rockywebstudio.com.au/images/rws-logo-transparent.png"
               alt="Rocky Web Studio"
               width={150}
               style={{ display: "inline-block" }}
@@ -119,7 +119,7 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
 
             <Section style={avobSection}>
               <Img
-                src="https://rockywebstudio.com.au/images/avob-badge.png"
+                src="https://rockywebstudio.com.au/images/avob-logo-transparent.png"
                 alt="Australian Veteran Owned Business"
                 width={80}
                 style={{ display: "inline-block" }}

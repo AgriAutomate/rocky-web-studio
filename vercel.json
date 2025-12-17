@@ -11,6 +11,10 @@
     },
     "app/api/webhooks/stripe/route.ts": {
       "maxDuration": 30
+    },
+    "app/api/questionnaire/submit/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   }
 }

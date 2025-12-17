@@ -126,7 +126,7 @@ export async function generateHtmlTemplate(data: ReportData): Promise<string> {
     // Image URLs - use full URLs for Puppeteer compatibility
     RWS_LOGO_URL: `${baseUrl}/images/rws-logo.png`,
     AVOB_BADGE_URL: `${baseUrl}/images/avob/AVOB_DF.png`, // Existing badge
-    AVOB_LOGO_URL: `${baseUrl}/images/avob-logo-transparent.png`, // New logo in footer
+    AVOB_LOGO_URL: `${baseUrl}/images/avob/AVOB_DF.png`, // AVOB logo in footer (using existing badge)
   };
 
   let html = template;

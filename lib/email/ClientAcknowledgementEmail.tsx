@@ -119,9 +119,10 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
 
             <Section style={avobSection}>
               <Img
-                src="https://rockywebstudio.com.au/images/avob-logo-transparent.png"
+                src="https://rockywebstudio.com.au/images/avob/AVOB_DF.png"
                 alt="Australian Veteran Owned Business"
                 width={80}
+                height={80}
                 style={{ display: "inline-block" }}
               />
               <Text style={{ ...footerText, marginTop: 8 }}>

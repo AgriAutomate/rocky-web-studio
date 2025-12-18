@@ -1,7 +1,5 @@
 import { format, parse, isValid } from "date-fns";
 import { NextRequest } from "next/server";
-import * as React from "react";
-import { Resend } from "resend";
 import type { Booking } from "@/lib/bookings/storage";
 import { kvBookingStorage } from "@/lib/kv/bookings";
 import { sendSMS } from "@/lib/sms";
@@ -16,8 +14,7 @@ import {
   validateMessageLength,
   getServiceSpecificInfo,
 } from "@/lib/sms/messages";
-import { getFromAddress, getReplyToAddress, EMAIL_CONFIG } from "@/lib/email/config";
-import { AdminBookingNotification } from "@/lib/email-templates/AdminBookingNotification";
+import { getFromAddress, getReplyToAddress } from "@/lib/email/config";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const bookingLogger = getLogger("bookings.create");
@@ -40,46 +37,6 @@ interface BookingEmailDetails {
   serviceType: string;
   appointmentDate: Date;
   appointmentTime: string;
-}
-
-async function sendAdminBookingNotification(details: {
-  bookingId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  serviceType: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  message?: string;
-}) {
-  if (!resendApiKey) {
-    bookingLogger.warn("Skipping admin notification — RESEND_API_KEY is not configured.", {
-      bookingId: details.bookingId,
-    });
-    return;
-  }
-
-  try {
-    const resend = new Resend(resendApiKey);
-    
-    await resend.emails.send({
-      from: getFromAddress("notifications"),
-      to: EMAIL_CONFIG.admin,
-      subject: `New Booking: ${details.customerName} - ${details.appointmentDate} at ${details.appointmentTime}`,
-      react: React.createElement(AdminBookingNotification, details),
-    });
-
-    bookingLogger.info("Admin notification sent", {
-      bookingId: details.bookingId,
-      adminEmail: EMAIL_CONFIG.admin,
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    bookingLogger.error("Admin notification email error", {
-      bookingId: details.bookingId,
-      errorMessage: message,
-    }, error);
-  }
 }
 
 async function sendBookingConfirmationEmail(details: BookingEmailDetails) {
@@ -215,14 +172,6 @@ async function handlePost(request: NextRequest, requestId: string) {
       throw new ValidationError("Invalid email format");
     }
 
-    // Check if time slot is still available (prevent double-booking)
-    const isAvailable = await kvBookingStorage.isTimeSlotAvailable(date, time);
-    if (!isAvailable) {
-      throw new ValidationError(
-        `The selected time slot (${time}) is no longer available. Please choose another time.`
-      );
-    }
-
     // Generate bookingId and persist to KV-backed storage
     const bookingId = `BK${Date.now()}`;
 
@@ -266,18 +215,6 @@ async function handlePost(request: NextRequest, requestId: string) {
       serviceType,
       appointmentDate,
       appointmentTime: time,
-    });
-
-    // Send admin notification email
-    await sendAdminBookingNotification({
-      bookingId,
-      customerName: name,
-      customerEmail: email,
-      customerPhone: phone,
-      serviceType,
-      appointmentDate: date,
-      appointmentTime: time,
-      message: body.message,
     });
 
     // Send SMS confirmation if customer opted in

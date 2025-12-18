@@ -23,10 +23,6 @@ export interface ClientAcknowledgementEmailProps {
   businessName: string;
   /** Sector label used to tailor the copy */
   sector: string;
-  /** Contact email for pre-filling booking form */
-  contactEmail?: string;
-  /** Contact name for pre-filling booking form */
-  contactName?: string;
 }
 
 /**
@@ -39,22 +35,7 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
   clientFirstName,
   businessName,
   sector,
-  contactEmail,
-  contactName,
 }) => {
-  // Build booking URL with pre-filled parameters
-  const params = new URLSearchParams();
-  if (contactEmail) {
-    params.set("email", contactEmail);
-  }
-  if (contactName) {
-    params.set("name", contactName);
-  }
-  if (businessName) {
-    params.set("business", businessName);
-  }
-  const bookingUrl = `https://www.rockywebstudio.com.au/book${params.toString() ? `?${params.toString()}` : ""}`;
-  
   const previewText = `Your Custom Deep-Dive Report  ${businessName}`;
 
   return (
@@ -76,7 +57,7 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
           {/* Main heading */}
           <Section>
             <Text style={heading}>Thanks for Completing Your Questionnaire!</Text>
-            <Text style={bodyText}>Hi {clientFirstName || "there"},</Text>
+            <Text style={bodyText}>Hi {clientFirstName},</Text>
             <Text style={bodyText}>
               Thanks for taking the time to complete the Rocky Web Studio discovery questionnaire for
               <strong> {businessName}</strong>. We&rsquo;ve used your responses to prepare a tailored deep-dive report for
@@ -108,7 +89,7 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
           <Section style={ctaSection}>
             <Text style={ctaText}>Ready to discuss your digital future?</Text>
             <Button
-              href={bookingUrl}
+              href="https://calendly.com/martin-rws/15min"
               style={button}
             >
               Schedule a 15-Minute Consultation

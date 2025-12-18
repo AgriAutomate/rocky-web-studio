@@ -69,27 +69,6 @@ export default function BookPage() {
   const [smsStatus, setSmsStatus] = useState<SmsStatus>("idle");
   const [smsError, setSmsError] = useState<string>("");
 
-  // Pre-fill form from URL parameters (from email link)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const prefillName = params.get("name");
-      const prefillEmail = params.get("email");
-      const prefillBusiness = params.get("business");
-      
-      if (prefillName || prefillEmail) {
-        setFormData((prev) => ({
-          ...prev,
-          name: prefillName || prev.name,
-          email: prefillEmail || prev.email,
-          message: prefillBusiness 
-            ? `Following up on questionnaire submission for ${prefillBusiness}`
-            : prev.message,
-        }));
-      }
-    }
-  }, []);
-
   // Track booking_started when component mounts
   useEffect(() => {
     trackBookingStarted();

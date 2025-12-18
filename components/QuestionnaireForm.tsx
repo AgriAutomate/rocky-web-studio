@@ -147,22 +147,16 @@ export function QuestionnaireForm() {
 
     try {
       // Map form data to API format
-      // Extract contact details from q-contact object
-      const contactData = formData["q-contact"] && typeof formData["q-contact"] === "object" ? formData["q-contact"] : {};
-      const contactName = contactData.name || "";
-      const nameParts = contactName.split(" ").filter(Boolean);
-      
+      // Note: Some fields required by API aren't in the form, so we provide defaults
       const apiPayload = {
-        // Personal info - extracted from contact name
-        firstName: nameParts[0] || "Client",
-        lastName: nameParts.slice(1).join(" ") || "User",
-        // Also send full contact name for email personalization
-        contactName: contactName || "Client",
+        // Personal info (not collected in form, using defaults that pass validation)
+        firstName: formData.firstName || "Client",
+        lastName: formData.lastName || "User",
         
         // Business info
         businessName: formData.q1 || "",
-        businessEmail: contactData.email || "",
-        businessPhone: contactData.phone || "0000000000", // Default phone if not provided
+        businessEmail: formData.q23 || "",
+        businessPhone: formData.q24 || "0000000000", // Default phone if not provided
         
         // Sector mapping - map form values to API enum values
         sector: mapSectorToApiFormat(formData.sector),
@@ -379,16 +373,7 @@ export function QuestionnaireForm() {
   }
 
   const renderQuestionInput = () => {
-    let value = formData[currentQuestion.id];
-    if (!value) {
-      if (currentQuestion.type === "checkbox") {
-        value = [];
-      } else if (currentQuestion.type === "contact") {
-        value = { name: "", email: "", phone: "", website: "" };
-      } else {
-        value = "";
-      }
-    }
+    const value = formData[currentQuestion.id] || (currentQuestion.type === "checkbox" ? [] : "");
     const error = errors[currentQuestion.id];
 
     switch (currentQuestion.type) {
@@ -471,78 +456,6 @@ export function QuestionnaireForm() {
                   <span className="text-sm">{option.label}</span>
                 </label>
               ))}
-            </div>
-            {error && <p className="text-xs text-destructive">{error}</p>}
-          </div>
-        );
-
-      case "contact":
-        const contactValue = typeof value === "object" && value !== null ? value : { name: "", email: "", phone: "", website: "" };
-        return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="contact-name">Contact Name *</Label>
-              <Input
-                id="contact-name"
-                type="text"
-                value={contactValue.name || ""}
-                onChange={(e) => {
-                  handleAnswer(currentQuestion.id, {
-                    ...contactValue,
-                    name: e.target.value,
-                  });
-                }}
-                aria-invalid={!!error}
-                placeholder="Enter contact name"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact-email">Contact Email *</Label>
-              <Input
-                id="contact-email"
-                type="email"
-                value={contactValue.email || ""}
-                onChange={(e) => {
-                  handleAnswer(currentQuestion.id, {
-                    ...contactValue,
-                    email: e.target.value,
-                  });
-                }}
-                aria-invalid={!!error}
-                placeholder="Enter email address"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact-phone">Phone (optional, AU format)</Label>
-              <Input
-                id="contact-phone"
-                type="tel"
-                value={contactValue.phone || ""}
-                onChange={(e) => {
-                  handleAnswer(currentQuestion.id, {
-                    ...contactValue,
-                    phone: e.target.value,
-                  });
-                }}
-                placeholder="Enter phone number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact-website">Website or Social Link (optional)</Label>
-              <Input
-                id="contact-website"
-                type="url"
-                value={contactValue.website || ""}
-                onChange={(e) => {
-                  handleAnswer(currentQuestion.id, {
-                    ...contactValue,
-                    website: e.target.value,
-                  });
-                }}
-                placeholder="Enter website or social media link"
-              />
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
           </div>

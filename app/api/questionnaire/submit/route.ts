@@ -149,12 +149,14 @@ export async function POST(request: NextRequest) {
     const challengeDetails = getChallengeDetails(topChallengeIds);
     await logger.info("Challenge details retrieved", {
       challengeDetailsCount: challengeDetails.length,
+      requestedChallengeIds: topChallengeIds,
+      retrievedChallengeIds: challengeDetails.map(c => c.number),
       challengeDetails: challengeDetails.map(c => ({ number: c.number, title: c.title })),
     });
     
     // Validate challenge details were retrieved
     if (challengeDetails.length === 0) {
-      await logger.error("Challenge details array is empty", {
+      await logger.error("Challenge details array is empty - no challenges found in library", {
         challengeIds: topChallengeIds,
         challengeIdsLength: topChallengeIds.length,
       });

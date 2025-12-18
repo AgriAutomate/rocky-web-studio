@@ -1,0 +1,17 @@
+# Challenge 10: Lack of Leadership & Strategic Planning
+
+## Problem Sections
+
+Many Central Queensland SMEs lack structured management and strategic direction. Owner-operator model includes owner being CEO, salesperson, operations manager, and IT support simultaneously with everything depending on owner. Reactive management includes no forward planning, just reacting to daily crises. Poor visibility includes owner not knowing true profitability by customer/product/location, cash flow position, or growth trends. No documentation includes processes existing in owner's head, so if owner gets sick or leaves, business grinds to halt. Staff confusion includes teams not knowing strategic direction, priorities, or how their work contributes to goals. Decision-making by intuition includes decisions made on gut feeling rather than data, leading to poor outcomes. Consequences include business can't grow beyond owner's capacity, staff turnover from lack of clarity/direction, poor profitability from unoptimized operations, and vulnerability to disruption from owner illness or competitive threat.
+
+Growth ceiling includes business stuck at A$500K-A$2M because owner can't delegate/systematize. Value at risk includes if owner leaves, business worthless with no documented processes. Opportunity cost includes owner working 60 hours/week on low-value activities instead of high-value strategic work. Staff frustration includes team not understanding strategy and feeling directionless.
+
+Rocky Web Studio addresses this through business intelligence & dashboard reporting (executive dashboard with real-time view of key metrics, profitability analysis understanding which customers/products/locations are profitable, financial forecasting with 13-week rolling cash flow forecast, KPI monitoring tracking strategic priorities monthly), process documentation & systematization (process documentation capturing critical business processes in writing/video, automation of key processes reducing manual work, standard operating procedures with written guidelines, knowledge management with centralized documentation), strategic planning & goal management (annual strategic planning workshop defining 3-year vision and annual goals, quarterly reviews tracking progress, team alignment communicating strategy, contingency planning for what-if scenarios), and decision support systems (customer management with CRM tracking relationships, project management ensuring deliverables met, sales pipeline visibility knowing deal stage and probability, financial controls with budget tracking and approval workflows). 90-day business leadership engagement includes Month 1 assessment & quick wins (A$8,000-A$12,000), Month 2 strategic planning & process documentation (A$10,000-A$15,000), Month 3 implementation & handoff (A$10,000-A$15,000), totaling A$28,000-A$42,000 with expected outcomes including clearer strategic direction, 30-50% improvement in owner time available for strategic work, improved profitability, better staff engagement, business more systematized and less dependent on owner, and founder can take vacation without business falling apart.
+
+## ROI Timeline
+
+Modest direct ROI but strategic value is enormous (enables growth, reduces risk, improves quality of life for owner)
+
+## Project Cost Range
+
+A$28,000-A$42,000 (90-day business leadership engagement program) + ongoing support available

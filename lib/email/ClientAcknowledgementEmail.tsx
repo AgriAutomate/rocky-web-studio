@@ -89,7 +89,7 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
           <Section style={ctaSection}>
             <Text style={ctaText}>Ready to discuss your digital future?</Text>
             <Button
-              href="https://calendly.com/martin-rws/15min"
+              href="https://www.rockywebstudio.com.au/book"
               style={button}
             >
               Schedule a 15-Minute Consultation

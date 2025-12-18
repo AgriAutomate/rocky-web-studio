@@ -12,7 +12,8 @@
     "deploy": "npm run preflight && echo '✅ All checks passed! Safe to push to GitHub'",
     "prepare": "husky install",
     "verify-sms-templates": "ts-node scripts/verify-sms-templates.ts",
-    "compare-deploy": "python scripts/compare_deploy.py"
+    "compare-deploy": "python scripts/compare_deploy.py",
+    "test:workflow": "node scripts/test-questionnaire-workflow.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

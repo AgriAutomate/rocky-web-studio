@@ -1,8 +1,20 @@
-import { env } from "@/lib/env";
+// Lazy import env to prevent module-load-time errors
+// Don't import env at module scope - it will be accessed lazily
 
 export type LogLevel = "info" | "error";
 
-const slackWebhook = env.SLACK_WEBHOOK_URL;
+// Lazy getter for Slack webhook - only accessed when actually logging
+// Uses dynamic import to prevent build-time errors when env vars are missing
+async function getSlackWebhook(): Promise<string | undefined> {
+  try {
+    // Dynamic import to prevent build-time errors
+    const { env } = await import("@/lib/env");
+    return env.SLACK_WEBHOOK_URL;
+  } catch {
+    // If env import fails (e.g., missing vars), just skip Slack logging
+    return undefined;
+  }
+}
 
 /**
  * Low-level logging helper that writes to stdout and optionally posts to Slack.
@@ -23,7 +35,9 @@ export async function logMessage(
   // eslint-disable-next-line no-console
   console[level === "error" ? "error" : "log"]("[rws]", JSON.stringify(payload));
 
-  if (!slackWebhook) return;
+  // Get Slack webhook lazily (only when actually logging)
+  const slackWebhook = await getSlackWebhook();
+  if (!slackWebhook || typeof slackWebhook !== 'string') return;
 
   try {
     await fetch(slackWebhook, {

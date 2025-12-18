@@ -20,23 +20,58 @@ function getEnv(): z.infer<typeof envSchema> {
 
   if (!parsed.success) {
     const errors = parsed.error.flatten().fieldErrors;
+    const missingVars = Object.keys(errors).filter((key): key is keyof typeof errors => {
+      const errorArray = errors[key as keyof typeof errors];
+      return errorArray !== undefined && errorArray.length > 0;
+    });
+    
     // eslint-disable-next-line no-console
     console.error("❌ Invalid environment configuration:", errors);
     
-    // In development, provide helpful error message
-    if (process.env.NODE_ENV !== "production") {
-      const missingVars = Object.keys(errors).filter((key): key is keyof typeof errors => {
-        const errorArray = errors[key as keyof typeof errors];
-        return errorArray !== undefined && errorArray.length > 0;
-      });
+    // In production build/runtime, throw immediately (fail fast)
+    // BUT: During Next.js build phase, we might not have env vars set locally
+    // So we check if we're in actual runtime (not build) by checking for Vercel-specific vars
+    const isVercelRuntime = !!(
+      process.env.VERCEL || 
+      process.env.VERCEL_ENV || 
+      (process.env.NODE_ENV === "production" && process.env.NEXT_RUNTIME)
+    );
+    
+    if (isVercelRuntime) {
+      // Actual production runtime - fail fast
       throw new Error(
         `Missing required environment variables: ${missingVars.join(", ")}. ` +
-        `Please ensure .env.local exists and contains these variables. ` +
-        `Restart the dev server after updating .env.local.`
+        `Please configure these in your Vercel project settings.`
       );
     }
     
-    throw new Error("Invalid environment configuration");
+    // During local build (npm run build), log warning but don't throw
+    // This allows the build to complete - env vars will be set in Vercel
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        `⚠️  Build-time warning: Missing environment variables: ${missingVars.join(", ")}. ` +
+        `These must be set in Vercel project settings for the deployment to work. ` +
+        `Continuing build...`
+      );
+      // Return empty object - Proxy will throw when accessed in actual runtime
+      _env = { _missingVars: missingVars } as unknown as z.infer<typeof envSchema>;
+      return _env;
+    }
+    
+    // In development, store error info but don't throw yet
+    // The Proxy getter will throw when properties are accessed, allowing route handler to catch
+    // This prevents Next.js from rendering HTML error pages during module import
+    console.warn(
+      `⚠️  Missing required environment variables: ${missingVars.join(", ")}. ` +
+      `Please ensure .env.local exists and contains these variables. ` +
+      `Restart the dev server after updating .env.local. ` +
+      `The API will return JSON errors when these variables are accessed.`
+    );
+    
+    // Store error info for Proxy getter to use
+    // Return empty object - Proxy will throw on property access
+    _env = { _missingVars: missingVars } as unknown as z.infer<typeof envSchema>;
+    return _env;
   }
 
   _env = parsed.data;
@@ -48,7 +83,34 @@ function getEnv(): z.infer<typeof envSchema> {
 // Validation only happens when a property is actually accessed (e.g., env.RESEND_API_KEY)
 export const env = new Proxy({} as z.infer<typeof envSchema>, {
   get(_target, prop) {
+    // Skip internal properties
+    if (prop === "_missingVars" || prop === "toString" || prop === "valueOf") {
+      return undefined;
+    }
+    
     const validated = getEnv();
+    
+    // Check if this is the error marker object from getEnv()
+    if ("_missingVars" in validated && Array.isArray((validated as any)._missingVars)) {
+      const missingVars = (validated as any)._missingVars as string[];
+      const propName = String(prop);
+      
+      // In development, throw with helpful message (route handler will catch and return JSON)
+      if (process.env.NODE_ENV !== "production") {
+        throw new Error(
+          `Environment variable ${propName} is not set. ` +
+          `Missing variables: ${missingVars.join(", ")}. ` +
+          `Please add them to .env.local and restart the dev server.`
+        );
+      }
+      
+      // In production, should have already thrown in getEnv(), but be safe
+      throw new Error(
+        `Environment variable ${propName} is not set. ` +
+        `Please configure ${missingVars.join(", ")} in your Vercel project settings.`
+      );
+    }
+    
     return validated[prop as keyof typeof validated];
   },
   has(_target, prop) {

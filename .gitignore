@@ -36,7 +36,11 @@ build/
 .env
 .env.local
 .env.*.local
+# Allow .env.local.example to be tracked
+!.env.local.example
 .env*
+# Exception: Allow .env.local.example to be committed (it's a template, not secrets)
+!.env.local.example
 
 # Misc
 *.pem

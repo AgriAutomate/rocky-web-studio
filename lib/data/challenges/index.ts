@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 
 /**
@@ -72,12 +72,33 @@ function loadChallengeLibrary(): Record<string, ChallengeDetail> {
     const filePath = join(challengesDir, filename);
 
     try {
+      // Check if file exists before reading
+      if (!existsSync(filePath)) {
+        console.error(`Challenge file not found: ${filePath}`);
+        // Create a fallback challenge to prevent complete failure
+        library[challengeNumber] = {
+          number: num,
+          title: `Challenge ${num}`,
+          sections: [`Challenge ${num} content not available`],
+          roiTimeline: "TBD",
+          projectCostRange: "TBD",
+        };
+        continue;
+      }
+
       const content = readFileSync(filePath, "utf-8");
       const challenge = parseChallengeMarkdown(content, num);
       library[challengeNumber] = challenge;
     } catch (error) {
       console.error(`Failed to load challenge ${challengeNumber} from ${filename}:`, error);
-      // Continue loading other challenges even if one fails
+      // Create fallback challenge to prevent complete failure
+      library[challengeNumber] = {
+        number: num,
+        title: `Challenge ${num}`,
+        sections: [`Challenge ${num} content not available`],
+        roiTimeline: "TBD",
+        projectCostRange: "TBD",
+      };
     }
   }
 
@@ -86,9 +107,53 @@ function loadChallengeLibrary(): Record<string, ChallengeDetail> {
 
 /**
  * Challenge library loaded from markdown files.
- * This is populated at module load time.
+ * Lazy-loaded to prevent module load failures from crashing the API route.
  */
-export const CHALLENGE_LIBRARY: Record<string, ChallengeDetail> = loadChallengeLibrary();
+let CHALLENGE_LIBRARY_CACHE: Record<string, ChallengeDetail> | null = null;
+
+function getChallengeLibrary(): Record<string, ChallengeDetail> {
+  if (CHALLENGE_LIBRARY_CACHE === null) {
+    try {
+      CHALLENGE_LIBRARY_CACHE = loadChallengeLibrary();
+    } catch (error) {
+      console.error("Failed to load challenge library:", error);
+      // Return empty library to prevent complete failure
+      CHALLENGE_LIBRARY_CACHE = {};
+    }
+  }
+  return CHALLENGE_LIBRARY_CACHE;
+}
+
+// Export as a getter function instead of a constant to prevent module load failures
+export function getChallengeLibraryExport(): Record<string, ChallengeDetail> {
+  return getChallengeLibrary();
+}
+
+// For backward compatibility, export a getter that looks like a constant
+// This prevents module load errors while maintaining compatibility
+export const CHALLENGE_LIBRARY = new Proxy({} as Record<string, ChallengeDetail>, {
+  get(_target, prop) {
+    const library = getChallengeLibrary();
+    return library[prop as string];
+  },
+  ownKeys() {
+    return Object.keys(getChallengeLibrary());
+  },
+  has(_target, prop) {
+    return prop in getChallengeLibrary();
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    const library = getChallengeLibrary();
+    if (prop in library) {
+      return {
+        enumerable: true,
+        configurable: true,
+        value: library[prop as string],
+      };
+    }
+    return undefined;
+  },
+});
 
 /**
  * Export challenge details lookup function for compatibility.
@@ -98,10 +163,11 @@ export function getChallengeDetails(ids: number[]): ChallengeDetail[] {
     return [];
   }
 
+  const library = getChallengeLibrary();
   const details = ids
     .map((id) => {
       const key = String(id);
-      const base = CHALLENGE_LIBRARY[key];
+      const base = library[key];
       if (!base) {
         console.warn(`Challenge ID ${id} not found in CHALLENGE_LIBRARY`);
         return null;
@@ -124,12 +190,14 @@ export function getChallengeDetails(ids: number[]): ChallengeDetail[] {
  * Useful for validation and debugging.
  */
 export function getAllChallengeIds(): number[] {
-  return Object.keys(CHALLENGE_LIBRARY).map((key) => parseInt(key, 10));
+  const library = getChallengeLibrary();
+  return Object.keys(library).map((key) => parseInt(key, 10));
 }
 
 /**
  * Verify that a challenge ID exists in the library.
  */
 export function challengeExists(id: number): boolean {
-  return CHALLENGE_LIBRARY[String(id)] !== undefined;
+  const library = getChallengeLibrary();
+  return library[String(id)] !== undefined;
 }

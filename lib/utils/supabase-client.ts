@@ -2,7 +2,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/client";
 import type { QuestionnaireFormData } from "@/lib/types/questionnaire";
 import { logger } from "@/lib/utils/logger";
 
-const QUESTIONNAIRE_BUCKET = "questionnaire-reports";
+const QUESTIONNAIRE_BUCKET = "rockywebstudio";
+const QUESTIONNAIRE_STORAGE_PATH = "questionnaire-reports";
 
 /**
  * Upload a generated PDF buffer to Supabase Storage.
@@ -16,10 +17,25 @@ export async function uploadPdfToStorage(
   buffer: Buffer
 ): Promise<string | null> {
   try {
-    const supabase = createServerSupabaseClient(true);
-    const objectPath = `rockywebstudio/${fileName}`;
+    await logger.info("Uploading PDF to storage", {
+      bucket: QUESTIONNAIRE_BUCKET,
+      fileName,
+      bufferSize: buffer.length,
+      storagePath: QUESTIONNAIRE_STORAGE_PATH,
+    });
 
-    const { error } = await (supabase as any)
+    const supabase = createServerSupabaseClient(true);
+    // Path format: questionnaire-reports/[filename].pdf
+    const objectPath = `${QUESTIONNAIRE_STORAGE_PATH}/${fileName}`;
+
+    await logger.info("Attempting Supabase storage upload", {
+      bucket: QUESTIONNAIRE_BUCKET,
+      objectPath,
+      bufferLength: buffer.length,
+      contentType: "application/pdf",
+    });
+
+    const { data: uploadData, error } = await (supabase as any)
       .storage
       .from(QUESTIONNAIRE_BUCKET)
       .upload(objectPath, buffer, {
@@ -28,18 +44,60 @@ export async function uploadPdfToStorage(
       });
 
     if (error) {
-      await logger.error("Supabase PDF upload failed", { error: error.message, fileName });
+      await logger.error("Supabase PDF upload failed", {
+        error: error.message,
+        errorCode: error.statusCode,
+        errorDetails: error.error,
+        fileName,
+        bucket: QUESTIONNAIRE_BUCKET,
+        objectPath,
+        bufferSize: buffer.length,
+        fullError: JSON.stringify(error),
+      });
       return null;
     }
 
-    const { data } = await (supabase as any)
+    await logger.info("PDF upload succeeded, getting public URL", {
+      fileName,
+      bucket: QUESTIONNAIRE_BUCKET,
+      objectPath,
+      uploadData: uploadData ? JSON.stringify(uploadData) : "null",
+    });
+
+    const { data: urlData } = await (supabase as any)
       .storage
       .from(QUESTIONNAIRE_BUCKET)
       .getPublicUrl(objectPath);
 
-    return data?.publicUrl ?? null;
+    const publicUrl = urlData?.publicUrl ?? null;
+
+    if (!publicUrl) {
+      await logger.error("Failed to get public URL after successful upload", {
+        fileName,
+        bucket: QUESTIONNAIRE_BUCKET,
+        objectPath,
+        urlData: urlData ? JSON.stringify(urlData) : "null",
+      });
+      return null;
+    }
+
+    await logger.info("PDF upload succeeded", {
+      fileName,
+      publicUrl,
+      bucket: QUESTIONNAIRE_BUCKET,
+      objectPath,
+    });
+
+    return publicUrl;
   } catch (err) {
-    await logger.error("Supabase storage error during PDF upload", { error: String(err), fileName });
+    await logger.error("Supabase storage error during PDF upload", {
+      error: String(err),
+      errorMessage: err instanceof Error ? err.message : String(err),
+      errorStack: err instanceof Error ? err.stack : undefined,
+      fileName,
+      bucket: QUESTIONNAIRE_BUCKET,
+      bufferSize: buffer.length,
+    });
     return null;
   }
 }

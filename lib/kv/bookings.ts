@@ -86,12 +86,38 @@ async function markReminderSent(
   return true;
 }
 
+/**
+ * Get all bookings for a specific date (more efficient than getAll + filter)
+ */
+async function getByDate(date: string): Promise<Booking[]> {
+  const bookingIds = (await kv.smembers(BOOKINGS_DATE_KEY(date))) as string[];
+  if (!bookingIds.length) return [];
+
+  const keys = bookingIds.map(BOOKING_KEY);
+  const results = (await kv.mget(keys)) as (Booking | null)[];
+
+  return results.filter((b): b is Booking => b !== null && b.status !== "cancelled" && b.status !== "rescheduled");
+}
+
+/**
+ * Check if a specific time slot is available for a given date
+ */
+async function isTimeSlotAvailable(date: string, time: string): Promise<boolean> {
+  const bookingsForDate = await getByDate(date);
+  const conflictingBooking = bookingsForDate.find(
+    (booking) => booking.time === time && booking.status !== "cancelled" && booking.status !== "rescheduled"
+  );
+  return !conflictingBooking;
+}
+
 export const kvBookingStorage = {
   save,
   get,
   getAll,
+  getByDate,
   getDueBookings,
   markReminderSent,
+  isTimeSlotAvailable,
 };
 
 

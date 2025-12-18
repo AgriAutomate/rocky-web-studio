@@ -193,6 +193,8 @@ export async function POST(request: NextRequest) {
           clientFirstName: contactName,
           businessName: formData.businessName,
           sector: reportData.sector,
+          contactEmail: formData.businessEmail,
+          contactName: contactName,
         }),
       };
 

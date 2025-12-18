@@ -45,14 +45,8 @@ export async function GET(request: NextRequest) {
     // Generate all available slots
     const allSlots = generateTimeSlots();
 
-    // Get existing bookings for this date (excluding cancelled)
-    const allBookings = await kvBookingStorage.getAll();
-    const bookingsForDate = allBookings.filter(
-      (booking) =>
-        booking.date === dateKey &&
-        booking.status !== "cancelled" &&
-        booking.status !== "rescheduled" // Exclude rescheduled bookings from old date
-    );
+    // Get existing bookings for this date (more efficient than getAll + filter)
+    const bookingsForDate = await kvBookingStorage.getByDate(dateKey);
 
     // Create set of booked times
     const bookedTimes = new Set(bookingsForDate.map((b) => b.time));

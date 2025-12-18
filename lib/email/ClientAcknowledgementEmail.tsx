@@ -23,6 +23,10 @@ export interface ClientAcknowledgementEmailProps {
   businessName: string;
   /** Sector label used to tailor the copy */
   sector: string;
+  /** Contact email for pre-filling booking form */
+  contactEmail?: string;
+  /** Contact name for pre-filling booking form */
+  contactName?: string;
 }
 
 /**
@@ -35,7 +39,22 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
   clientFirstName,
   businessName,
   sector,
+  contactEmail,
+  contactName,
 }) => {
+  // Build booking URL with pre-filled parameters
+  const params = new URLSearchParams();
+  if (contactEmail) {
+    params.set("email", contactEmail);
+  }
+  if (contactName) {
+    params.set("name", contactName);
+  }
+  if (businessName) {
+    params.set("business", businessName);
+  }
+  const bookingUrl = `https://www.rockywebstudio.com.au/book${params.toString() ? `?${params.toString()}` : ""}`;
+  
   const previewText = `Your Custom Deep-Dive Report  ${businessName}`;
 
   return (
@@ -89,7 +108,7 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
           <Section style={ctaSection}>
             <Text style={ctaText}>Ready to discuss your digital future?</Text>
             <Button
-              href="https://www.rockywebstudio.com.au/book"
+              href={bookingUrl}
               style={button}
             >
               Schedule a 15-Minute Consultation

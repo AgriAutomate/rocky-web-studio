@@ -1,4 +1,4 @@
-export type QuestionType = "radio" | "checkbox" | "text" | "textarea" | "number";
+export type QuestionType = "radio" | "checkbox" | "text" | "textarea" | "number" | "contact";
 
 export type Sector =
   | "hospitality"
@@ -75,7 +75,6 @@ export const QUESTION_SETS: QuestionSet[] = [
           "All sectors benefit from the studio’s AI-first, rapid deployment model and local expertise in Rockhampton and the wider Central Queensland region.",
       },
       { id: "q1", type: "text", label: "Business name", validation: min2Max100, required: true },
-      { id: "q2", type: "text", label: "Website or social link", required: false },
       {
         id: "q3",
         type: "checkbox",
@@ -311,8 +310,16 @@ export const QUESTION_SETS: QuestionSet[] = [
           { value: "flex", label: "Flexible" },
         ],
       },
-      { id: "q23", type: "text", label: "Contact email", required: true, validation: validEmail },
-      { id: "q24", type: "text", label: "Phone (optional, AU format)", required: false },
+      {
+        id: "q-contact",
+        type: "contact",
+        label: "Contact Details",
+        required: true,
+        validation: (v) => {
+          // Validate that at least email is provided
+          return v && typeof v === "object" && v.email && validEmail(v.email);
+        },
+      },
     ],
   },
 ];
@@ -324,8 +331,8 @@ export const branchMap: Record<Exclude<Sector, "universal">, string[]> = {
   professional: ["p6", "p7", "p8", "p9", "p10"],
 };
 
-const trunkIds = ["q1", "q2", "q3", "q4", "q5"];
-const leavesIds = ["q21", "q22", "q23", "q24"];
+const trunkIds = ["q1", "q3", "q4", "q5"];
+const leavesIds = ["q21", "q22", "q-contact"];
 
 export const totalQuestionsPerSector: Record<Exclude<Sector, "universal">, number> = {
   hospitality: trunkIds.length + branchMap.hospitality.length + leavesIds.length,

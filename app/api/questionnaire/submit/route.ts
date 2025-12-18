@@ -179,12 +179,18 @@ export async function POST(request: NextRequest) {
     // - Failure: logs full Resend error object (name, message, stack, response data)
     const resend = new Resend(env.RESEND_API_KEY);
     try {
+      // Use full contact name if available, otherwise reconstruct from firstName/lastName
+      const contactName = (formData as any).contactName 
+        || (formData.firstName && formData.lastName
+          ? `${formData.firstName} ${formData.lastName}`.trim()
+          : formData.firstName || "there");
+      
       const emailOptions: Parameters<typeof resend.emails.send>[0] = {
         from: RESEND_FROM,
         to: formData.businessEmail,
         subject: `Your Custom Deep-Dive Report – ${formData.businessName}`,
         react: React.createElement(ClientAcknowledgementEmail, {
-          clientFirstName: formData.firstName,
+          clientFirstName: contactName,
           businessName: formData.businessName,
           sector: reportData.sector,
         }),

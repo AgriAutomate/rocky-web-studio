@@ -57,7 +57,7 @@ const ClientAcknowledgementEmail: React.FC<ClientAcknowledgementEmailProps> = ({
           {/* Main heading */}
           <Section>
             <Text style={heading}>Thanks for Completing Your Questionnaire!</Text>
-            <Text style={bodyText}>Hi {clientFirstName},</Text>
+            <Text style={bodyText}>Hi {clientFirstName || "there"},</Text>
             <Text style={bodyText}>
               Thanks for taking the time to complete the Rocky Web Studio discovery questionnaire for
               <strong> {businessName}</strong>. We&rsquo;ve used your responses to prepare a tailored deep-dive report for

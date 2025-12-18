@@ -2,7 +2,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import puppeteer, { Browser } from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import { logError } from "@/lib/utils/logger";
+import { logError, logger } from "@/lib/utils/logger";
 
 /**
  * Single deep‑dive challenge section included in the report.
@@ -154,8 +154,32 @@ export async function generatePdfReport(reportData: ReportData): Promise<Uint8Ar
   const isProd = process.env.NODE_ENV === "production";
   const isDev = !isProd;
 
+  // Validate report data before generating PDF
+  if (!reportData || !reportData.businessName) {
+    throw new Error("Invalid reportData: businessName is required");
+  }
+  if (!reportData.topChallenges || reportData.topChallenges.length === 0) {
+    throw new Error("Invalid reportData: topChallenges array is empty. Cannot generate PDF without challenges.");
+  }
+  if (!reportData.sector) {
+    throw new Error("Invalid reportData: sector is required");
+  }
+
   try {
+    await logger.info("Generating HTML template for PDF", {
+      businessName: reportData.businessName,
+      clientName: reportData.clientName,
+      sector: reportData.sector,
+      challengesCount: reportData.topChallenges.length,
+      challengeTitles: reportData.topChallenges.map(c => c.title),
+    });
+    
     const html = await generateHtmlTemplate(reportData);
+    
+    await logger.info("HTML template generated", {
+      htmlLength: html.length,
+      hasChallengesHtml: html.includes("challenge-section"),
+    });
 
     // Base launch options shared between environments
     const launchOptions: Parameters<typeof puppeteer.launch>[0] = {

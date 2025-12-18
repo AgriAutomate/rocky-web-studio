@@ -13,6 +13,7 @@ import {
 import ClientAcknowledgementEmail from "@/lib/email/ClientAcknowledgementEmail";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/utils/logger";
+import type { Sector } from "@/lib/types/questionnaire";
 
 const RESEND_FROM = "noreply@rockywebstudio.com.au";
 
@@ -58,16 +59,111 @@ export async function POST(request: NextRequest) {
     const formData = validationResult.data;
 
     // STEP 2: GENERATE REPORT DATA (target ~100ms)
-    const topChallengeIds = getTopChallengesForSector(formData.sector);
+    await logger.info("Form data received", {
+      sector: formData.sector,
+      sectorType: typeof formData.sector,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      businessName: formData.businessName,
+      businessEmail: formData.businessEmail,
+      selectedPainPoints: formData.selectedPainPoints,
+      selectedPainPointsCount: formData.selectedPainPoints?.length ?? 0,
+      allFormDataKeys: Object.keys(formData),
+    });
+    
+    // Validate sector exists
+    if (!formData.sector) {
+      await logger.error("Missing sector in form data", { 
+        formDataKeys: Object.keys(formData),
+        formDataValues: Object.entries(formData).map(([k, v]) => ({ key: k, value: String(v).substring(0, 50) })),
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Sector is required",
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Validate sector is a valid Sector type
+    const validSectors: Sector[] = [
+      "healthcare", "manufacturing", "mining", "agriculture", 
+      "retail", "hospitality", "professional-services", "construction", "other"
+    ];
+    if (!validSectors.includes(formData.sector as Sector)) {
+      await logger.error("Invalid sector value", {
+        receivedSector: formData.sector,
+        validSectors,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Invalid sector: ${formData.sector}. Must be one of: ${validSectors.join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+    
+    const topChallengeIds = getTopChallengesForSector(formData.sector as Sector);
+    await logger.info("Top challenge IDs for sector", {
+      sector: formData.sector,
+      challengeIds: topChallengeIds,
+      challengeIdsLength: topChallengeIds.length,
+    });
+    
+    // Validate challenges were found
+    if (topChallengeIds.length === 0) {
+      await logger.error("No challenges found for sector", {
+        sector: formData.sector,
+        sectorType: typeof formData.sector,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: `No challenges found for sector: ${formData.sector}`,
+        },
+        { status: 400 }
+      );
+    }
+    
     const challengeDetails = getChallengeDetails(topChallengeIds);
+    await logger.info("Challenge details retrieved", {
+      challengeDetailsCount: challengeDetails.length,
+      challengeDetails: challengeDetails.map(c => ({ number: c.number, title: c.title })),
+    });
+    
+    // Validate challenge details were retrieved
+    if (challengeDetails.length === 0) {
+      await logger.error("Challenge details array is empty", {
+        challengeIds: topChallengeIds,
+        challengeIdsLength: topChallengeIds.length,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to retrieve challenge details",
+        },
+        { status: 500 }
+      );
+    }
 
     const reportData: ReportData = {
-      clientName: formData.firstName,
-      businessName: formData.businessName,
+      clientName: formData.firstName || "Client",
+      businessName: formData.businessName || "Business",
       sector: formatSectorName(formData.sector as any),
       topChallenges: challengeDetails,
       generatedDate: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
     };
+    
+    await logger.info("Report data prepared", {
+      clientName: reportData.clientName,
+      businessName: reportData.businessName,
+      sector: reportData.sector,
+      topChallengesCount: reportData.topChallenges.length,
+      generatedDate: reportData.generatedDate,
+      firstChallengeTitle: reportData.topChallenges[0]?.title,
+    });
 
     // STEP 3: GENERATE PDF (8-10 seconds, but don't block on failure)
     // Conditions that will cause PDF not to be attached:

@@ -147,9 +147,8 @@ export function QuestionnaireForm() {
 
     try {
       // Map form data to API format
-      // Note: Some fields required by API aren't in the form, so we provide defaults
       const apiPayload = {
-        // Personal info (not collected in form, using defaults that pass validation)
+        // Personal info - firstName is now collected in the form
         firstName: formData.firstName || "Client",
         lastName: formData.lastName || "User",
         

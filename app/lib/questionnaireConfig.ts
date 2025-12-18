@@ -74,6 +74,7 @@ export const QUESTION_SETS: QuestionSet[] = [
         outroText:
           "All sectors benefit from the studio’s AI-first, rapid deployment model and local expertise in Rockhampton and the wider Central Queensland region.",
       },
+      { id: "firstName", type: "text", label: "Your first name", validation: min2Max100, required: true },
       { id: "q1", type: "text", label: "Business name", validation: min2Max100, required: true },
       { id: "q2", type: "text", label: "Website or social link", required: false },
       {
@@ -324,7 +325,7 @@ export const branchMap: Record<Exclude<Sector, "universal">, string[]> = {
   professional: ["p6", "p7", "p8", "p9", "p10"],
 };
 
-const trunkIds = ["q1", "q2", "q3", "q4", "q5"];
+const trunkIds = ["firstName", "q1", "q2", "q3", "q4", "q5"];
 const leavesIds = ["q21", "q22", "q23", "q24"];
 
 export const totalQuestionsPerSector: Record<Exclude<Sector, "universal">, number> = {

@@ -317,7 +317,7 @@ async function processQuestionnaireSubmit(body: unknown): Promise<{
       to: formData.businessEmail,
       subject: `Your Custom Deep-Dive Report – ${formData.businessName}`,
       react: React.createElement(ClientAcknowledgementEmail, {
-        clientFirstName: formData.firstName,
+        clientFirstName: formData.firstName?.trim() || "Client",
         businessName: formData.businessName,
         sector: reportData.sector,
       }),

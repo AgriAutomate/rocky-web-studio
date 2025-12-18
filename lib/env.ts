@@ -8,15 +8,58 @@ const envSchema = z.object({
   CALENDLY_URL: z.string().url().optional(),
 });
 
-const parsed = envSchema.safeParse(process.env);
+// Lazy validation - only validate when env is accessed, not at module load
+let _env: z.infer<typeof envSchema> | null = null;
 
-if (!parsed.success) {
-  // eslint-disable-next-line no-console
-  console.error("❌ Invalid environment configuration:", parsed.error.flatten().fieldErrors);
-  throw new Error("Invalid environment configuration");
+function getEnv(): z.infer<typeof envSchema> {
+  if (_env) {
+    return _env;
+  }
+
+  const parsed = envSchema.safeParse(process.env);
+
+  if (!parsed.success) {
+    const errors = parsed.error.flatten().fieldErrors;
+    // eslint-disable-next-line no-console
+    console.error("❌ Invalid environment configuration:", errors);
+    
+    // In development, provide helpful error message
+    if (process.env.NODE_ENV !== "production") {
+      const missingVars = Object.keys(errors).filter((key): key is keyof typeof errors => {
+        const errorArray = errors[key as keyof typeof errors];
+        return errorArray !== undefined && errorArray.length > 0;
+      });
+      throw new Error(
+        `Missing required environment variables: ${missingVars.join(", ")}. ` +
+        `Please ensure .env.local exists and contains these variables. ` +
+        `Restart the dev server after updating .env.local.`
+      );
+    }
+    
+    throw new Error("Invalid environment configuration");
+  }
+
+  _env = parsed.data;
+  return _env;
 }
 
-export const env = parsed.data;
+// Export a Proxy that validates lazily on first property access
+// This allows the route to import env without immediately throwing
+// Validation only happens when a property is actually accessed (e.g., env.RESEND_API_KEY)
+export const env = new Proxy({} as z.infer<typeof envSchema>, {
+  get(_target, prop) {
+    const validated = getEnv();
+    return validated[prop as keyof typeof validated];
+  },
+  has(_target, prop) {
+    const validated = getEnv();
+    return prop in validated;
+  },
+  ownKeys() {
+    const validated = getEnv();
+    return Object.keys(validated);
+  },
+});
 /**
  * Environment Variable Type Definitions
  * 

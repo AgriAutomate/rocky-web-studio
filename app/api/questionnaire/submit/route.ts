@@ -85,7 +85,22 @@ export async function POST(request: NextRequest) {
     });
 
     try {
+      await logger.info("Calling generatePdfReport", {
+        clientName: reportData.clientName,
+        businessName: reportData.businessName,
+        sector: reportData.sector,
+        hasChromePath: !!process.env.CHROME_EXECUTABLE_PATH,
+        nodeEnv: process.env.NODE_ENV,
+      });
+      
       pdfBuffer = await generatePdfReport(reportData);
+      
+      await logger.info("generatePdfReport returned", {
+        hasBuffer: !!pdfBuffer,
+        bufferType: pdfBuffer ? pdfBuffer.constructor.name : "null",
+        bufferLength: pdfBuffer?.length ?? 0,
+        isUint8Array: pdfBuffer instanceof Uint8Array,
+      });
       
       // Verify PDF buffer is non-empty
       if (!pdfBuffer || pdfBuffer.length === 0) {
@@ -176,9 +191,26 @@ export async function POST(request: NextRequest) {
       };
 
       // Only attach PDF if generation succeeded and base64 is valid
+      await logger.info("Checking PDF attachment conditions", {
+        hasPdfBase64: !!pdfBase64,
+        pdfBase64Type: typeof pdfBase64,
+        pdfBase64Length: pdfBase64?.length ?? 0,
+        pdfBase64IsString: typeof pdfBase64 === "string",
+        pdfBase64StartsWith: pdfBase64?.substring(0, 20) ?? "null",
+      });
+      
       if (pdfBase64 && pdfBase64.length > 0) {
         // Verify base64 is valid (starts with expected pattern and has reasonable length)
         const estimatedSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
+        
+        await logger.info("Creating email attachment object", {
+          filename: "RockyWebStudio-Deep-Dive-Report.pdf",
+          contentType: "application/pdf",
+          base64Length: pdfBase64.length,
+          estimatedSizeBytes,
+          estimatedSizeKB: Math.round(estimatedSizeBytes / 1024),
+        });
+        
         emailOptions.attachments = [
           {
             filename: "RockyWebStudio-Deep-Dive-Report.pdf",
@@ -226,6 +258,17 @@ export async function POST(request: NextRequest) {
           attachments: attachmentMeta,
         });
       }
+
+      // Final verification before sending
+      await logger.info("About to send email via Resend", {
+        hasAttachments: !!emailOptions.attachments?.length,
+        attachmentsCount: emailOptions.attachments?.length ?? 0,
+        firstAttachmentFilename: emailOptions.attachments?.[0]?.filename,
+        firstAttachmentContentType: emailOptions.attachments?.[0]?.contentType,
+        firstAttachmentContentLength: typeof emailOptions.attachments?.[0]?.content === "string" 
+          ? emailOptions.attachments[0].content.length 
+          : 0,
+      });
 
       await resend.emails.send(emailOptions);
       

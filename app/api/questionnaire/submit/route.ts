@@ -4,6 +4,7 @@ import * as React from "react";
 import { validateQuestionnaireFormSafe, formatValidationErrors } from "@/lib/utils/validators";
 import { getTopChallengesForSector, formatSectorName } from "@/lib/utils/sector-mapping";
 import { getChallengeDetails } from "@/lib/utils/pain-point-mapping";
+import { painPointsToChallengeIds } from "@/lib/utils/pain-point-to-challenge";
 import { generatePdfReport, type ReportData } from "@/lib/pdf/generateClientReport";
 import {
   storeQuestionnaireResponse,
@@ -105,23 +106,41 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const topChallengeIds = getTopChallengesForSector(formData.sector as Sector);
-    await logger.info("Top challenge IDs for sector", {
-      sector: formData.sector,
-      challengeIds: topChallengeIds,
-      challengeIdsLength: topChallengeIds.length,
-    });
+    // Use user-selected pain points to get challenge IDs (personalized)
+    // Fall back to sector mapping if no pain points selected
+    let topChallengeIds: number[] = [];
+    
+    if (formData.selectedPainPoints && formData.selectedPainPoints.length > 0) {
+      // Use user's selected challenges (personalized)
+      topChallengeIds = painPointsToChallengeIds(formData.selectedPainPoints, 3);
+      await logger.info("Using user-selected pain points for challenges", {
+        selectedPainPoints: formData.selectedPainPoints,
+        challengeIds: topChallengeIds,
+        challengeIdsLength: topChallengeIds.length,
+      });
+    }
+    
+    // Fallback to sector mapping if no user selections
+    if (topChallengeIds.length === 0) {
+      topChallengeIds = getTopChallengesForSector(formData.sector as Sector);
+      await logger.info("Falling back to sector-based challenges", {
+        sector: formData.sector,
+        challengeIds: topChallengeIds,
+        challengeIdsLength: topChallengeIds.length,
+      });
+    }
     
     // Validate challenges were found
     if (topChallengeIds.length === 0) {
-      await logger.error("No challenges found for sector", {
+      await logger.error("No challenges found", {
         sector: formData.sector,
-        sectorType: typeof formData.sector,
+        selectedPainPoints: formData.selectedPainPoints,
+        selectedPainPointsCount: formData.selectedPainPoints?.length ?? 0,
       });
       return NextResponse.json(
         {
           success: false,
-          error: `No challenges found for sector: ${formData.sector}`,
+          error: `No challenges found. Please select challenges or ensure sector is valid.`,
         },
         { status: 400 }
       );

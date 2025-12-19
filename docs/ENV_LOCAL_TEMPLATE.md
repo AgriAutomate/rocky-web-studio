@@ -66,6 +66,7 @@ NEXT_PUBLIC_CHAT_WIDGET_ENV=production
 ### Option 1: Drift
 ```bash
 # Drift Chat Widget
+NEXT_PUBLIC_DRIFT_ID=your_drift_widget_id
 DRIFT_API_KEY=your_drift_api_key
 DRIFT_WEBHOOK_URL=https://api.drift.com/v1/conversations/{id}/messages
 DRIFT_DASHBOARD_URL=https://app.drift.com
@@ -74,6 +75,7 @@ DRIFT_DASHBOARD_URL=https://app.drift.com
 ### Option 2: Intercom
 ```bash
 # Intercom Chat Widget
+NEXT_PUBLIC_INTERCOM_APP_ID=your_intercom_app_id
 INTERCOM_ACCESS_TOKEN=your_intercom_token
 INTERCOM_WEBHOOK_URL=https://api.intercom.io/conversations/{id}/parts
 INTERCOM_DASHBOARD_URL=https://app.intercom.com
@@ -82,6 +84,7 @@ INTERCOM_DASHBOARD_URL=https://app.intercom.com
 ### Option 3: Crisp
 ```bash
 # Crisp Chat Widget
+NEXT_PUBLIC_CRISP_WEBSITE_ID=your_crisp_website_id
 CRISP_IDENTIFIER=your_identifier
 CRISP_KEY=your_key
 CRISP_WEBHOOK_URL=https://api.crisp.im/v1/website/{website_id}/conversation/{session_id}/message

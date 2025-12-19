@@ -174,6 +174,17 @@ Add each of these with their actual values:
 ### Chat Widget Environment
 ```
 🟡 NEXT_PUBLIC_CHAT_WIDGET_ENV=production
+🟡 NEXT_PUBLIC_CHAT_WIDGET_PROVIDER=drift
+# Options: drift, intercom, crisp
+
+# Drift Widget
+🟡 NEXT_PUBLIC_DRIFT_ID=your_drift_widget_id
+
+# Intercom Widget
+🟡 NEXT_PUBLIC_INTERCOM_APP_ID=your_intercom_app_id
+
+# Crisp Widget
+🟡 NEXT_PUBLIC_CRISP_WEBSITE_ID=your_crisp_website_id
 ```
 
 ### OpenAI API (AI Chat)

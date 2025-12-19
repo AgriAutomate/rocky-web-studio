@@ -155,15 +155,18 @@ MOBILE_MESSAGE_API_URL=https://api.mobilemessage.com.au/v1
 MOBILE_MESSAGE_SENDER_ID=your_sender_id
 ```
 
-#### SMS Service - Alternative Providers
+#### SMS Service - Mobile Message (Primary Provider)
 
-**Option 1: Twilio**
+**Mobile Message (mobilemessage.com.au)**
 ```bash
-SMS_PROVIDER=twilio
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_FROM_NUMBER=+61XXXXXXXXX
+SMS_PROVIDER=mobile-message
+MOBILE_MESSAGE_API_URL=https://api.mobilemessage.com.au/v1
+MOBILE_MESSAGE_API_USERNAME=your_username
+MOBILE_MESSAGE_API_PASSWORD=your_password
+MOBILE_MESSAGE_SENDER_ID=Rocky Web
 ```
+
+**Note:** Mobile Message is the primary SMS provider with ACMA-approved Sender ID "Rocky Web". Twilio support has been removed.
 
 #### Optional Configuration
 ```bash
@@ -254,7 +257,7 @@ rocky-web-studio/
 │   │   ├── messages.ts           # Message templates
 │   │   ├── booking-helpers.ts    # Booking SMS helpers
 │   │   └── providers/            # SMS providers (legacy - not currently used)
-│   │       └── twilio.ts
+│   │       └── mobileMessage.ts (Mobile Message API provider)
 │   ├── phone.ts                  # Phone number formatting
 │   ├── sms.ts                    # Legacy SMS utilities
 │   └── utils.ts                  # General utilities

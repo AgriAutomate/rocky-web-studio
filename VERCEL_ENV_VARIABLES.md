@@ -61,6 +61,51 @@ These variables enhance functionality but the app will work without them.
   - Where to get: [Slack Incoming Webhooks](https://api.slack.com/messaging/webhooks)
   - Default: If not set, logs only go to console
 
+### n8n Workflow Integration
+- **`N8N_QUESTIONNAIRE_WEBHOOK_URL`** (Optional)
+  - Description: n8n webhook URL for questionnaire submission processing
+  - Format: `https://your-n8n-instance/webhook/questionnaire`
+  - Used for: Triggering n8n workflow when questionnaire is submitted
+  - Where to get: n8n Dashboard → Workflows → Webhook URL
+  - Default: If not set, webhook trigger is skipped (logged but not blocking)
+
+- **`N8N_SERVICE_LEAD_WEBHOOK_URL`** (Optional)
+  - Description: n8n webhook URL for service lead processing
+  - Format: `https://your-n8n-instance/webhook/service-lead`
+  - Used for: Triggering n8n workflow when service lead is submitted
+  - Where to get: n8n Dashboard → Workflows → Webhook URL
+  - Default: If not set, webhook trigger is skipped (logged but not blocking)
+
+- **`N8N_LEAD_SCORING_WEBHOOK_URL`** (Optional)
+  - Description: n8n webhook URL for lead scoring automation
+  - Format: `https://your-n8n-instance/webhook/lead-scoring`
+  - Used for: Triggering lead scoring workflow
+  - Where to get: n8n Dashboard → Workflows → Webhook URL
+  - Default: If not set, webhook trigger is skipped
+
+- **`N8N_NURTURE_WEBHOOK_URL`** (Optional)
+  - Description: n8n webhook URL for nurture drip campaigns
+  - Format: `https://your-n8n-instance/webhook/nurture-drip`
+  - Used for: Triggering nurture email sequences
+  - Where to get: n8n Dashboard → Workflows → Webhook URL
+  - Default: If not set, webhook trigger is skipped
+
+- **`N8N_DUPLICATE_DETECTION_WEBHOOK_URL`** (Optional)
+  - Description: n8n webhook URL for duplicate lead detection
+  - Format: `https://your-n8n-instance/webhook/duplicate-detection`
+  - Used for: Triggering duplicate detection workflow
+  - Where to get: n8n Dashboard → Workflows → Webhook URL
+  - Default: If not set, webhook trigger is skipped
+
+- **`N8N_AI_CHAT_WEBHOOK_URL`** (Optional)
+  - Description: n8n webhook URL for AI customer chat handler
+  - Format: `https://your-n8n-instance/webhook/ai-chat-handler`
+  - Used for: Processing AI chat messages
+  - Where to get: n8n Dashboard → Workflows → Webhook URL
+  - Default: If not set, AI chat will not work
+
+**Note:** These webhook URLs are placeholders until n8n workflows are deployed. Update with actual webhook URLs after workflow deployment.
+
 ### External Integrations
 - **`CALENDLY_URL`** (Optional)
   - Description: Calendly scheduling URL for booking appointments
@@ -108,6 +153,54 @@ Add each of these with their actual values:
 ```
 🟡 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 🟡 CALENDLY_URL=https://calendly.com/...
+🟡 N8N_QUESTIONNAIRE_WEBHOOK_URL=https://your-n8n-instance/webhook/questionnaire
+🟡 N8N_SERVICE_LEAD_WEBHOOK_URL=https://your-n8n-instance/webhook/service-lead
+🟡 N8N_LEAD_SCORING_WEBHOOK_URL=https://your-n8n-instance/webhook/lead-scoring
+🟡 N8N_NURTURE_WEBHOOK_URL=https://your-n8n-instance/webhook/nurture-drip
+🟡 N8N_DUPLICATE_DETECTION_WEBHOOK_URL=https://your-n8n-instance/webhook/duplicate-detection
+🟡 N8N_AI_CHAT_WEBHOOK_URL=https://your-n8n-instance/webhook/ai-chat-handler
+```
+
+### Mobile Message SMS (ACMA-Approved)
+```
+🟡 MOBILE_MESSAGE_API_URL=https://api.mobilemessage.com.au/v1
+🟡 MOBILE_MESSAGE_API_KEY=your_api_key_here
+# OR use username/password (fallback):
+# 🟡 MOBILE_MESSAGE_API_USERNAME=your_username
+# 🟡 MOBILE_MESSAGE_API_PASSWORD=your_password
+🟡 MOBILE_MESSAGE_SENDER_ID=Rocky Web
+```
+
+### Chat Widget Environment
+```
+🟡 NEXT_PUBLIC_CHAT_WIDGET_ENV=production
+```
+
+### OpenAI API (AI Chat)
+```
+🟡 OPENAI_API_KEY=sk-...
+```
+
+### Chat Widget Integration (Choose One)
+```
+# Drift
+🟡 DRIFT_API_KEY=your_drift_api_key
+🟡 DRIFT_WEBHOOK_URL=https://api.drift.com/v1/conversations/{id}/messages
+🟡 DRIFT_DASHBOARD_URL=https://app.drift.com
+
+# OR Intercom
+🟡 INTERCOM_ACCESS_TOKEN=your_intercom_token
+🟡 INTERCOM_WEBHOOK_URL=https://api.intercom.io/conversations/{id}/parts
+
+# OR Crisp
+🟡 CRISP_IDENTIFIER=your_identifier
+🟡 CRISP_KEY=your_key
+```
+
+### Slack Integration
+```
+🟡 SLACK_BOT_TOKEN=xoxb-...
+🟡 SLACK_SUPPORT_CHANNEL=#customer-support
 ```
 
 ### Step 4: Set Environment Scope
@@ -171,6 +264,16 @@ After adding all variables, verify the deployment:
 - `SUPABASE_URL` - Database connection
 - `SUPABASE_SERVICE_ROLE_KEY` - Database writes
 - `NEXT_PUBLIC_URL` - PDF image URLs
+- `N8N_QUESTIONNAIRE_WEBHOOK_URL` - n8n workflow trigger
+
+### Service Lead Workflow
+- `SUPABASE_URL` - Database connection
+- `SUPABASE_SERVICE_ROLE_KEY` - Database writes
+- `N8N_SERVICE_LEAD_WEBHOOK_URL` - n8n workflow trigger
+
+### Automation & Workflows
+- `N8N_LEAD_SCORING_WEBHOOK_URL` - Lead scoring automation
+- `N8N_NURTURE_WEBHOOK_URL` - Nurture drip campaigns
 
 ### Logging & Monitoring
 - `SLACK_WEBHOOK_URL` - Error notifications

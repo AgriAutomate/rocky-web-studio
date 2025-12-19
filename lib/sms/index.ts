@@ -1,30 +1,34 @@
 import type { SMSProvider, SendSMSParams, SMSResponse } from "./types";
-import { TwilioProvider } from "./providers/twilio";
+import { MobileMessageProvider } from "./providers/mobileMessage";
 
 /**
  * Get the SMS provider based on environment configuration
- * NOTE: This provider abstraction is legacy/unused. The active SMS implementation
- * uses Mobile Message API directly via lib/sms.ts
  * 
- * Defaults to Twilio if SMS_PROVIDER is set to "twilio"
+ * Defaults to Mobile Message (mobilemessage.com.au)
+ * ACMA-Approved Sender ID: "Rocky Web"
  */
 export function getSMSProvider(): SMSProvider {
-  const provider = process.env.SMS_PROVIDER || "twilio";
+  const provider = process.env.SMS_PROVIDER || "mobile-message";
 
   switch (provider.toLowerCase()) {
-    case "twilio":
-      return new TwilioProvider({
-        accountSid: process.env.TWILIO_ACCOUNT_SID || "",
-        authToken: process.env.TWILIO_AUTH_TOKEN || "",
-        defaultFrom: process.env.TWILIO_FROM_NUMBER,
+    case "mobile-message":
+    case "mobilemessage":
+      return new MobileMessageProvider({
+        apiUrl: process.env.MOBILE_MESSAGE_API_URL,
+        apiKey: process.env.MOBILE_MESSAGE_API_KEY,
+        username: process.env.MOBILE_MESSAGE_API_USERNAME,
+        password: process.env.MOBILE_MESSAGE_API_PASSWORD,
+        senderId: process.env.MOBILE_MESSAGE_SENDER_ID || "Rocky Web",
       });
 
     default:
-      // Fallback to Twilio if unknown provider specified
-      return new TwilioProvider({
-        accountSid: process.env.TWILIO_ACCOUNT_SID || "",
-        authToken: process.env.TWILIO_AUTH_TOKEN || "",
-        defaultFrom: process.env.TWILIO_FROM_NUMBER,
+      // Fallback to Mobile Message if unknown provider specified
+      return new MobileMessageProvider({
+        apiUrl: process.env.MOBILE_MESSAGE_API_URL,
+        apiKey: process.env.MOBILE_MESSAGE_API_KEY,
+        username: process.env.MOBILE_MESSAGE_API_USERNAME,
+        password: process.env.MOBILE_MESSAGE_API_PASSWORD,
+        senderId: process.env.MOBILE_MESSAGE_SENDER_ID || "Rocky Web",
       });
   }
 }
@@ -51,5 +55,5 @@ export async function scheduleSMS(
 
 // Export types for use in other modules
 export type { SMSProvider, SendSMSParams, SMSResponse } from "./types";
-export { TwilioProvider } from "./providers/twilio";
+export { MobileMessageProvider } from "./providers/mobileMessage";
 

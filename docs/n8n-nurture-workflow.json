@@ -1,0 +1,426 @@
+{
+  "name": "Service Lead Nurture - Email Drip",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (Every Hour)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, first_name, last_name, email, service_type, qualification_status, created_at, nurture_stage_1_sent, nurture_stage_2_sent, nurture_stage_3_sent, nurture_stage_4_sent, last_engagement_date, engagement_count FROM service_leads WHERE qualification_status = 'warm' AND created_at <= NOW() - INTERVAL '3 days' AND (nurture_stage_1_sent IS NULL OR nurture_stage_1_sent = false) AND status != 'won' AND status != 'rejected' ORDER BY created_at ASC LIMIT 50",
+        "additionalFields": {}
+      },
+      "id": "query-email2-leads",
+      "name": "Query Leads for Email 2 (Day 3)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, first_name, last_name, email, service_type, qualification_status, created_at, nurture_stage_1_sent, nurture_stage_2_sent, nurture_stage_3_sent, nurture_stage_4_sent, last_engagement_date, engagement_count FROM service_leads WHERE qualification_status = 'warm' AND created_at <= NOW() - INTERVAL '7 days' AND nurture_stage_1_sent = true AND (nurture_stage_2_sent IS NULL OR nurture_stage_2_sent = false) AND status != 'won' AND status != 'rejected' ORDER BY created_at ASC LIMIT 50",
+        "additionalFields": {}
+      },
+      "id": "query-email3-leads",
+      "name": "Query Leads for Email 3 (Day 7)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, first_name, last_name, email, service_type, qualification_status, created_at, nurture_stage_1_sent, nurture_stage_2_sent, nurture_stage_3_sent, nurture_stage_4_sent, last_engagement_date, engagement_count FROM service_leads WHERE qualification_status = 'warm' AND created_at <= NOW() - INTERVAL '14 days' AND nurture_stage_2_sent = true AND (nurture_stage_3_sent IS NULL OR nurture_stage_3_sent = false) AND status != 'won' AND status != 'rejected' ORDER BY created_at ASC LIMIT 50",
+        "additionalFields": {}
+      },
+      "id": "query-email4-leads",
+      "name": "Query Leads for Email 4 (Day 14)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, first_name, last_name, email, service_type, qualification_status, created_at, nurture_stage_1_sent, nurture_stage_2_sent, nurture_stage_3_sent, nurture_stage_4_sent, last_engagement_date, engagement_count FROM service_leads WHERE qualification_status = 'warm' AND created_at <= NOW() - INTERVAL '28 days' AND nurture_stage_3_sent = true AND (nurture_stage_4_sent IS NULL OR nurture_stage_4_sent = false) AND status != 'won' AND status != 'rejected' ORDER BY created_at ASC LIMIT 50",
+        "additionalFields": {}
+      },
+      "id": "query-email5-leads",
+      "name": "Query Leads for Email 5 (Day 28)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Here's what makes us different",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head><body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;\"><h1 style=\"color: #134252;\">Hi {{ $json.first_name }},</h1><p>Thanks for your interest in our {{ $json.service_type }} services.</p><h2 style=\"color: #134252;\">Here's what makes us different:</h2><ul><li><strong>Problem-Solution Focus:</strong> We don't just build websites—we solve business challenges</li><li><strong>ROI-Driven Approach:</strong> Every project is designed to deliver measurable results</li><li><strong>Industry Expertise:</strong> Specialized knowledge in your sector</li><li><strong>Transparent Process:</strong> Clear communication from start to finish</li></ul><p>Want to see how we've helped businesses like yours?</p><p style=\"text-align: center; margin: 30px 0;\"><a href=\"https://rockywebstudio.com.au/case-studies?utm_source=nurture&utm_campaign=email2&lead_id={{ $json.id }}\" style=\"background-color: #134252; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;\">Learn More</a></p><p>Best regards,<br>The Rocky Web Studio Team</p><hr style=\"margin: 30px 0; border: none; border-top: 1px solid #ddd;\"><p style=\"font-size: 12px; color: #666;\"><a href=\"{{ $unsubscribe_url }}\">Unsubscribe</a> | <a href=\"https://rockywebstudio.com.au\">Rocky Web Studio</a></p></body></html>",
+        "options": {
+          "trackOpens": true,
+          "trackClicks": true
+        }
+      },
+      "id": "send-email2",
+      "name": "Send Email 2 (Day 3)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 200],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "See what our customers say",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head><body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;\"><h1 style=\"color: #134252;\">Hi {{ $json.first_name }},</h1><p>Don't just take our word for it—here's what our customers say:</p><div style=\"background: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #134252;\"><p style=\"font-style: italic;\">\"Rocky Web Studio transformed our online presence. Our leads increased by 40% in just 3 months.\"</p><p style=\"text-align: right; margin-top: 10px;\"><strong>— Sarah M., Healthcare Practice</strong> ⭐⭐⭐⭐⭐</p></div><div style=\"background: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #134252;\"><p style=\"font-style: italic;\">\"Professional, responsive, and results-driven. They understood our business from day one.\"</p><p style=\"text-align: right; margin-top: 10px;\"><strong>— James T., Manufacturing Co.</strong> ⭐⭐⭐⭐⭐</p></div><div style=\"background: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #134252;\"><p style=\"font-style: italic;\">\"The best investment we've made. ROI was clear within the first quarter.\"</p><p style=\"text-align: right; margin-top: 10px;\"><strong>— Lisa K., Retail Business</strong> ⭐⭐⭐⭐⭐</p></div><p style=\"text-align: center; margin: 30px 0;\"><a href=\"https://rockywebstudio.com.au/testimonials?utm_source=nurture&utm_campaign=email3&lead_id={{ $json.id }}\" style=\"background-color: #134252; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;\">Read Customer Stories</a></p><p>Best regards,<br>The Rocky Web Studio Team</p><hr style=\"margin: 30px 0; border: none; border-top: 1px solid #ddd;\"><p style=\"font-size: 12px; color: #666;\"><a href=\"{{ $unsubscribe_url }}\">Unsubscribe</a> | <a href=\"https://rockywebstudio.com.au\">Rocky Web Studio</a></p></body></html>",
+        "options": {
+          "trackOpens": true,
+          "trackClicks": true
+        }
+      },
+      "id": "send-email3",
+      "name": "Send Email 3 (Day 7)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Special offer ending Sunday",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head><body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;\"><h1 style=\"color: #134252;\">Hi {{ $json.first_name }},</h1><p>We'd love to help you get started with {{ $json.service_type }} services.</p><div style=\"background: #fff3cd; border: 2px solid #ffc107; padding: 20px; margin: 20px 0; text-align: center; border-radius: 5px;\"><h2 style=\"color: #134252; margin-top: 0;\">🎉 Special Offer</h2><p style=\"font-size: 24px; font-weight: bold; color: #134252;\">15% OFF</p><p>Plus a <strong>FREE consultation</strong> to discuss your needs</p><p style=\"font-size: 14px; color: #666;\">Offer ends this Sunday at midnight</p></div><p>This is a limited-time opportunity to get started with our proven approach at a special rate.</p><p style=\"text-align: center; margin: 30px 0;\"><a href=\"https://rockywebstudio.com.au/book?coupon=NURTURE15&utm_source=nurture&utm_campaign=email4&lead_id={{ $json.id }}\" style=\"background-color: #134252; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;\">Claim Your Offer</a></p><p>Best regards,<br>The Rocky Web Studio Team</p><hr style=\"margin: 30px 0; border: none; border-top: 1px solid #ddd;\"><p style=\"font-size: 12px; color: #666;\"><a href=\"{{ $unsubscribe_url }}\">Unsubscribe</a> | <a href=\"https://rockywebstudio.com.au\">Rocky Web Studio</a></p></body></html>",
+        "options": {
+          "trackOpens": true,
+          "trackClicks": true
+        }
+      },
+      "id": "send-email4",
+      "name": "Send Email 4 (Day 14)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 400],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "One last chance for {{ $json.service_type }}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head><body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;\"><h1 style=\"color: #134252;\">Hi {{ $json.first_name }},</h1><p>This is our final email about {{ $json.service_type }} services.</p><p>We've shared how we can help, what our customers say, and even offered a special discount. If you're still interested, now's the time to take action.</p><div style=\"background: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #134252;\"><p style=\"font-style: italic; margin: 0;\">\"Working with Rocky Web Studio was the best decision we made this year.\"</p><p style=\"text-align: right; margin-top: 10px; margin-bottom: 0;\"><strong>— Customer Review</strong> ⭐⭐⭐⭐⭐</p></div><p>If you're ready to get started, we're here to help. If not, we understand—just let us know if your needs change in the future.</p><p style=\"text-align: center; margin: 30px 0;\"><a href=\"https://rockywebstudio.com.au/book?utm_source=nurture&utm_campaign=email5&lead_id={{ $json.id }}\" style=\"background-color: #134252; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;\">Schedule Now</a></p><p>Best regards,<br>The Rocky Web Studio Team</p><hr style=\"margin: 30px 0; border: none; border-top: 1px solid #ddd;\"><p style=\"font-size: 12px; color: #666;\"><a href=\"{{ $unsubscribe_url }}\">Unsubscribe</a> | <a href=\"https://rockywebstudio.com.au\">Rocky Web Studio</a></p></body></html>",
+        "options": {
+          "trackOpens": true,
+          "trackClicks": true
+        }
+      },
+      "id": "send-email5",
+      "name": "Send Email 5 (Day 28)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 500],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads SET nurture_stage_1_sent = true, last_engagement_date = NOW(), updated_at = NOW() WHERE id = $1 RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id] }}"
+        }
+      },
+      "id": "update-email2-sent",
+      "name": "Update: Email 2 Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads SET nurture_stage_2_sent = true, last_engagement_date = NOW(), updated_at = NOW() WHERE id = $1 RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id] }}"
+        }
+      },
+      "id": "update-email3-sent",
+      "name": "Update: Email 3 Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads SET nurture_stage_3_sent = true, last_engagement_date = NOW(), updated_at = NOW() WHERE id = $1 RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id] }}"
+        }
+      },
+      "id": "update-email4-sent",
+      "name": "Update: Email 4 Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads SET nurture_stage_4_sent = true, last_engagement_date = NOW(), updated_at = NOW() WHERE id = $1 RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id] }}"
+        }
+      },
+      "id": "update-email5-sent",
+      "name": "Update: Email 5 Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads SET qualification_status = 'cold', status = 'cold', updated_at = NOW() WHERE id = $1 AND engagement_count = 0 AND last_engagement_date IS NULL RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id] }}"
+        }
+      },
+      "id": "mark-cold-if-no-engagement",
+      "name": "Mark Cold (No Engagement)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (Every Hour)": {
+      "main": [
+        [
+          {
+            "node": "Query Leads for Email 2 (Day 3)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Leads for Email 3 (Day 7)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Leads for Email 4 (Day 14)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Leads for Email 5 (Day 28)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Leads for Email 2 (Day 3)": {
+      "main": [
+        [
+          {
+            "node": "Send Email 2 (Day 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Leads for Email 3 (Day 7)": {
+      "main": [
+        [
+          {
+            "node": "Send Email 3 (Day 7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Leads for Email 4 (Day 14)": {
+      "main": [
+        [
+          {
+            "node": "Send Email 4 (Day 14)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Leads for Email 5 (Day 28)": {
+      "main": [
+        [
+          {
+            "node": "Send Email 5 (Day 28)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email 2 (Day 3)": {
+      "main": [
+        [
+          {
+            "node": "Update: Email 2 Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email 3 (Day 7)": {
+      "main": [
+        [
+          {
+            "node": "Update: Email 3 Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email 4 (Day 14)": {
+      "main": [
+        [
+          {
+            "node": "Update: Email 4 Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email 5 (Day 28)": {
+      "main": [
+        [
+          {
+            "node": "Update: Email 5 Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Email 5 Sent": {
+      "main": [
+        [
+          {
+            "node": "Mark Cold (No Engagement)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

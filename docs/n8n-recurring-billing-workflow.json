@@ -1,0 +1,434 @@
+{
+  "name": "Recurring Billing & Renewals",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-daily",
+      "name": "Schedule: Daily at 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ss.id, ss.customer_id, ss.service_type, ss.frequency, ss.amount, ss.billing_date, ss.next_billing_date, ss.status, ss.stripe_subscription_id, ss.auto_renewal, sl.email, sl.first_name, sl.last_name, sl.stripe_customer_id, sl.hubspot_contact_id FROM service_subscriptions ss INNER JOIN service_leads sl ON sl.id = ss.customer_id WHERE ss.billing_date = CURRENT_DATE AND ss.status = 'active' AND ss.auto_renewal = true ORDER BY ss.billing_date ASC",
+        "additionalFields": {}
+      },
+      "id": "query-due-subscriptions",
+      "name": "Query Subscriptions Due Today",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ss.id, ss.customer_id, ss.service_type, ss.amount, ss.next_billing_date, sl.email, sl.phone, sl.first_name, sl.last_name FROM service_subscriptions ss INNER JOIN service_leads sl ON sl.id = ss.customer_id WHERE ss.next_billing_date = CURRENT_DATE + INTERVAL '7 days' AND ss.status = 'active' AND ss.auto_renewal = true",
+        "additionalFields": {}
+      },
+      "id": "query-renewal-reminders",
+      "name": "Query 7-Day Renewal Reminders",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ss.id, ss.customer_id, ss.service_type, ss.amount, ss.created_at, sl.email, sl.first_name, sl.last_name FROM service_subscriptions ss INNER JOIN service_leads sl ON sl.id = ss.customer_id WHERE ss.status = 'paused' AND ss.cancellation_date IS NULL AND ss.created_at < NOW() - INTERVAL '30 days' AND (SELECT COUNT(*) FROM subscription_payments WHERE subscription_id = ss.id AND status = 'failed') >= 3",
+        "additionalFields": {}
+      },
+      "id": "query-churn-prevention",
+      "name": "Query Churn Prevention",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "paymentIntent",
+        "operation": "create",
+        "amount": "={{ $json.amount * 100 }}",
+        "currency": "usd",
+        "customer": "={{ $json.stripe_customer_id }}",
+        "description": "={{ $json.service_type + ' subscription - ' + $json.frequency }}",
+        "metadata": {
+          "subscription_id": "={{ $json.id }}",
+          "customer_id": "={{ $json.customer_id }}"
+        },
+        "options": {}
+      },
+      "id": "create-stripe-payment",
+      "name": "Create Stripe Payment",
+      "type": "n8n-nodes-base.stripe",
+      "typeVersion": 1.1,
+      "position": [650, 200],
+      "credentials": {
+        "stripeApi": {
+          "id": "stripe-credentials",
+          "name": "Stripe"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst subscription = items[0].json;\nconst paymentResult = items[1]?.json || {};\n\nif (paymentResult.status === 'succeeded' || paymentResult.paid === true) {\n  // Calculate next billing date\n  const billingDate = new Date(subscription.billing_date);\n  let nextBillingDate = new Date(billingDate);\n  \n  if (subscription.frequency === 'monthly') {\n    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);\n  } else if (subscription.frequency === 'quarterly') {\n    nextBillingDate.setMonth(nextBillingDate.getMonth() + 3);\n  } else if (subscription.frequency === 'annual') {\n    nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);\n  }\n  \n  return [{\n    json: {\n      subscription_id: subscription.id,\n      payment_status: 'completed',\n      stripe_charge_id: paymentResult.charges?.data?.[0]?.id || paymentResult.id,\n      stripe_payment_intent_id: paymentResult.id,\n      amount: subscription.amount,\n      next_billing_date: nextBillingDate.toISOString().split('T')[0],\n      billing_date: nextBillingDate.toISOString().split('T')[0],\n      customer_email: subscription.email,\n      customer_name: `${subscription.first_name} ${subscription.last_name}`,\n      service_type: subscription.service_type\n    }\n  }];\n} else {\n  return [{\n    json: {\n      subscription_id: subscription.id,\n      payment_status: 'failed',\n      stripe_payment_intent_id: paymentResult.id,\n      amount: subscription.amount,\n      failure_reason: paymentResult.last_payment_error?.message || 'Payment failed',\n      failure_code: paymentResult.last_payment_error?.code || 'unknown',\n      customer_email: subscription.email,\n      customer_name: `${subscription.first_name} ${subscription.last_name}`,\n      service_type: subscription.service_type\n    }\n  }];\n}"
+      },
+      "id": "process-payment-result",
+      "name": "Process Payment Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO subscription_payments (subscription_id, payment_date, amount, status, stripe_charge_id, stripe_payment_intent_id) VALUES ($1, CURRENT_DATE, $2, $3, $4, $5) RETURNING id; UPDATE service_subscriptions SET next_billing_date = $6, billing_date = $6, status = 'active', updated_at = NOW() WHERE id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.subscription_id, $json.amount, $json.payment_status, $json.stripe_charge_id, $json.stripe_payment_intent_id, $json.next_billing_date] }}"
+        }
+      },
+      "id": "update-payment-success",
+      "name": "Update: Payment Success",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 150],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO subscription_payments (subscription_id, payment_date, amount, status, stripe_payment_intent_id, failure_reason, failure_code, retry_count, next_retry_date) VALUES ($1, CURRENT_DATE, $2, 'failed', $3, $4, $5, 1, CURRENT_DATE + INTERVAL '3 days') RETURNING id; SELECT COUNT(*) as failure_count FROM subscription_payments WHERE subscription_id = $1 AND status = 'failed';",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.subscription_id, $json.amount, $json.stripe_payment_intent_id, $json.failure_reason, $json.failure_code] }}"
+        }
+      },
+      "id": "update-payment-failure",
+      "name": "Update: Payment Failure",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 250],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "three-failures",
+              "leftValue": "={{ $json.failure_count }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-retry-count",
+      "name": "Check Retry Count",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 250]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_subscriptions SET status = 'paused', updated_at = NOW() WHERE id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.subscription_id] }}"
+        }
+      },
+      "id": "pause-subscription",
+      "name": "Pause Subscription (3 Failures)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 250],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.customer_email }}",
+        "subject": "Payment received - {{ $json.service_type }} subscription",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.header{background:#134252;color:white;padding:20px;}.content{padding:20px;}</style></head><body><div class=\"header\"><h1>Payment Received</h1></div><div class=\"content\"><p>Hi {{ $json.customer_name }},</p><p>Your {{ $json.service_type }} subscription payment of ${{ $json.amount }} has been processed successfully.</p><p>Next billing date: {{ $json.next_billing_date }}</p><p>Thank you for your continued subscription!</p></div></body></html>"
+      },
+      "id": "email-payment-success",
+      "name": "Email: Payment Success",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 150],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.customer_email }}",
+        "subject": "Payment failed - Action required",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.header{background:#dc3545;color:white;padding:20px;}.content{padding:20px;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"header\"><h1>Payment Failed</h1></div><div class=\"content\"><p>Hi {{ $json.customer_name }},</p><p>We were unable to process your {{ $json.service_type }} subscription payment of ${{ $json.amount }}.</p><p><strong>Reason:</strong> {{ $json.failure_reason }}</p><p>Please update your payment method to continue your subscription.</p><p><a href=\"https://rockywebstudio.com.au/update-payment?subscription={{ $json.subscription_id }}\" class=\"button\">Update Payment Method</a></p></div></body></html>"
+      },
+      "id": "email-payment-failed",
+      "name": "Email: Payment Failed",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 350],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $json.phone }}",
+        "message": "Your {{ $json.service_type }} subscription renews on {{ $json.next_billing_date }}. Amount: ${{ $json.amount }}"
+      },
+      "id": "sms-renewal-reminder",
+      "name": "SMS: Renewal Reminder",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1.1,
+      "position": [650, 400],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-credentials",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Your subscription renews in 7 days",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.header{background:#134252;color:white;padding:20px;}.content{padding:20px;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"header\"><h1>Renewal Reminder</h1></div><div class=\"content\"><p>Hi {{ $json.first_name }},</p><p>Your {{ $json.service_type }} subscription will renew on {{ $json.next_billing_date }}.</p><p><strong>Amount:</strong> ${{ $json.amount }}</p><p>Your payment method on file will be charged automatically.</p><p><a href=\"https://rockywebstudio.com.au/update-payment?subscription={{ $json.id }}\" class=\"button\">Update Payment Method</a></p></div></body></html>"
+      },
+      "id": "email-renewal-reminder",
+      "name": "Email: Renewal Reminder",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 500],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "We miss you! Reactivate for 20% off",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.header{background:#134252;color:white;padding:20px;}.content{padding:20px;}.offer{background:#fff3cd;border:2px solid #ffc107;padding:20px;margin:20px 0;text-align:center;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"header\"><h1>We Miss You!</h1></div><div class=\"content\"><p>Hi {{ $json.first_name }},</p><p>We noticed your {{ $json.service_type }} subscription has been paused. We'd love to have you back!</p><div class=\"offer\"><h2>Special Offer: 20% Off</h2><p>Reactivate your subscription and get 20% off your next billing cycle.</p></div><p><a href=\"https://rockywebstudio.com.au/reactivate?subscription={{ $json.id }}&discount=REACTIVATE20\" class=\"button\">Reactivate Subscription</a></p></div></body></html>"
+      },
+      "id": "email-churn-prevention",
+      "name": "Email: Churn Prevention",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 600],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule: Daily at 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Query Subscriptions Due Today",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query 7-Day Renewal Reminders",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Churn Prevention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Subscriptions Due Today": {
+      "main": [
+        [
+          {
+            "node": "Create Stripe Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Stripe Payment": {
+      "main": [
+        [
+          {
+            "node": "Process Payment Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Payment Result": {
+      "main": [
+        [
+          {
+            "node": "Update: Payment Success",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update: Payment Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Payment Success": {
+      "main": [
+        [
+          {
+            "node": "Email: Payment Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Payment Failure": {
+      "main": [
+        [
+          {
+            "node": "Check Retry Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Retry Count": {
+      "main": [
+        [
+          {
+            "node": "Pause Subscription (3 Failures)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email: Payment Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query 7-Day Renewal Reminders": {
+      "main": [
+        [
+          {
+            "node": "SMS: Renewal Reminder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email: Renewal Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Churn Prevention": {
+      "main": [
+        [
+          {
+            "node": "Email: Churn Prevention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

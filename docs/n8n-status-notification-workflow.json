@@ -1,0 +1,543 @@
+{
+  "name": "Service Status Updates - SMS & Email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "booking-status-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Supabase Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "booking-status-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst webhookData = items[0].json;\n\nconst oldStatus = webhookData.old?.booking_status || webhookData.booking_status_old;\nconst newStatus = webhookData.new?.booking_status || webhookData.booking_status;\n\nlet transitionType = null;\nif (oldStatus === 'scheduled' && newStatus === 'assigned') {\n  transitionType = 'assigned';\n} else if (oldStatus === 'assigned' && newStatus === 'en-route') {\n  transitionType = 'en-route';\n} else if (oldStatus === 'en-route' && newStatus === 'completed') {\n  transitionType = 'completed';\n} else if (oldStatus === 'completed' && newStatus === 'paid') {\n  transitionType = 'paid';\n} else if (newStatus === 'cancelled') {\n  transitionType = 'cancelled';\n}\n\nreturn [{\n  json: {\n    transitionType,\n    booking: webhookData.new || webhookData,\n    oldStatus,\n    newStatus\n  }\n}];"
+      },
+      "id": "determine-transition",
+      "name": "Determine Status Transition",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "assigned",
+              "leftValue": "={{ $json.transitionType }}",
+              "rightValue": "assigned",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "en-route",
+              "leftValue": "={{ $json.transitionType }}",
+              "rightValue": "en-route",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "completed",
+              "leftValue": "={{ $json.transitionType }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "paid",
+              "leftValue": "={{ $json.transitionType }}",
+              "rightValue": "paid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cancelled",
+              "leftValue": "={{ $json.transitionType }}",
+              "rightValue": "cancelled",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "route-by-transition",
+      "name": "Route by Transition Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT sl.id, sl.first_name, sl.last_name, sl.email, sl.phone, sl.location, sb.id as booking_id, sb.scheduled_date, sb.time_window, sb.technician_name, sb.technician_id, sb.vehicle_id, sb.tracking_url, sb.eta_minutes, sb.actual_cost, sb.estimated_cost, sb.lead_id FROM service_leads sl INNER JOIN service_bookings sb ON sb.lead_id = sl.id WHERE sb.id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.booking.id || $json.booking_id] }}"
+        }
+      },
+      "id": "query-customer-details",
+      "name": "Query Customer Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $json.phone }}",
+        "message": "Your tech is {{ $json.technician_name }}, arriving {{ $json.scheduled_date }} {{ $json.time_window }}"
+      },
+      "id": "sms-assigned",
+      "name": "Send SMS - Assigned",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1.1,
+      "position": [1050, 150],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-credentials",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Your technician is on the way - {{ $json.scheduled_date }}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.header{background:#134252;color:white;padding:20px;}.content{padding:20px;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"header\"><h1>Your Technician is On the Way!</h1></div><div class=\"content\"><p>Hi {{ $json.first_name }},</p><p>Great news! Your technician <strong>{{ $json.technician_name }}</strong> has been assigned and will arrive on <strong>{{ $json.scheduled_date }}</strong> between <strong>{{ $json.time_window }}</strong>.</p>{{#if $json.vehicle_id}}<p>You'll recognize our vehicle: <strong>{{ $json.vehicle_id }}</strong></p>{{/if}}{{#if $json.tracking_url}}<p><a href=\"{{ $json.tracking_url }}\" class=\"button\">Track Your Technician</a></p>{{/if}}<p>We'll send you another update when they're on their way!</p><p>Best regards,<br>Rocky Web Studio</p></div></body></html>"
+      },
+      "id": "email-assigned",
+      "name": "Send Email - Assigned",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 250],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/directions/json",
+        "authentication": "genericCredentialType",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "origin",
+              "value": "={{ $json.technician_location }}"
+            },
+            {
+              "name": "destination",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "name": "key",
+              "value": "={{ $env.GOOGLE_MAPS_API_KEY }}"
+            },
+            {
+              "name": "mode",
+              "value": "driving"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "calculate-eta",
+      "name": "Calculate ETA (Google Maps)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1050, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst route = response.routes?.[0];\nconst leg = route?.legs?.[0];\nconst durationMinutes = leg ? Math.ceil(leg.duration.value / 60) : 30;\nconst distanceKm = leg ? (leg.distance.value / 1000).toFixed(2) : null;\n\nreturn [{\n  json: {\n    eta_minutes: durationMinutes,\n    distance_km: distanceKm\n  }\n}];"
+      },
+      "id": "process-eta",
+      "name": "Process ETA Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 350]
+    },
+    {
+      "parameters": {
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $json.phone }}",
+        "message": "We're {{ $json.eta_minutes }} minutes away! Vehicle is {{ $json.vehicle_id }}"
+      },
+      "id": "sms-en-route",
+      "name": "Send SMS - En Route",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1.1,
+      "position": [1050, 450],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-credentials",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Almost there! ETA: {{ $json.eta_minutes }} minutes",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.header{background:#134252;color:white;padding:20px;}.content{padding:20px;}.eta{font-size:32px;color:#134252;font-weight:bold;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"header\"><h1>We're Almost There!</h1></div><div class=\"content\"><p>Hi {{ $json.first_name }},</p><p class=\"eta\">ETA: {{ $json.eta_minutes }} minutes</p><p>Your technician is on the way! Look for our vehicle: <strong>{{ $json.vehicle_id }}</strong></p>{{#if $json.tracking_url}}<p><a href=\"{{ $json.tracking_url }}\" class=\"button\">Live Tracking</a></p>{{/if}}<p>See you soon!</p></div></body></html>"
+      },
+      "id": "email-en-route",
+      "name": "Send Email - En Route",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 550],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $json.phone }}",
+        "message": "Service complete! View invoice and pay: {{ $json.payment_link }}"
+      },
+      "id": "sms-completed",
+      "name": "Send SMS - Completed",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1.1,
+      "position": [1050, 650],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-credentials",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Service Complete - Invoice & Receipt",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.invoice{background:#f9f9f9;padding:20px;margin:20px 0;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"content\"><h1>Service Complete!</h1><p>Hi {{ $json.first_name }},</p><p>Your service has been completed. Here's your invoice:</p><div class=\"invoice\"><p><strong>Amount:</strong> ${{ $json.actual_cost }}</p><p><strong>Service Date:</strong> {{ $json.scheduled_date }}</p></div><p><a href=\"{{ $json.payment_link }}\" class=\"button\">Pay Now</a></p><p>We'd love your feedback: <a href=\"{{ $json.nps_survey_link }}\">Take our quick survey</a></p></div></body></html>"
+      },
+      "id": "email-completed",
+      "name": "Send Email - Completed",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 750],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_bookings SET customer_notification_sent = NOW(), eta_minutes = COALESCE($1, eta_minutes), internal_notes = COALESCE(internal_notes, '') || E'\\n[' || NOW() || '] Status: ' || $2 || ', Notifications sent' WHERE id = $3 RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.eta_minutes, $json.newStatus, $json.booking.id || $json.booking_id] }}"
+        }
+      },
+      "id": "update-database",
+      "name": "Update Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "deal",
+        "operation": "update",
+        "dealId": "={{ $json.hubspot_deal_id }}",
+        "properties": {
+          "properties": [
+            {
+              "name": "dealstage",
+              "value": "={{ $json.deal_stage }}"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.actual_cost }}"
+            }
+          ]
+        }
+      },
+      "id": "update-hubspot",
+      "name": "Update HubSpot Deal",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [1450, 400],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#bookings",
+        "text": "Status update: {{ $json.booking_id }} - {{ $json.newStatus }} | Customer: {{ $json.first_name }} {{ $json.last_name }}"
+      },
+      "id": "slack-notification",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1450, 500],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Supabase Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Determine Status Transition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Status Transition": {
+      "main": [
+        [
+          {
+            "node": "Route by Transition Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Transition Type": {
+      "main": [
+        [
+          {
+            "node": "Query Customer Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Customer Details": {
+      "main": [
+        [
+          {
+            "node": "Send SMS - Assigned",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email - Assigned",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Calculate ETA (Google Maps)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send SMS - En Route",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email - En Route",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send SMS - Completed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email - Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate ETA (Google Maps)": {
+      "main": [
+        [
+          {
+            "node": "Process ETA Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process ETA Response": {
+      "main": [
+        [
+          {
+            "node": "Update Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS - Assigned": {
+      "main": [
+        [
+          {
+            "node": "Update Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email - Assigned": {
+      "main": [
+        [
+          {
+            "node": "Update Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS - En Route": {
+      "main": [
+        [
+          {
+            "node": "Update Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email - En Route": {
+      "main": [
+        [
+          {
+            "node": "Update Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS - Completed": {
+      "main": [
+        [
+          {
+            "node": "Update Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email - Completed": {
+      "main": [
+        [
+          {
+            "node": "Update Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Database": {
+      "main": [
+        [
+          {
+            "node": "Update HubSpot Deal",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

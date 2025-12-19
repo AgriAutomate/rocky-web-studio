@@ -44,17 +44,18 @@ const tests = [
       }
     }
   },
-  {
-    name: "Import PDF generator",
-    test: () => {
-      try {
-        const { generatePdfReport } = require("../lib/pdf/generateClientReport.ts");
-        console.log("✅ PDF generator imported successfully");
-      } catch (e) {
-        console.log("❌ PDF generator import failed:", e.message);
-      }
-    }
-  },
+  // PDF generation moved to n8n workflow - test removed
+  // {
+  //   name: "Import PDF generator",
+  //   test: () => {
+  //     try {
+  //       const { generatePdfReport } = require("../lib/pdf/generateClientReport.ts");
+  //       console.log("✅ PDF generator imported successfully");
+  //     } catch (e) {
+  //       console.log("❌ PDF generator import failed:", e.message);
+  //     }
+  //   }
+  // },
 ];
 
 tests.forEach(({ name, test }) => {

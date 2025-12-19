@@ -4,10 +4,23 @@ import * as React from "react";
 import { validateQuestionnaireFormSafe, formatValidationErrors } from "@/lib/utils/validators";
 import { getTopChallengesForSector, formatSectorName } from "@/lib/utils/sector-mapping";
 import { getChallengeDetails } from "@/lib/utils/pain-point-mapping";
-import { generatePdfReport, type ReportData } from "@/lib/pdf/generateClientReport";
+// PDF generation moved to n8n workflow
+// Local type for report data (used for email and storage)
+interface ReportData {
+  clientName: string;
+  businessName: string;
+  sector: string;
+  topChallenges: Array<{
+    number: number;
+    title: string;
+    sections: string[];
+    roiTimeline: string;
+    projectCostRange: string;
+  }>;
+  generatedDate: string;
+}
 import {
   storeQuestionnaireResponse,
-  uploadPdfToStorage,
   updateEmailSentTimestamp,
 } from "@/lib/utils/supabase-client";
 import ClientAcknowledgementEmail from "@/lib/email/ClientAcknowledgementEmail";
@@ -55,35 +68,13 @@ export async function POST(request: NextRequest) {
       generatedDate: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
     };
 
-    // STEP 3: GENERATE PDF (8-10 seconds)
-    let pdfBuffer: Uint8Array;
-    try {
-      pdfBuffer = await generatePdfReport(reportData);
-    } catch (err) {
-      await logger.error("PDF generation failed", { error: String(err) });
-      // Treat as gateway timeout for the client
-      return NextResponse.json(
-        {
-          success: false,
-          error: "We had trouble generating your report. Please try again in a moment.",
-        },
-        { status: 504 }
-      );
-    }
-
-    const pdfGeneratedAt = new Date().toISOString();
-    const nodeBuffer = Buffer.from(pdfBuffer);
-    const pdfBase64 = nodeBuffer.toString("base64");
-
-    // STEP 4: UPLOAD PDF TO STORAGE (2-3 seconds, optional)
+    // STEP 3: PDF GENERATION - Now handled by n8n workflow
+    // PDF generation has been moved to n8n. The workflow will be triggered
+    // separately and will handle PDF creation, storage, and email delivery.
     const clientId = crypto.randomUUID();
-    const fileName = `${clientId}-report-${reportData.generatedDate}.pdf`;
-    const pdfUrl = await uploadPdfToStorage(fileName, nodeBuffer).catch((err) => {
-      void logger.error("PDF upload threw", { error: String(err), clientId });
-      return null as string | null;
-    });
+    const pdfGeneratedAt = new Date().toISOString();
 
-    // STEP 5: SEND EMAIL (3-5 seconds)
+    // STEP 4: SEND EMAIL (3-5 seconds) - PDF attachment handled by n8n
     const resend = new Resend(env.RESEND_API_KEY);
     try {
       await resend.emails.send({
@@ -95,13 +86,7 @@ export async function POST(request: NextRequest) {
           businessName: formData.businessName,
           sector: reportData.sector,
         }),
-        attachments: [
-          {
-            filename: "RockyWebStudio-Deep-Dive-Report.pdf",
-            content: pdfBase64,
-            contentType: "application/pdf",
-          },
-        ],
+        // PDF attachment will be handled by n8n workflow
       });
     } catch (emailError) {
       // Do not fail the overall request; log for manual follow-up.
@@ -109,8 +94,13 @@ export async function POST(request: NextRequest) {
     }
 
     // STEP 6: STORE IN SUPABASE (non-blocking best-effort)
+    // Extract UTM parameters from request
+    const url = new URL(request.url);
+    const utmSource = url.searchParams.get('utm_source') || null;
+    const utmCampaign = url.searchParams.get('utm_campaign') || null;
+    
     void (async () => {
-      const storedId = await storeQuestionnaireResponse(formData, pdfUrl, clientId, pdfGeneratedAt).catch((err) => {
+      const storedId = await storeQuestionnaireResponse(formData, utmSource, utmCampaign).catch((err) => {
         void logger.error("storeQuestionnaireResponse threw", { error: String(err) });
         return null;
       });

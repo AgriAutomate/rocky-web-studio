@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/client";
 import type { QuestionnaireFormData } from "@/lib/types/questionnaire";
 import { logger } from "@/lib/utils/logger";
+import { painPointsToChallengeIds } from "@/lib/utils/pain-point-to-challenge";
 
 const QUESTIONNAIRE_BUCKET = "rockywebstudio";
 const QUESTIONNAIRE_STORAGE_PATH = "questionnaire-reports";
@@ -108,9 +109,8 @@ export async function uploadPdfToStorage(
  */
 export async function storeQuestionnaireResponse(
   formData: QuestionnaireFormData,
-  pdfUrl: string | null,
-  clientId?: string,
-  pdfGeneratedAt?: string
+  utmSource?: string | null,
+  utmCampaign?: string | null
 ): Promise<string | null> {
   try {
     const supabase = createServerSupabaseClient(true);
@@ -123,66 +123,61 @@ export async function storeQuestionnaireResponse(
       businessEmail: formData.businessEmail,
       businessPhone: formData.businessPhone,
       sector: formData.sector,
-      employeeCount: formData.employeeCount,
-      selectedPainPoints: formData.selectedPainPoints,
     };
 
     const missingFields = Object.entries(requiredFields)
-      .filter(([_, value]) => !value || (Array.isArray(value) && value.length === 0))
+      .filter(([_, value]) => !value)
       .map(([key]) => key);
 
     if (missingFields.length > 0) {
       await logger.error("Missing required fields for Supabase insert", {
-        clientId,
         businessName: formData.businessName,
         missingFields,
       });
       return null;
     }
 
+    // Derive challenges from pain points (map pain points to challenge IDs)
+    const challenges = formData.selectedPainPoints && formData.selectedPainPoints.length > 0
+      ? painPointsToChallengeIds(formData.selectedPainPoints, 3)
+      : [];
+
     const insertPayload: Record<string, any> = {
-      // Optional external reference for the client/report
+      // Required fields
       first_name: formData.firstName,
       last_name: formData.lastName,
-      business_name: formData.businessName,
-      business_email: formData.businessEmail,
-      business_phone: formData.businessPhone,
+      email: formData.businessEmail,
+      phone: formData.businessPhone,
+      company_name: formData.businessName,
       sector: formData.sector,
-      employee_count: formData.employeeCount,
-      pain_points: formData.selectedPainPoints,
+      pain_points: formData.selectedPainPoints || [],
+      challenges: challenges,
+      status: 'submitted',
     };
 
     // Add optional fields only if they have values
-    if (clientId) {
-      insertPayload.client_id = clientId;
+    if (formData.additionalContext) {
+      insertPayload.job_description = formData.additionalContext;
     }
-    if (formData.annualRevenue) {
-      insertPayload.annual_revenue = formData.annualRevenue;
+    if (utmSource) {
+      insertPayload.utm_source = utmSource;
     }
-    if (formData.budget) {
-      insertPayload.budget_range = formData.budget;
-    }
-    if (formData.timelineToImplement) {
-      insertPayload.timeline = formData.timelineToImplement;
-    }
-    if (pdfUrl) {
-      insertPayload.pdf_url = pdfUrl;
-    }
-    if (pdfGeneratedAt) {
-      insertPayload.pdf_generated_at = pdfGeneratedAt;
+    if (utmCampaign) {
+      insertPayload.utm_campaign = utmCampaign;
     }
 
     await logger.info("Attempting to store questionnaire response", {
-      clientId,
       businessName: formData.businessName,
-      hasPdfUrl: !!pdfUrl,
       payloadKeys: Object.keys(insertPayload),
       payloadPreview: {
         first_name: insertPayload.first_name,
-        business_name: insertPayload.business_name,
-        business_email: insertPayload.business_email,
+        last_name: insertPayload.last_name,
+        email: insertPayload.email,
+        company_name: insertPayload.company_name,
         sector: insertPayload.sector,
         pain_points_count: Array.isArray(insertPayload.pain_points) ? insertPayload.pain_points.length : 0,
+        challenges_count: Array.isArray(insertPayload.challenges) ? insertPayload.challenges.length : 0,
+        status: insertPayload.status,
       },
     });
 
@@ -198,7 +193,6 @@ export async function storeQuestionnaireResponse(
         errorCode: error.code,
         errorDetails: error.details,
         errorHint: error.hint,
-        clientId,
         businessName: formData.businessName,
         businessEmail: formData.businessEmail,
         insertPayloadKeys: Object.keys(insertPayload),
@@ -209,7 +203,6 @@ export async function storeQuestionnaireResponse(
 
     if (!data) {
       await logger.error("Supabase insert returned no data object", {
-        clientId,
         businessName: formData.businessName,
         hasError: !!error,
         errorMessage: error?.message,
@@ -222,7 +215,6 @@ export async function storeQuestionnaireResponse(
 
     if (!recordId) {
       await logger.error("Supabase insert succeeded but returned no ID", {
-        clientId,
         businessName: formData.businessName,
         dataType: typeof data,
         dataIsArray: Array.isArray(data),
@@ -234,7 +226,6 @@ export async function storeQuestionnaireResponse(
     }
 
     await logger.info("Successfully stored questionnaire response", {
-      clientId,
       storedId: recordId,
       businessName: formData.businessName,
       businessEmail: formData.businessEmail,
@@ -246,7 +237,6 @@ export async function storeQuestionnaireResponse(
       error: String(err),
       errorMessage: err instanceof Error ? err.message : String(err),
       errorStack: err instanceof Error ? err.stack : undefined,
-      clientId,
       businessName: formData.businessName,
       businessEmail: formData.businessEmail,
     });
@@ -273,5 +263,140 @@ export async function updateEmailSentTimestamp(
     }
   } catch (err) {
     await logger.error("Unexpected error updating email sent timestamp", { error: String(err), clientId });
+  }
+}
+
+/**
+ * Store a service lead in Supabase.
+ * 
+ * @param formData - Service lead form data with the following fields:
+ *   - firstName: string (required)
+ *   - lastName: string (required)
+ *   - email: string (required)
+ *   - phone: string (required)
+ *   - serviceType: string | null (optional)
+ *   - urgency: 'today' | 'next_48h' | 'next_week' | null (optional)
+ *   - location: string | null (optional)
+ *   - description: string | null (optional)
+ * @returns The ID of the inserted record as a string, or null if insertion failed
+ */
+export async function storeServiceLead(
+  formData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    serviceType?: string | null;
+    urgency?: 'today' | 'next_48h' | 'next_week' | null;
+    location?: string | null;
+    description?: string | null;
+  }
+): Promise<string | null> {
+  try {
+    const supabase = createServerSupabaseClient(true);
+    
+    // Validate required fields
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
+      await logger.error("[SERVICE_LEAD] Missing required fields for service lead insert", {
+        hasFirstName: !!formData.firstName,
+        hasLastName: !!formData.lastName,
+        hasEmail: !!formData.email,
+        hasPhone: !!formData.phone,
+      });
+      return null;
+    }
+
+    // Determine if urgent based on urgency field
+    const isUrgent = formData.urgency === 'today';
+
+    const insertPayload: Record<string, any> = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      status: 'new',
+      is_urgent: isUrgent,
+    };
+
+    // Add optional fields only if they have values
+    if (formData.serviceType) {
+      insertPayload.service_type = formData.serviceType;
+    }
+    if (formData.urgency) {
+      insertPayload.urgency = formData.urgency;
+    }
+    if (formData.location) {
+      insertPayload.location = formData.location;
+    }
+    if (formData.description) {
+      insertPayload.description = formData.description;
+    }
+
+    await logger.info("[SERVICE_LEAD] Attempting to store service lead", {
+      email: formData.email,
+      serviceType: formData.serviceType,
+      urgency: formData.urgency,
+      isUrgent,
+      payloadKeys: Object.keys(insertPayload),
+    });
+
+    const { data, error } = await (supabase as any)
+      .from("service_leads")
+      .insert(insertPayload)
+      .select("id")
+      .single();
+
+    if (error) {
+      await logger.error("[SERVICE_LEAD] Failed to store service lead in Supabase", { 
+        error: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        email: formData.email,
+        insertPayloadKeys: Object.keys(insertPayload),
+        fullError: JSON.stringify(error),
+      });
+      return null;
+    }
+
+    if (!data) {
+      await logger.error("[SERVICE_LEAD] Supabase insert returned no data object", {
+        email: formData.email,
+        hasError: !!error,
+        errorMessage: error?.message,
+      });
+      return null;
+    }
+
+    // Extract ID - Supabase returns { id: ... } when using .single()
+    const recordId = data?.id;
+
+    if (!recordId) {
+      await logger.error("[SERVICE_LEAD] Supabase insert succeeded but returned no ID", {
+        email: formData.email,
+        dataType: typeof data,
+        dataIsArray: Array.isArray(data),
+        dataStructure: JSON.stringify(data, null, 2),
+        dataKeys: data ? Object.keys(data) : [],
+        rawData: data,
+      });
+      return null;
+    }
+
+    await logger.info("[SERVICE_LEAD] Successfully stored service lead", {
+      storedId: recordId,
+      email: formData.email,
+      serviceType: formData.serviceType,
+    });
+
+    return String(recordId); // Ensure we return a string
+  } catch (err) {
+    await logger.error("[SERVICE_LEAD] Unexpected error storing service lead in Supabase", { 
+      error: String(err),
+      errorMessage: err instanceof Error ? err.message : String(err),
+      errorStack: err instanceof Error ? err.stack : undefined,
+      email: formData.email,
+    });
+    return null;
   }
 }

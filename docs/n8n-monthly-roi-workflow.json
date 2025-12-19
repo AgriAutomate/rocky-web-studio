@@ -1,0 +1,279 @@
+{
+  "name": "Monthly Lead ROI Dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (1st of Month)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(lead_source, 'unknown') as lead_source, COUNT(*) as leads_generated, COUNT(*) FILTER (WHERE qualification_status IN ('hot', 'warm')) as leads_qualified, COUNT(*) FILTER (WHERE conversion_date IS NOT NULL) as leads_converted, CASE WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE conversion_date IS NOT NULL)::DECIMAL / COUNT(*)::DECIMAL) * 100, 2) ELSE 0 END as conversion_rate, ROUND(AVG(conversion_value) FILTER (WHERE conversion_date IS NOT NULL), 2) as avg_deal_value, ROUND(SUM(conversion_value) FILTER (WHERE conversion_date IS NOT NULL), 2) as total_revenue FROM service_leads WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE) AND created_at < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month' GROUP BY lead_source ORDER BY total_revenue DESC NULLS LAST",
+        "additionalFields": {}
+      },
+      "id": "query-current-month",
+      "name": "Query Current Month Metrics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(lead_source, 'unknown') as lead_source, COUNT(*) as leads_generated, COUNT(*) FILTER (WHERE qualification_status IN ('hot', 'warm')) as leads_qualified, COUNT(*) FILTER (WHERE conversion_date IS NOT NULL) as leads_converted, CASE WHEN COUNT(*) > 0 THEN ROUND((COUNT(*) FILTER (WHERE conversion_date IS NOT NULL)::DECIMAL / COUNT(*)::DECIMAL) * 100, 2) ELSE 0 END as conversion_rate, ROUND(AVG(conversion_value) FILTER (WHERE conversion_date IS NOT NULL), 2) as avg_deal_value, ROUND(SUM(conversion_value) FILTER (WHERE conversion_date IS NOT NULL), 2) as total_revenue FROM service_leads WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month' AND created_at < DATE_TRUNC('month', CURRENT_DATE) GROUP BY lead_source ORDER BY total_revenue DESC NULLS LAST",
+        "additionalFields": {}
+      },
+      "id": "query-previous-month",
+      "name": "Query Previous Month Metrics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT lead_source, monthly_budget as marketing_cost FROM marketing_budgets WHERE is_active = true ORDER BY lead_source",
+        "additionalFields": {}
+      },
+      "id": "lookup-marketing-costs",
+      "name": "Lookup Marketing Costs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allInputs = $input.all();\nconst currentMonth = allInputs[0].json;\nconst previousMonth = allInputs[1]?.json || [];\nconst budgets = allInputs[2]?.json || [];\n\n// Create lookup maps\nconst prevMap = {};\npreviousMonth.forEach(item => {\n  prevMap[item.lead_source] = item;\n});\n\nconst budgetMap = {};\nbudgets.forEach(item => {\n  budgetMap[item.lead_source] = parseFloat(item.marketing_cost || 0);\n});\n\n// Add costs and calculate ROI\nconst currentWithCosts = currentMonth.map(source => {\n  const cost = budgetMap[source.lead_source] || 0;\n  const revenue = parseFloat(source.total_revenue || 0);\n  const roi = cost > 0 ? ((revenue / cost) * 100).toFixed(2) : (revenue > 0 ? '∞' : '0.00');\n  \n  return {\n    ...source,\n    marketing_cost: cost,\n    roi: roi\n  };\n});\n\n// Calculate comparisons\nconst enriched = currentWithCosts.map(source => {\n  const prev = prevMap[source.lead_source] || {};\n  \n  const leadsChange = prev.leads_generated \n    ? (((source.leads_generated - prev.leads_generated) / prev.leads_generated) * 100).toFixed(1)\n    : 'N/A';\n  \n  const revenueChange = prev.total_revenue \n    ? (((parseFloat(source.total_revenue || 0) - parseFloat(prev.total_revenue || 0)) / parseFloat(prev.total_revenue || 0)) * 100).toFixed(1)\n    : 'N/A';\n  \n  const conversionChange = prev.conversion_rate \n    ? ((parseFloat(source.conversion_rate || 0) - parseFloat(prev.conversion_rate || 0))).toFixed(2)\n    : 'N/A';\n  \n  return {\n    ...source,\n    prev_leads_generated: prev.leads_generated || 0,\n    prev_total_revenue: prev.total_revenue || 0,\n    prev_conversion_rate: prev.conversion_rate || 0,\n    leads_change_pct: leadsChange,\n    revenue_change_pct: revenueChange,\n    conversion_change_pct: conversionChange,\n    trend: revenueChange !== 'N/A' && parseFloat(revenueChange) > 0 ? 'up' : \n           revenueChange !== 'N/A' && parseFloat(revenueChange) < 0 ? 'down' : 'stable'\n  };\n});\n\n// Sort by ROI\nenriched.sort((a, b) => {\n  const roiA = parseFloat(a.roi) || 0;\n  const roiB = parseFloat(b.roi) || 0;\n  return roiB - roiA;\n});\n\n// Add rankings\nenriched.forEach((item, index) => {\n  item.rank = index + 1;\n});\n\n// Identify best and worst\nconst best = enriched[0];\nconst worst = enriched[enriched.length - 1];\n\nreturn enriched.map(item => ({ \n  json: {\n    ...item,\n    is_best: item.lead_source === best?.lead_source,\n    is_worst: item.lead_source === worst?.lead_source\n  }\n}));"
+      },
+      "id": "calculate-roi-comparisons",
+      "name": "Calculate ROI & Comparisons",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst metrics = items.map(item => item.json);\n\nconst now = new Date();\nconst lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);\nconst monthName = lastMonth.toLocaleString('default', { month: 'long', year: 'numeric' });\n\nconst best = metrics.find(m => m.is_best);\nconst worst = metrics.find(m => m.is_worst);\n\nconst totals = {\n  leads_generated: metrics.reduce((sum, m) => sum + (m.leads_generated || 0), 0),\n  leads_qualified: metrics.reduce((sum, m) => sum + (m.leads_qualified || 0), 0),\n  leads_converted: metrics.reduce((sum, m) => sum + (m.leads_converted || 0), 0),\n  total_revenue: metrics.reduce((sum, m) => sum + (parseFloat(m.total_revenue) || 0), 0),\n  marketing_cost: metrics.reduce((sum, m) => sum + (parseFloat(m.marketing_cost) || 0), 0)\n};\n\nconst overallROI = totals.marketing_cost > 0 \n  ? ((totals.total_revenue / totals.marketing_cost) * 100).toFixed(2)\n  : 'N/A';\n\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Monthly ROI Report - ${monthName}</title>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }\n    .header { background: #134252; color: white; padding: 30px; border-radius: 5px; margin-bottom: 30px; }\n    .header h1 { margin: 0; font-size: 28px; }\n    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }\n    .summary-card { background: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    .summary-card h3 { margin: 0 0 10px 0; color: #666; font-size: 14px; text-transform: uppercase; }\n    .summary-card .value { font-size: 32px; font-weight: bold; color: #134252; }\n    table { width: 100%; border-collapse: collapse; background: white; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    th { background: #134252; color: white; padding: 12px; text-align: left; font-weight: 600; }\n    td { padding: 12px; border-bottom: 1px solid #ddd; }\n    tr:hover { background: #f9f9f9; }\n    .trend-up { color: #28a745; font-weight: bold; }\n    .trend-down { color: #dc3545; font-weight: bold; }\n    .trend-stable { color: #666; }\n    .best { background: #d4edda !important; }\n    .worst { background: #f8d7da !important; }\n    .recommendations { background: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }\n    .recommendations h2 { color: #134252; margin-top: 0; }\n    .recommendation { padding: 15px; margin: 10px 0; border-left: 4px solid #134252; background: #f9f9f9; }\n    .recommendation strong { color: #134252; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>Monthly ROI Summary - ${monthName}</h1>\n    <p>Generated on ${new Date().toLocaleString()}</p>\n  </div>\n  <div class=\"summary\">\n    <div class=\"summary-card\"><h3>Total Leads</h3><div class=\"value\">${totals.leads_generated}</div></div>\n    <div class=\"summary-card\"><h3>Qualified Leads</h3><div class=\"value\">${totals.leads_qualified}</div></div>\n    <div class=\"summary-card\"><h3>Converted</h3><div class=\"value\">${totals.leads_converted}</div></div>\n    <div class=\"summary-card\"><h3>Total Revenue</h3><div class=\"value\">$${totals.total_revenue.toLocaleString('en-US', {minimumFractionDigits: 2})}</div></div>\n    <div class=\"summary-card\"><h3>Marketing Cost</h3><div class=\"value\">$${totals.marketing_cost.toLocaleString('en-US', {minimumFractionDigits: 2})}</div></div>\n    <div class=\"summary-card\"><h3>Overall ROI</h3><div class=\"value\">${overallROI}%</div></div>\n  </div>\n  <table>\n    <thead>\n      <tr>\n        <th>Rank</th><th>Lead Source</th><th>Leads</th><th>Qualified</th><th>Converted</th><th>Conv. Rate</th><th>Avg Deal</th><th>Revenue</th><th>Cost</th><th>ROI</th><th>Trend</th>\n      </tr>\n    </thead>\n    <tbody>\n      ${metrics.map(m => `<tr class=\"${m.is_best ? 'best' : ''} ${m.is_worst ? 'worst' : ''}\">\n        <td><strong>#${m.rank}</strong></td>\n        <td><strong>${m.lead_source}</strong></td>\n        <td>${m.leads_generated || 0}</td>\n        <td>${m.leads_qualified || 0}</td>\n        <td>${m.leads_converted || 0}</td>\n        <td>${m.conversion_rate || 0}%</td>\n        <td>$${parseFloat(m.avg_deal_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>\n        <td>$${parseFloat(m.total_revenue || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>\n        <td>$${parseFloat(m.marketing_cost || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>\n        <td><strong>${m.roi}%</strong></td>\n        <td class=\"trend-${m.trend}\">${m.revenue_change_pct !== 'N/A' ? `${m.revenue_change_pct}%` : 'N/A'}</td>\n      </tr>`).join('')}\n    </tbody>\n  </table>\n  <div class=\"recommendations\">\n    <h2>📊 Key Insights & Recommendations</h2>\n    ${best ? `<div class=\"recommendation\"><strong>🏆 Best Performer:</strong> ${best.lead_source} with ${best.roi}% ROI${parseFloat(best.roi) > 200 ? ' — Consider increasing budget allocation' : ''}</div>` : ''}\n    ${worst ? `<div class=\"recommendation\"><strong>⚠️ Underperformer:</strong> ${worst.lead_source} with ${worst.roi}% ROI${parseFloat(worst.roi) < 100 ? ' — Review strategy or reduce spend' : ''}</div>` : ''}\n    ${totals.leads_converted > 0 ? `<div class=\"recommendation\"><strong>📈 Conversion Rate:</strong> ${((totals.leads_converted / totals.leads_generated) * 100).toFixed(2)}%${((totals.leads_converted / totals.leads_generated) * 100) < 10 ? ' — Focus on qualification and follow-up' : ' — Good conversion performance'}</div>` : ''}\n    ${overallROI !== 'N/A' ? `<div class=\"recommendation\"><strong>💰 Overall ROI:</strong> ${overallROI}%${parseFloat(overallROI) > 200 ? ' — Excellent return on investment' : parseFloat(overallROI) < 100 ? ' — Below break-even, review strategy' : ' — Healthy ROI'}</div>` : ''}\n  </div>\n</body>\n</html>`;\n\nreturn [{ json: { html, monthName, metrics, totals, overallROI, best, worst } }];"
+      },
+      "id": "generate-html-report",
+      "name": "Generate HTML Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst data = items[0].json;\n\nconst headers = ['Rank', 'Lead Source', 'Leads Generated', 'Qualified', 'Converted', 'Conversion Rate %', 'Avg Deal Value', 'Total Revenue', 'Marketing Cost', 'ROI %', 'Revenue Change %'];\nconst rows = data.metrics.map(m => [\n  m.rank,\n  m.lead_source,\n  m.leads_generated || 0,\n  m.leads_qualified || 0,\n  m.leads_converted || 0,\n  m.conversion_rate || 0,\n  parseFloat(m.avg_deal_value || 0).toFixed(2),\n  parseFloat(m.total_revenue || 0).toFixed(2),\n  parseFloat(m.marketing_cost || 0).toFixed(2),\n  m.roi,\n  m.revenue_change_pct !== 'N/A' ? m.revenue_change_pct : ''\n]);\n\nconst csv = [\n  headers.join(','),\n  ...rows.map(row => row.map(cell => `\"${cell}\"`).join(','))\n].join('\\n');\n\nreturn [{ json: { csv, filename: `roi-report-${data.monthName.toLowerCase().replace(' ', '-')}.csv`, ...data } }];"
+      },
+      "id": "generate-csv",
+      "name": "Generate CSV Export",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "martin@rockywebstudio.com.au",
+        "subject": "Monthly ROI Report - {{ $json.monthName }}",
+        "emailType": "html",
+        "message": "{{ $json.html }}",
+        "options": {
+          "attachments": [
+            {
+              "name": "{{ $json.filename }}",
+              "data": "={{ Buffer.from($json.csv).toString('base64') }}",
+              "type": "text/csv"
+            }
+          ]
+        }
+      },
+      "id": "send-email-report",
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 300],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#metrics",
+        "text": "📊 *Monthly ROI Report - {{ $json.monthName }}*\n\n*Summary:*\n• Total Leads: {{ $json.totals.leads_generated }}\n• Converted: {{ $json.totals.leads_converted }}\n• Total Revenue: ${{ $json.totals.total_revenue.toLocaleString() }}\n• Overall ROI: {{ $json.overallROI }}%\n\n*🏆 Best Performer:*\n{{ $json.best.lead_source }} - {{ $json.best.roi }}% ROI\n{{ $json.best.total_revenue ? `Revenue: $${$json.best.total_revenue.toLocaleString()}` : '' }}\n\n*⚠️ Needs Review:*\n{{ $json.worst.lead_source }} - {{ $json.worst.roi }}% ROI\n\n*💡 Recommendation:*\n{{ $json.best.roi > 200 ? `Consider increasing budget for ${$json.best.lead_source}` : '' }}\n{{ $json.worst.roi < 100 ? `Review strategy for ${$json.worst.lead_source}` : '' }}\n\nFull report sent via email.",
+        "options": {}
+      },
+      "id": "post-to-slack",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1250, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads SET internal_notes = COALESCE(internal_notes, '') || E'\\n[ROI Report ' || TO_CHAR(CURRENT_DATE, 'YYYY-MM') || '] Paid ad ROI below threshold - review needed' WHERE lead_source = 'paid_ad' AND conversion_date IS NULL AND created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month' AND EXISTS (SELECT 1 FROM marketing_budgets mb WHERE mb.lead_source = 'paid_ad' AND mb.monthly_budget > 0 AND (SELECT COALESCE(SUM(conversion_value), 0) FROM service_leads sl2 WHERE sl2.lead_source = 'paid_ad' AND sl2.created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month') / mb.monthly_budget < 1.0); UPDATE service_leads SET internal_notes = COALESCE(internal_notes, '') || E'\\n[ROI Report ' || TO_CHAR(CURRENT_DATE, 'YYYY-MM') || '] Organic ROI exceeds 200% - expansion opportunity' WHERE lead_source = 'organic' AND conversion_date IS NULL AND created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month' AND EXISTS (SELECT 1 FROM marketing_budgets mb WHERE mb.lead_source = 'organic' AND mb.monthly_budget > 0 AND (SELECT COALESCE(SUM(conversion_value), 0) FROM service_leads sl2 WHERE sl2.lead_source = 'organic' AND sl2.created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month') / mb.monthly_budget > 2.0);",
+        "additionalFields": {}
+      },
+      "id": "update-database-insights",
+      "name": "Update Database with Insights",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (1st of Month)": {
+      "main": [
+        [
+          {
+            "node": "Query Current Month Metrics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Previous Month Metrics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Lookup Marketing Costs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Current Month Metrics": {
+      "main": [
+        [
+          {
+            "node": "Calculate ROI & Comparisons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Previous Month Metrics": {
+      "main": [
+        [
+          {
+            "node": "Calculate ROI & Comparisons",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Lookup Marketing Costs": {
+      "main": [
+        [
+          {
+            "node": "Calculate ROI & Comparisons",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Calculate ROI & Comparisons": {
+      "main": [
+        [
+          {
+            "node": "Generate HTML Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate HTML Report": {
+      "main": [
+        [
+          {
+            "node": "Generate CSV Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate CSV Export": {
+      "main": [
+        [
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Database with Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

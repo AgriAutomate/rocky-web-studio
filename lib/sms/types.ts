@@ -16,6 +16,9 @@ export interface ScheduleSMSParams extends SendSMSParams {
 export interface SMSResponse {
   success: boolean;
   messageId: string;
+  senderId?: string; // Sender ID used (e.g., "Rocky Web")
   error?: string;
+  status?: number; // HTTP status code
+  data?: unknown; // Raw API response data
 }
 

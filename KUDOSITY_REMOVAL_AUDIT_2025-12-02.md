@@ -75,21 +75,23 @@
    ```1:28:lib/sms/index.ts
    import type { SMSProvider, SendSMSParams, SMSResponse } from "./types";
    import { KudosityProvider } from "./providers/kudosity";
-   import { TwilioProvider } from "./providers/twilio";
+   import { MobileMessageProvider } from "./providers/mobileMessage";
 
    /**
     * Get the SMS provider based on environment configuration
-    * Defaults to Kudosity for Rocky Web Studio
+    * Defaults to Mobile Message (mobilemessage.com.au) with ACMA-approved Sender ID "Rocky Web"
     */
    export function getSMSProvider(): SMSProvider {
-     const provider = process.env.SMS_PROVIDER || "kudosity";
+     const provider = process.env.SMS_PROVIDER || "mobile-message";
 
      switch (provider.toLowerCase()) {
-       case "twilio":
-         return new TwilioProvider({
-           accountSid: process.env.TWILIO_ACCOUNT_SID || "",
-           authToken: process.env.TWILIO_AUTH_TOKEN || "",
-           defaultFrom: process.env.TWILIO_FROM_NUMBER,
+       case "mobile-message":
+       case "mobilemessage":
+         return new MobileMessageProvider({
+           apiUrl: process.env.MOBILE_MESSAGE_API_URL,
+           username: process.env.MOBILE_MESSAGE_API_USERNAME || "",
+           password: process.env.MOBILE_MESSAGE_API_PASSWORD || "",
+           senderId: process.env.MOBILE_MESSAGE_SENDER_ID || "Rocky Web",
          });
 
        case "kudosity":
@@ -605,7 +607,7 @@ Additional notes:
   - Notifications: `app/api/notifications/send-reminder/route.ts`, `app/api/notifications/send-sms/route.ts`  
   - Admin: `app/api/admin/sms/logs/route.ts`, `app/api/admin/sms/stats/route.ts`, `app/api/admin/sms/credits/route.ts`, `app/api/admin/sms-logs/[logId]/retry/route.ts`  
   - Test: `app/api/test/mobile-message-auth/route.ts`, `app/api/mobile-message/credits/route.ts`  
-- Legacy provider abstraction: `lib/sms/index.ts`, `lib/sms/providers/kudosity.ts`, `lib/sms/providers/twilio.ts`, `lib/sms/types.ts`.  
+- Legacy provider abstraction: `lib/sms/index.ts` (updated to use Mobile Message), `lib/sms/providers/kudosity.ts` (legacy), `lib/sms/providers/twilio.ts` ✅ DELETED (replaced with Mobile Message), `lib/sms/types.ts`.  
 - Documentation & env templates: `README.md`, `PROJECT_DETAILS.md`, `PRODUCTION_READINESS_CHECKLIST.md`, `PRODUCTION_READINESS_SUMMARY.md`, `SMS_DEBUGGING_GUIDE.md`, `docs/ENV_EXAMPLE_CONTENT.md`, `MOBILE_MESSAGE_API_REVIEW.md`, `MOBILE_MESSAGE_PAYLOAD_COMPARISON.md`, `SMS_INTEGRATION_SUMMARY.md`, `PAYLOAD_VERIFICATION.md`, `DEPLOYMENT.md`.
 
 ### 5.2 Code Snippets (Issues / Points of Attention)
@@ -672,7 +674,9 @@ Additional notes:
 
 1. **Finalize Mobile Message as the Only Active Provider**
    - Option A (recommended):  
-     - Remove `lib/sms/index.ts` and `lib/sms/providers/kudosity.ts` / `lib/sms/providers/twilio.ts`, or move them to a clearly labeled `legacy/` directory.  
+     - `lib/sms/index.ts` updated to use Mobile Message ✅
+    - `lib/sms/providers/twilio.ts` ✅ DELETED (replaced with Mobile Message)
+    - `lib/sms/providers/kudosity.ts` can be moved to `legacy/` directory if needed  
      - Update `PROJECT_DETAILS.md` and `DEPLOYMENT.md` to state that Mobile Message is the sole provider in production.  
    - Option B:  
      - Keep them but add a big `/** @deprecated */` comment and clarify that they are **not wired** to current routes.

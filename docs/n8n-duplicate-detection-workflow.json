@@ -1,0 +1,312 @@
+{
+  "name": "Duplicate Lead Detector & Merger",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "duplicate-detection",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "duplicate-detection-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, first_name, last_name, email, phone, engagement_score, created_at, qualification_status FROM service_leads WHERE phone = $1 AND email = $2 AND is_primary = true ORDER BY engagement_score DESC, created_at ASC LIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.phone || $json.formData?.phone, $json.email || $json.formData?.email] }}"
+        }
+      },
+      "id": "query-exact-matches",
+      "name": "Query Exact Matches",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-exact-match",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-exact-match",
+      "name": "Check for Exact Match",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, first_name, last_name, email, phone, engagement_score, created_at, qualification_status, CASE WHEN phone = $1 AND email = $2 THEN 100 WHEN phone = $1 AND email != $2 THEN 85 WHEN email = $2 AND phone != $1 THEN 85 WHEN SIMILARITY(first_name || ' ' || last_name, $3) > 0.8 AND phone = $1 THEN ROUND(SIMILARITY(first_name || ' ' || last_name, $3) * 100) ELSE 0 END as match_score FROM service_leads WHERE (phone = $1 OR email = $2 OR (SIMILARITY(first_name || ' ' || last_name, $3) > 0.8 AND phone = $1)) AND is_primary = true ORDER BY match_score DESC, engagement_score DESC LIMIT 5",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.phone || $json.formData?.phone, $json.email || $json.formData?.email, ($json.firstName || $json.formData?.firstName || '') + ' ' + ($json.lastName || $json.formData?.lastName || '')] }}"
+        }
+      },
+      "id": "query-likely-duplicates",
+      "name": "Query Likely Duplicates",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allInputs = $input.all();\nconst incomingLead = allInputs[0].json;\nconst matches = allInputs[1]?.json || [];\n\nconst firstName = incomingLead.firstName || incomingLead.formData?.firstName || '';\nconst lastName = incomingLead.lastName || incomingLead.formData?.lastName || '';\nconst email = incomingLead.email || incomingLead.formData?.email || '';\nconst phone = incomingLead.phone || incomingLead.formData?.phone || '';\nconst leadId = incomingLead.leadId || incomingLead.formData?.leadId || '';\n\nconst scoredMatches = matches.map(match => {\n  let score = 0;\n  let reasons = [];\n\n  if (match.phone === phone) {\n    score += 50;\n    reasons.push('Phone match');\n  }\n\n  if (match.email === email) {\n    score += 50;\n    reasons.push('Email match');\n  }\n\n  if (score < 100 && match.first_name && match.last_name) {\n    const matchName = `${match.first_name} ${match.last_name}`.toLowerCase();\n    const incomingName = `${firstName} ${lastName}`.toLowerCase();\n    \n    const similarity = calculateSimilarity(matchName, incomingName);\n    if (similarity > 0.8) {\n      score = Math.max(score, Math.round(similarity * 100));\n      reasons.push(`Name similarity: ${Math.round(similarity * 100)}%`);\n    }\n  }\n\n  return {\n    ...match,\n    calculated_score: score || match.match_score || 0,\n    match_reasons: reasons.join(', '),\n    incoming_lead_id: leadId,\n    incoming_name: `${firstName} ${lastName}`,\n    incoming_email: email,\n    incoming_phone: phone\n  };\n});\n\nscoredMatches.sort((a, b) => b.calculated_score - a.calculated_score);\n\nfunction calculateSimilarity(str1, str2) {\n  const longer = str1.length > str2.length ? str1 : str2;\n  const shorter = str1.length > str2.length ? str2 : str1;\n  \n  if (longer.length === 0) return 1.0;\n  \n  const distance = levenshteinDistance(longer, shorter);\n  return (longer.length - distance) / longer.length;\n}\n\nfunction levenshteinDistance(str1, str2) {\n  const matrix = [];\n  for (let i = 0; i <= str2.length; i++) {\n    matrix[i] = [i];\n  }\n  for (let j = 0; j <= str1.length; j++) {\n    matrix[0][j] = j;\n  }\n  for (let i = 1; i <= str2.length; i++) {\n    for (let j = 1; j <= str1.length; j++) {\n      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {\n        matrix[i][j] = matrix[i - 1][j - 1];\n      } else {\n        matrix[i][j] = Math.min(\n          matrix[i - 1][j - 1] + 1,\n          matrix[i][j - 1] + 1,\n          matrix[i - 1][j] + 1\n        );\n      }\n    }\n  }\n  return matrix[str2.length][str1.length];\n}\n\nreturn scoredMatches.length > 0 ? scoredMatches.map(match => ({ json: match })) : [{ json: { no_matches: true } }];"
+      },
+      "id": "calculate-match-scores",
+      "name": "Calculate Match Scores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "exact-match",
+              "leftValue": "={{ $json.calculated_score }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "auto-merge",
+              "leftValue": "={{ $json.calculated_score }}",
+              "rightValue": 90,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "manual-review",
+              "leftValue": "={{ $json.calculated_score }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "route-by-score",
+      "name": "Route by Match Score",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst primary = items[0].json;\nconst incoming = items[1]?.json || {};\nconst matchScore = primary.calculated_score || 100;\n\nconst mergeData = {\n  primary_id: primary.id,\n  duplicate_id: primary.incoming_lead_id || incoming.leadId,\n  merge_notes: `Auto-merged: ${matchScore}% match. Reasons: ${primary.match_reasons || 'Exact match'}`,\n  duplicate_score: matchScore,\n  primary_name: `${primary.first_name} ${primary.last_name}`,\n  duplicate_name: primary.incoming_name || `${incoming.firstName} ${incoming.lastName}`,\n  match_type: matchScore === 100 ? 'exact' : 'likely'\n};\n\nreturn [{ json: mergeData }];"
+      },
+      "id": "prepare-merge",
+      "name": "Prepare Merge Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads primary SET engagement_count = primary.engagement_count + COALESCE((SELECT engagement_count FROM service_leads WHERE id = $1), 0), engagement_score = GREATEST(primary.engagement_score, COALESCE((SELECT engagement_score FROM service_leads WHERE id = $1), 0)), last_engagement_date = GREATEST(primary.last_engagement_date, (SELECT last_engagement_date FROM service_leads WHERE id = $1)), internal_notes = COALESCE(primary.internal_notes, '') || E'\\n--- Merged from ' || $1 || ' on ' || NOW() || ' ---\\n' || COALESCE((SELECT internal_notes FROM service_leads WHERE id = $1), ''), qualification_status = CASE WHEN primary.qualification_status = 'hot' OR (SELECT qualification_status FROM service_leads WHERE id = $1) = 'hot' THEN 'hot' WHEN primary.qualification_status = 'warm' OR (SELECT qualification_status FROM service_leads WHERE id = $1) = 'warm' THEN 'warm' ELSE primary.qualification_status END WHERE primary.id = $2 RETURNING id; UPDATE service_leads SET duplicate_of = $2, is_primary = false, merge_date = NOW(), merge_notes = $3, duplicate_score = $4, status = 'merged' WHERE id = $1 RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.duplicate_id, $json.primary_id, $json.merge_notes, $json.duplicate_score] }}"
+        }
+      },
+      "id": "merge-records",
+      "name": "Merge Records",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#duplicates",
+        "text": "={{ $json.match_type === 'exact' ? '⚠️ *Exact Duplicate Detected*' : $json.duplicate_score >= 90 ? '✓ *Auto-Merged Duplicate*' : '🔍 *Possible Duplicate - Review Needed*' }}\n\n{{ $json.match_type === 'exact' ? 'Customer: ' + $json.primary_name : 'Merged ' + $json.duplicate_id + ' into ' + $json.primary_id }}\n{{ $json.match_type === 'exact' ? 'Match: 100% (exact)' : 'Reason: ' + $json.merge_notes.split('Reasons: ')[1] || 'Match' + ' (Score: ' + $json.duplicate_score + '%)' }}\nPrimary ID: {{ $json.primary_id }} | {{ $json.match_type === 'exact' ? 'New ID: ' + $json.duplicate_id : 'Duplicate ID: ' + $json.duplicate_id }}\n{{ $json.match_type === 'exact' ? '*Action:* Manual approval required' : $json.duplicate_score >= 90 ? 'Consolidated: engagement_count, engagement_score, notes' : '*Action:* Manual review required' }}"
+      },
+      "id": "slack-notification",
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1450, 300],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Query Exact Matches",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Likely Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Exact Matches": {
+      "main": [
+        [
+          {
+            "node": "Check for Exact Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Exact Match": {
+      "main": [
+        [
+          {
+            "node": "Prepare Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Likely Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Calculate Match Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Match Scores": {
+      "main": [
+        [
+          {
+            "node": "Route by Match Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Match Score": {
+      "main": [
+        [
+          {
+            "node": "Prepare Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Records": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,0 +1,399 @@
+{
+  "name": "AI Customer Chat Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-chat-handler",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook: Chat Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "ai-chat-handler-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chat_conversations (chat_widget_id, visitor_id, visitor_email, visitor_name, status, channel, business_id) VALUES ($1, $2, $3, $4, 'active', $5, $6) ON CONFLICT (chat_widget_id) DO UPDATE SET updated_at = NOW(), visitor_email = EXCLUDED.visitor_email, visitor_name = EXCLUDED.visitor_name RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.conversation_id, $json.visitor_id, $json.visitor_email, $json.visitor_name, $json.channel || 'chat', $env.BUSINESS_ID || 1] }}"
+        }
+      },
+      "id": "create-conversation",
+      "name": "Create/Update Conversation",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chat_messages (conversation_id, message_text, sender_type, sender_id) VALUES ($1, $2, 'user', $3) RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id, $json.message, $json.visitor_id] }}"
+        }
+      },
+      "id": "save-user-message",
+      "name": "Save User Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 200
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a helpful customer support bot for Rocky Web Studio, a service business in Rockhampton, Australia.\nYou are polite, professional, and focused on helping customers book services.\nAlways be concise (max 2-3 sentences).\nIf unsure, offer to connect them with a human team member.\nAvailable services: Emergency, Standard, Premium, Consultation.\n\nYour task:\n1. Determine user intent (booking, pricing, location, feedback, other)\n2. Provide helpful response\n3. Offer next action (book, learn more, contact us)\n\nAvailable intents:\n- booking: Customer wants to book/schedule a service\n- pricing: Customer asks about costs/prices\n- location: Customer asks about service area/coverage\n- reschedule: Customer wants to change booking time\n- cancellation: Customer wants to cancel booking\n- feedback: Customer provides feedback or complaint\n- other: General questions or unclear intent\n\nRespond with a JSON object:\n{\n  \"intent\": \"booking\",\n  \"confidence\": 0.95,\n  \"keywords\": [\"schedule\", \"book\", \"appointment\"],\n  \"entities\": {\n    \"service_type\": \"emergency\",\n    \"urgency\": \"today\"\n  },\n  \"needs_escalation\": false,\n  \"escalation_reason\": null,\n  \"response\": \"You can schedule a service by visiting our booking form at rockywebstudio.com.au/book. We offer same-day, next 48 hours, and next week availability. Would you like to book now?\",\n  \"next_action\": \"book\"\n}\n\nSet needs_escalation to true if:\n- Customer expresses frustration/anger/complaint\n- Request requires human judgment (account issues, payment disputes, service recovery)\n- Intent confidence < 0.5\n- Customer explicitly asks to speak to someone"
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.message }}"
+            }
+          ]
+        }
+      },
+      "id": "extract-intent-openai",
+      "name": "Extract Intent (OpenAI)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.3,
+      "position": [850, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst openaiResponse = items[0].json;\nconst conversationData = items[1].json;\n\n// Extract intent data from OpenAI response\nlet intentData;\ntry {\n  const content = openaiResponse.choices?.[0]?.message?.content || '{}';\n  intentData = JSON.parse(content);\n} catch (error) {\n  // Fallback if JSON parsing fails\n  intentData = {\n    intent: 'other',\n    confidence: 0.5,\n    keywords: [],\n    entities: {},\n    needs_escalation: false,\n    escalation_reason: null,\n    response: \"Thanks for your message! I'm connecting you with our team who can help you better.\",\n    next_action: 'contact'\n  };\n}\n\n// Extract token usage\nconst tokensUsed = openaiResponse.usage?.total_tokens || 0;\n\nreturn [{\n  json: {\n    ...conversationData,\n    ai_intent: intentData.intent,\n    ai_confidence: intentData.confidence,\n    ai_keywords: intentData.keywords,\n    ai_entities: intentData.entities,\n    needs_escalation: intentData.needs_escalation,\n    escalation_reason: intentData.escalation_reason,\n    ai_response: intentData.response,\n    next_action: intentData.next_action,\n    ai_tokens_used: tokensUsed,\n    ai_model: 'gpt-4-turbo-preview'\n  }\n}];"
+      },
+      "id": "parse-intent",
+      "name": "Parse Intent Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-escalation",
+              "leftValue": "={{ $json.needs_escalation }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-escalation",
+      "name": "Check Escalation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, question, answer, category, response_template, response_variables, priority, (CASE WHEN $1 = ANY(SELECT jsonb_array_elements_text(intent_labels)) THEN 100 WHEN $2 = ANY(SELECT jsonb_array_elements_text(intent_keywords)) THEN 80 ELSE 0 END + priority * 0.1) as match_score FROM faq_knowledge_base WHERE is_active = true AND ($1 = ANY(SELECT jsonb_array_elements_text(intent_labels)) OR $2 = ANY(SELECT jsonb_array_elements_text(intent_keywords)) OR category = $1) ORDER BY match_score DESC, usage_count DESC LIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.ai_intent, $json.ai_keywords?.[0] || ''] }}"
+        }
+      },
+      "id": "match-faq",
+      "name": "Match FAQ",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst conversationData = items[0].json;\nconst faqMatch = items[1]?.json || null;\n\nlet responseText;\nlet responseType;\nlet faqId = null;\nlet faqConfidence = 0;\n\nif (faqMatch && faqMatch.id) {\n  // Use FAQ response\n  responseText = faqMatch.response_template || faqMatch.answer;\n  responseType = 'faq';\n  faqId = faqMatch.id;\n  faqConfidence = 0.9;\n  \n  // Replace template variables\n  const variables = faqMatch.response_variables || {};\n  responseText = responseText.replace(/\\{\\{(\\w+)\\}\\}/g, (match, key) => {\n    return variables[key] || match;\n  });\n} else if (conversationData.ai_response) {\n  // Use AI-generated response\n  responseText = conversationData.ai_response;\n  responseType = 'generated';\n  faqConfidence = 0.3;\n} else {\n  // Fallback response\n  responseText = \"Thanks for your message! I'm connecting you with our team who can help you better.\";\n  responseType = 'fallback';\n}\n\nreturn [{\n  json: {\n    ...conversationData,\n    response_text: responseText,\n    response_type: responseType,\n    faq_matched_id: faqId,\n    faq_match_confidence: faqConfidence\n  }\n}];"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chat_messages (conversation_id, message_text, sender_type, sender_id, ai_intent, ai_confidence, ai_model, ai_tokens_used, faq_matched_id, faq_match_confidence, response_type, response_data) VALUES ($1, $2, 'ai', 'gpt-4', $3, $4, $5, $6, $7, $8, $9, $10); UPDATE faq_knowledge_base SET usage_count = usage_count + 1, last_used_at = NOW() WHERE id = $7",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id, $json.response_text, $json.ai_intent, $json.ai_confidence, $json.ai_model, $json.ai_tokens_used, $json.faq_matched_id, $json.faq_match_confidence, $json.response_type, JSON.stringify($json.ai_entities || {})] }}"
+        }
+      },
+      "id": "save-ai-response",
+      "name": "Save AI Response",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CHAT_WIDGET_WEBHOOK_URL }}",
+        "authentication": "genericCredentialType",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "conversation_id",
+              "value": "={{ $json.conversation_id }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.response_text }}"
+            },
+            {
+              "name": "type",
+              "value": "bot"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-to-widget",
+      "name": "Send Response to Widget",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2050, 200]
+    },
+    {
+      "parameters": {
+        "channel": "#customer-support",
+        "text": "🚨 *Escalation Required*\n\n*Conversation ID:* {{ $json.conversation_id }}\n*Visitor:* {{ $json.visitor_name }} ({{ $json.visitor_email }})\n*Reason:* {{ $json.escalation_reason }}\n\n*Customer Message:*\n{{ $json.message }}\n\n*AI Analysis:*\n- Intent: {{ $json.ai_intent }}\n- Confidence: {{ $json.ai_confidence }}\n\n*Take over:* [View Conversation]({{ $env.CHAT_WIDGET_DASHBOARD_URL }}/conversations/{{ $json.conversation_id }})"
+      },
+      "id": "escalate-slack",
+      "name": "Escalate to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1450, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chat_escalations (conversation_id, escalation_reason, escalation_type, priority, slack_channel, status) VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id, $json.escalation_reason, $json.escalation_type || 'complex', $json.priority || 'normal', '#customer-support'] }}"
+        }
+      },
+      "id": "create-escalation",
+      "name": "Create Escalation Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1650, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Chat Message": {
+      "main": [
+        [
+          {
+            "node": "Create/Update Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create/Update Conversation": {
+      "main": [
+        [
+          {
+            "node": "Save User Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save User Message": {
+      "main": [
+        [
+          {
+            "node": "Extract Intent (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Intent (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Parse Intent Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Intent Response": {
+      "main": [
+        [
+          {
+            "node": "Check Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Escalation": {
+      "main": [
+        [
+          {
+            "node": "Match FAQ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Escalate to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match FAQ": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Save AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save AI Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response to Widget",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Response to Widget": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate to Slack": {
+      "main": [
+        [
+          {
+            "node": "Create Escalation Record",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -187,14 +187,16 @@ rocky-web-studio/
 
 ### ⚠️ Alternative SMS Providers
 
-#### Twilio
-- **Status:** ✅ Code implemented, not tested
-- **Location:** `lib/sms/providers/twilio.ts`
+#### Mobile Message (SMS Provider)
+- **Status:** ✅ Active and in use
+- **Location:** `lib/sms/providers/mobileMessage.ts`
 - **Environment Variables:**
-  - `SMS_PROVIDER=twilio`
-  - `TWILIO_ACCOUNT_SID`
-  - `TWILIO_AUTH_TOKEN`
-  - `TWILIO_FROM_NUMBER`
+  - `SMS_PROVIDER=mobile-message`
+  - `MOBILE_MESSAGE_API_URL`
+  - `MOBILE_MESSAGE_API_USERNAME`
+  - `MOBILE_MESSAGE_API_PASSWORD`
+  - `MOBILE_MESSAGE_SENDER_ID=Rocky Web` (ACMA-approved)
+- **Note:** Twilio provider has been removed and replaced with Mobile Message
 
 ---
 

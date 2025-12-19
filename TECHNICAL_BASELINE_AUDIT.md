@@ -251,11 +251,10 @@ rocky-web-studio/
 - **Issue:** Code still present but not imported by active routes
 - **Recommendation:** Remove or mark as deprecated
 
-**2. Twilio (SMS Provider)**
-- **Status:** ❌ Legacy (not actively used)
-- **Location:** `lib/sms/providers/twilio.ts`
-- **Issue:** Part of legacy provider abstraction
-- **Recommendation:** Remove or mark as deprecated
+**2. Mobile Message (SMS Provider)**
+- **Status:** ✅ Active (replaced Twilio)
+- **Location:** `lib/sms/providers/mobileMessage.ts`
+- **Note:** Twilio provider has been removed. Mobile Message is now the primary SMS provider with ACMA-approved Sender ID "Rocky Web"
 
 ### 2.2 Package Dependencies Analysis
 
@@ -913,7 +912,7 @@ interface SMSRecord {
 ### 9.3 Orphaned Code
 
 **Found:**
-- `lib/sms/providers/twilio.ts` - Unused Twilio provider
+- `lib/sms/providers/twilio.ts` ✅ DELETED (replaced with Mobile Message provider)
 - `lib/sms/index.ts` - Legacy provider abstraction
 - `lib/bookings/storage.ts` - In-memory storage (superseded by KV)
 

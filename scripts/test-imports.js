@@ -83,20 +83,21 @@ async function testImports() {
         }
       }
     },
-    {
-      name: "Import PDF generator",
-      test: async () => {
-        try {
-          const { generatePdfReport } = await import("../lib/pdf/generateClientReport.ts");
-          console.log("✅ PDF generator imported");
-          return true;
-        } catch (e) {
-          console.log("❌ PDF generator import failed:", e.message);
-          console.log("   Stack:", e.stack?.split("\n").slice(0, 3).join("\n"));
-          return false;
-        }
-      }
-    },
+    // PDF generation moved to n8n workflow - test removed
+    // {
+    //   name: "Import PDF generator",
+    //   test: async () => {
+    //     try {
+    //       const { generatePdfReport } = await import("../lib/pdf/generateClientReport.ts");
+    //       console.log("✅ PDF generator imported");
+    //       return true;
+    //     } catch (e) {
+    //       console.log("❌ PDF generator import failed:", e.message);
+    //       console.log("   Stack:", e.stack?.split("\n").slice(0, 3).join("\n"));
+    //       return false;
+    //     }
+    //   }
+    // },
   ];
 
   let passed = 0;

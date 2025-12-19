@@ -1,0 +1,316 @@
+{
+  "name": "Service Lead Scoring & Qualification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "service-lead-scoring",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "service-lead-scoring-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, first_name, last_name, email, phone, service_type, urgency, location, description, utm_source, utm_campaign, created_at, status, is_urgent FROM service_leads WHERE id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.leadId] }}"
+        }
+      },
+      "id": "query-lead",
+      "name": "Query Lead from Supabase",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, service_name, service_key, base_price, category FROM service_types WHERE service_key = $1 AND is_active = true",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.service_type] }}"
+        }
+      },
+      "id": "lookup-service-type",
+      "name": "Look Up Service Type",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from previous nodes\n// Merge data from both Supabase queries\nconst allInputs = $input.all();\nconst lead = allInputs[0].json; // From Node 2 (Query Lead)\nconst serviceTypeResult = allInputs[1];\nconst serviceType = serviceTypeResult?.json || {}; // From Node 3 (Look Up Service Type)\n\n// Initialize scores\nlet engagementScore = 0;\nlet urgencyScore = 0;\n\n// Calculate urgency score\nif (lead.urgency === 'today') {\n  urgencyScore = 30;\n  engagementScore += 30;\n} else if (lead.urgency === 'next_48h') {\n  urgencyScore = 20;\n  engagementScore += 20;\n} else if (lead.urgency === 'next_week') {\n  urgencyScore = 10;\n  engagementScore += 10;\n}\n\n// Calculate source score\nif (lead.utm_source === 'paid_ad') {\n  engagementScore += 25;\n} else if (lead.utm_source === 'referral') {\n  engagementScore += 20;\n} else if (lead.utm_source === 'organic') {\n  engagementScore += 10;\n}\n\n// Calculate service value score\nconst basePrice = serviceType?.base_price || 0;\nif (basePrice > 100) {\n  engagementScore += 15; // High-margin service\n} else if (basePrice > 0) {\n  engagementScore += 5; // Low-margin service\n}\n\n// Determine qualification status\nlet qualificationStatus;\nif (engagementScore >= 70) {\n  qualificationStatus = 'hot';\n} else if (engagementScore >= 40) {\n  qualificationStatus = 'warm';\n} else {\n  qualificationStatus = 'cold';\n}\n\n// Return scoring results\nreturn {\n  leadId: lead.id,\n  firstName: lead.first_name,\n  lastName: lead.last_name,\n  email: lead.email,\n  phone: lead.phone,\n  serviceType: lead.service_type,\n  urgency: lead.urgency,\n  utmSource: lead.utm_source,\n  engagementScore: engagementScore,\n  urgencyScore: urgencyScore,\n  qualificationStatus: qualificationStatus,\n  basePrice: basePrice,\n  serviceName: serviceType?.service_name || 'Unknown',\n  originalLead: lead\n};"
+      },
+      "id": "calculate-scoring",
+      "name": "Calculate Scoring",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads SET engagement_score = $1, urgency_score = $2, qualification_status = $3, last_engagement_date = NOW(), engagement_count = engagement_count + 1, updated_at = NOW() WHERE id = $4 RETURNING id, engagement_score, qualification_status",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.engagementScore, $json.urgencyScore, $json.qualificationStatus, $json.leadId] }}"
+        }
+      },
+      "id": "update-supabase",
+      "name": "Update Supabase with Scores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "hot-leads",
+              "leftValue": "={{ $json.qualificationStatus }}",
+              "rightValue": "hot",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "warm-leads",
+              "leftValue": "={{ $json.qualificationStatus }}",
+              "rightValue": "warm",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "route-by-qualification",
+      "name": "Route by Qualification",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#hot-leads",
+        "text": "={{ '🔥 **HOT LEAD** | ' + $json.firstName + ' ' + $json.lastName + ' | Score: ' + $json.engagementScore + '\\n\\n' + '📧 Email: ' + $json.email + '\\n' + '📞 Phone: ' + $json.phone + '\\n' + '🎯 Service: ' + $json.serviceName + ' (' + $json.serviceType + ')\\n' + '⚡ Urgency: ' + $json.urgency + '\\n' + '📊 Source: ' + ($json.utmSource || 'Unknown') + '\\n\\n' + 'Lead ID: ' + $json.leadId }}",
+        "options": {}
+      },
+      "id": "slack-hot-leads",
+      "name": "Slack: Hot Leads",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1.2,
+      "position": [1450, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#leads",
+        "text": "={{ '🟡 **WARM LEAD** | ' + $json.firstName + ' ' + $json.lastName + ' | Score: ' + $json.engagementScore + '\\n\\n' + '📧 Email: ' + $json.email + '\\n' + '📞 Phone: ' + $json.phone + '\\n' + '🎯 Service: ' + $json.serviceName + ' (' + $json.serviceType + ')\\n' + '⚡ Urgency: ' + $json.urgency + '\\n\\n' + 'Lead ID: ' + $json.leadId }}",
+        "options": {}
+      },
+      "id": "slack-warm-leads",
+      "name": "Slack: Warm Leads",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1.2,
+      "position": [1450, 300],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#nurture",
+        "text": "={{ '❄️ **COLD LEAD** | ' + $json.firstName + ' ' + $json.lastName + ' | Score: ' + $json.engagementScore + '\\n\\n' + '📧 Email: ' + $json.email + '\\n' + '🎯 Service: ' + $json.serviceName + '\\n\\n' + 'Added to nurture sequence. First email will be sent on Day 3.\\n\\n' + 'Lead ID: ' + $json.leadId }}",
+        "options": {}
+      },
+      "id": "slack-cold-leads",
+      "name": "Slack: Cold Leads",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1.2,
+      "position": [1450, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Query Lead from Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Lead from Supabase": {
+      "main": [
+        [
+          {
+            "node": "Look Up Service Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Look Up Service Type": {
+      "main": [
+        [
+          {
+            "node": "Calculate Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Scoring": {
+      "main": [
+        [
+          {
+            "node": "Update Supabase with Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Supabase with Scores": {
+      "main": [
+        [
+          {
+            "node": "Route by Qualification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Qualification": {
+      "main": [
+        [
+          {
+            "node": "Slack: Hot Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: Warm Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: Cold Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Hot Leads": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Warm Leads": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Cold Leads": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

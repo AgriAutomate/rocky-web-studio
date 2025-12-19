@@ -305,14 +305,17 @@ async function handleGeneralSMSTest(
       parts: validation.parts,
     });
 
+    // Get sender ID from result or config
+    const senderId = (result as any).senderId || process.env.MOBILE_MESSAGE_SENDER_ID || "Rocky Web";
+
     return NextResponse.json({
       success: true,
-      message: "Test SMS sent successfully",
       messageId,
+      senderId,
       length: validation.length,
       parts: validation.parts,
       warning: validation.warning,
-      status: result.status,
+      status: (result as any).status,
     });
   } catch (error) {
     testSmsLogger.error("Error sending test SMS", undefined, error);

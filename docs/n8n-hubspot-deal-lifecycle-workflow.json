@@ -1,0 +1,498 @@
+{
+  "name": "HubSpot Deal Lifecycle Management",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hubspot-deal-creation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-booking-created",
+      "name": "Webhook: Booking Created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 200],
+      "webhookId": "hubspot-deal-creation-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response-creation",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT sl.id, sl.first_name, sl.last_name, sl.email, sl.hubspot_contact_id, sl.engagement_score, sl.qualification_status, sl.lead_source, sl.utm_source, sb.id as booking_id, sb.scheduled_date, sb.estimated_cost, sb.service_type, sb.description, sb.technician_name FROM service_leads sl INNER JOIN service_bookings sb ON sb.lead_id = sl.id WHERE sb.id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.bookingId] }}"
+        }
+      },
+      "id": "query-booking-details",
+      "name": "Query Booking & Lead Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "deal",
+        "operation": "create",
+        "properties": {
+          "properties": [
+            {
+              "name": "dealname",
+              "value": "={{ $json.first_name + ' ' + $json.last_name + ' - ' + $json.service_type }}"
+            },
+            {
+              "name": "pipeline",
+              "value": "Service Pipeline"
+            },
+            {
+              "name": "dealstage",
+              "value": "Scheduled"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.estimated_cost }}"
+            },
+            {
+              "name": "closedate",
+              "value": "={{ $json.scheduled_date }}"
+            },
+            {
+              "name": "lead_score",
+              "value": "={{ $json.engagement_score }}"
+            },
+            {
+              "name": "service_type",
+              "value": "={{ $json.service_type }}"
+            },
+            {
+              "name": "lead_source",
+              "value": "={{ $json.utm_source || $json.lead_source }}"
+            },
+            {
+              "name": "scheduled_date",
+              "value": "={{ $json.scheduled_date }}"
+            },
+            {
+              "name": "technician_assigned",
+              "value": "={{ $json.technician_name }}"
+            },
+            {
+              "name": "service_notes",
+              "value": "={{ $json.description }}"
+            }
+          ]
+        },
+        "associations": {
+          "associations": [
+            {
+              "to": {
+                "id": "={{ $json.hubspot_contact_id }}"
+              },
+              "type": "deal_to_contact"
+            }
+          ]
+        }
+      },
+      "id": "create-hubspot-deal",
+      "name": "Create HubSpot Deal",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [650, 200],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_leads SET hubspot_deal_id = $1 WHERE id = $2 RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id, $json.id] }}"
+        }
+      },
+      "id": "update-deal-id",
+      "name": "Update Database with Deal ID",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hubspot-deal-update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-status-change",
+      "name": "Webhook: Booking Status Change",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "webhookId": "hubspot-deal-update-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response-update",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT sl.hubspot_deal_id, sl.id as lead_id, sb.id as booking_id, sb.actual_cost, sb.description FROM service_leads sl INNER JOIN service_bookings sb ON sb.lead_id = sl.id WHERE sb.id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.bookingId] }}"
+        }
+      },
+      "id": "query-deal-info",
+      "name": "Query Deal Information",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "completed",
+              "leftValue": "={{ $json.newStatus }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "paid",
+              "leftValue": "={{ $json.newStatus }}",
+              "rightValue": "paid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "route-by-status",
+      "name": "Route by Booking Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "resource": "deal",
+        "operation": "update",
+        "dealId": "={{ $json.hubspot_deal_id }}",
+        "properties": {
+          "properties": [
+            {
+              "name": "dealstage",
+              "value": "Pending Approval"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.actual_cost || $json.estimated_cost }}"
+            },
+            {
+              "name": "service_notes",
+              "value": "={{ $json.description }}"
+            }
+          ]
+        }
+      },
+      "id": "update-deal-pending",
+      "name": "Update Deal: Pending Approval",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [850, 300],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "deal",
+        "operation": "update",
+        "dealId": "={{ $json.hubspot_deal_id }}",
+        "properties": {
+          "properties": [
+            {
+              "name": "dealstage",
+              "value": "Won"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.actual_cost }}"
+            },
+            {
+              "name": "closedate",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "update-deal-won",
+      "name": "Update Deal: Won",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [850, 500],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-overdue-check",
+      "name": "Schedule: Overdue Payment Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT sl.hubspot_deal_id, sl.id as lead_id, sb.id as booking_id, sb.scheduled_date, sb.actual_cost FROM service_leads sl INNER JOIN service_bookings sb ON sb.lead_id = sl.id WHERE sb.booking_status = 'completed' AND sb.scheduled_date < NOW() - INTERVAL '30 days' AND sl.status != 'won' AND sl.status != 'paid'",
+        "additionalFields": {}
+      },
+      "id": "query-overdue-deals",
+      "name": "Query Overdue Deals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "deal",
+        "operation": "update",
+        "dealId": "={{ $json.hubspot_deal_id }}",
+        "properties": {
+          "properties": [
+            {
+              "name": "dealstage",
+              "value": "Lost"
+            },
+            {
+              "name": "deal_lost_reason",
+              "value": "Payment overdue"
+            }
+          ]
+        }
+      },
+      "id": "update-deal-lost",
+      "name": "Update Deal: Lost",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [650, 600],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Booking Created": {
+      "main": [
+        [
+          {
+            "node": "Query Booking & Lead Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Booking & Lead Details": {
+      "main": [
+        [
+          {
+            "node": "Create HubSpot Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create HubSpot Deal": {
+      "main": [
+        [
+          {
+            "node": "Update Database with Deal ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Database with Deal ID": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Booking Status Change": {
+      "main": [
+        [
+          {
+            "node": "Query Deal Information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Deal Information": {
+      "main": [
+        [
+          {
+            "node": "Route by Booking Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Booking Status": {
+      "main": [
+        [
+          {
+            "node": "Update Deal: Pending Approval",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Deal: Won",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Deal: Pending Approval": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Deal: Won": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule: Overdue Payment Check": {
+      "main": [
+        [
+          {
+            "node": "Query Overdue Deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Overdue Deals": {
+      "main": [
+        [
+          {
+            "node": "Update Deal: Lost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 3,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

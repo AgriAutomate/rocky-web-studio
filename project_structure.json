@@ -59,7 +59,7 @@
       "subdirectories": {
         "sms": {
           "file_count": 7,
-          "providers": ["Mobile Message API", "Twilio (legacy)"],
+          "providers": ["Mobile Message API (ACMA-approved Sender ID: Rocky Web)"],
           "critical_files": ["sms.ts", "booking-helpers.ts", "storage.ts"]
         },
         "xero": {

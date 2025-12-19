@@ -1,0 +1,360 @@
+{
+  "name": "Auto-Schedule & Route Optimization",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "smart-booking-assignment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-booking-created",
+      "name": "Webhook: Booking Created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "smart-booking-assignment-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT sb.id as booking_id, sb.lead_id, sb.scheduled_date, sb.time_window, sb.service_type, sb.description, sl.location as customer_location, sl.first_name, sl.last_name, sl.email, sl.phone, COALESCE(st.estimated_duration_minutes, 90) as estimated_duration_minutes FROM service_bookings sb INNER JOIN service_leads sl ON sl.id = sb.lead_id LEFT JOIN service_types st ON st.service_key = sb.service_type WHERE sb.id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.bookingId] }}"
+        }
+      },
+      "id": "extract-booking-requirements",
+      "name": "Extract Booking Requirements",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT required_skill, minimum_level, certification_required, priority FROM service_skill_requirements WHERE service_type = $1 ORDER BY priority ASC",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.service_type] }}"
+        }
+      },
+      "id": "query-required-skills",
+      "name": "Query Required Skills",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH required_skills AS (SELECT required_skill, minimum_level, certification_required FROM service_skill_requirements WHERE service_type = $1), technicians_with_skills AS (SELECT DISTINCT ts.technician_id FROM technician_skills ts INNER JOIN required_skills rs ON rs.required_skill = ts.skill_name WHERE ts.certified = COALESCE(rs.certification_required, true) AND ((rs.minimum_level = 'junior' AND ts.skill_level IN ('junior', 'mid', 'senior', 'expert')) OR (rs.minimum_level = 'mid' AND ts.skill_level IN ('mid', 'senior', 'expert')) OR (rs.minimum_level = 'senior' AND ts.skill_level IN ('senior', 'expert')) OR (rs.minimum_level = 'expert' AND ts.skill_level = 'expert')) GROUP BY ts.technician_id HAVING COUNT(DISTINCT rs.required_skill) = (SELECT COUNT(*) FROM required_skills)), available_technicians AS (SELECT ta.technician_id, ta.current_load_minutes, ta.max_capacity_minutes, ta.last_job_location, ta.home_base_location, ta.date, ta.start_time, ta.end_time FROM technician_availability ta INNER JOIN technicians_with_skills tws ON tws.technician_id = ta.technician_id WHERE ta.date = $2 AND ta.status = 'available' AND ta.current_load_minutes + $3 <= ta.max_capacity_minutes) SELECT * FROM available_technicians",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.service_type, $json.scheduled_date, $json.estimated_duration_minutes] }}"
+        }
+      },
+      "id": "find-eligible-technicians",
+      "name": "Find Eligible Technicians",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst booking = items[0].json;\nconst technicians = items[1]?.json || [];\n\nif (technicians.length === 0) {\n  return [{\n    json: {\n      assignment_status: 'failed',\n      reason: 'No eligible technicians found',\n      booking_id: booking.booking_id\n    }\n  }];\n}\n\n// Calculate routing for each technician\nconst scoredTechnicians = await Promise.all(technicians.map(async (tech) => {\n  const lastLocation = tech.last_job_location || tech.home_base_location || '';\n  \n  // Default travel time if API fails\n  let travelTime = 30;\n  \n  if (lastLocation && booking.customer_location) {\n    try {\n      const apiKey = process.env.GOOGLE_MAPS_API_KEY || '';\n      const departureTime = Math.floor(new Date(`${booking.scheduled_date}T10:00:00`).getTime() / 1000);\n      \n      const response = await fetch(\n        `https://maps.googleapis.com/maps/api/directions/json?` +\n        `origin=${encodeURIComponent(lastLocation)}&` +\n        `destination=${encodeURIComponent(booking.customer_location)}&` +\n        `key=${apiKey}&` +\n        `mode=driving&departure_time=${departureTime}`\n      );\n      \n      const data = await response.json();\n      if (data.routes?.[0]?.legs?.[0]) {\n        travelTime = Math.ceil(data.routes[0].legs[0].duration.value / 60);\n      }\n    } catch (error) {\n      console.error('Google Maps API error:', error);\n    }\n  }\n  \n  const totalTime = travelTime + booking.estimated_duration_minutes + 15;\n  const score = travelTime + (tech.current_load_minutes * 0.1);\n  \n  return {\n    ...tech,\n    ...booking,\n    travel_time_minutes: travelTime,\n    total_time_minutes: totalTime,\n    assignment_score: score\n  };\n}));\n\nscoredTechnicians.sort((a, b) => a.assignment_score - b.assignment_score);\n\nreturn scoredTechnicians.map(tech => ({ json: tech }));"
+      },
+      "id": "calculate-routing",
+      "name": "Calculate Routing & Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) as conflict_count FROM service_bookings sb WHERE sb.technician_id = $1 AND sb.booking_status IN ('scheduled', 'assigned', 'en-route', 'in_progress') AND sb.scheduled_date = $2 AND sb.id != $3",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.technician_id, $json.scheduled_date, $json.booking_id] }}"
+        }
+      },
+      "id": "check-double-booking",
+      "name": "Check Double-Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "no-conflict",
+              "leftValue": "={{ $json.conflict_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-no-conflicts",
+      "name": "Filter: No Conflicts",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst available = items.filter(item => item.json.conflict_count === 0);\n\nif (available.length === 0) {\n  return [{\n    json: {\n      assignment_status: 'failed',\n      reason: 'No available technicians without conflicts',\n      technicians_checked: items.length\n    }\n  }];\n}\n\nconst best = available[0].json;\n\nreturn [{\n  json: {\n    assignment_status: 'success',\n    technician_id: best.technician_id,\n    technician_name: best.technician_name || best.technician_id,\n    travel_time_minutes: best.travel_time_minutes,\n    assignment_score: best.assignment_score,\n    booking_id: best.booking_id,\n    customer_location: best.customer_location,\n    scheduled_date: best.scheduled_date,\n    estimated_duration_minutes: best.estimated_duration_minutes\n  }\n}];"
+      },
+      "id": "select-best-technician",
+      "name": "Select Best Technician",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE service_bookings SET technician_id = $1, technician_name = $2, booking_status = 'assigned', customer_notification_sent = NOW() WHERE id = $3; UPDATE technician_availability SET current_load_minutes = current_load_minutes + $4, last_job_location = $5, status = CASE WHEN current_load_minutes + $4 >= max_capacity_minutes THEN 'booked' ELSE 'available' END, updated_at = NOW() WHERE technician_id = $1 AND date = $6",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.technician_id, $json.technician_name, $json.booking_id, $json.estimated_duration_minutes, $json.customer_location, $json.scheduled_date] }}"
+        }
+      },
+      "id": "assign-technician",
+      "name": "Assign Technician",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO manual_assignments (booking_id, lead_id, assignment_reason, priority, attempted_auto_assign, auto_assign_failure_reason) VALUES ($1, $2, $3, $4, true, $5) RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.booking_id, $json.lead_id, $json.reason || 'No available technicians', $json.urgency === 'today' ? 'urgent' : 'normal', $json.reason || 'No available technicians'] }}"
+        }
+      },
+      "id": "queue-manual-assignment",
+      "name": "Queue for Manual Assignment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "martin@rockywebstudio.com.au",
+        "subject": "Manual assignment needed for {{ $json.first_name }} {{ $json.last_name }}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.alert{background:#fff3cd;border:2px solid #ffc107;padding:20px;margin:20px 0;}</style></head><body><div class=\"alert\"><h2>Manual Assignment Required</h2><p>Booking ID: {{ $json.booking_id }}</p><p>Customer: {{ $json.first_name }} {{ $json.last_name }}</p><p>Service: {{ $json.service_type }}</p><p>Date: {{ $json.scheduled_date }}</p><p>Reason: {{ $json.reason }}</p></div></body></html>"
+      },
+      "id": "email-manual-assignment",
+      "name": "Email: Manual Assignment Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1650, 400],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Booking Created": {
+      "main": [
+        [
+          {
+            "node": "Extract Booking Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Booking Requirements": {
+      "main": [
+        [
+          {
+            "node": "Query Required Skills",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Find Eligible Technicians",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Required Skills": {
+      "main": [
+        [
+          {
+            "node": "Find Eligible Technicians",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Eligible Technicians": {
+      "main": [
+        [
+          {
+            "node": "Calculate Routing & Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Routing & Score": {
+      "main": [
+        [
+          {
+            "node": "Check Double-Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Double-Booking": {
+      "main": [
+        [
+          {
+            "node": "Filter: No Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: No Conflicts": {
+      "main": [
+        [
+          {
+            "node": "Select Best Technician",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Queue for Manual Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Best Technician": {
+      "main": [
+        [
+          {
+            "node": "Assign Technician",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Queue for Manual Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Technician": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue for Manual Assignment": {
+      "main": [
+        [
+          {
+            "node": "Email: Manual Assignment Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

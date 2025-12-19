@@ -1,32 +1,38 @@
-# PowerShell script to start n8n with Docker
-# Make sure Docker Desktop is running before executing this script
+# n8n Startup Script with Configuration
+# Sets required environment variables and starts n8n
 
-# Create n8n data directory if it doesn't exist
-if (-not (Test-Path ".n8n-data")) {
-    New-Item -ItemType Directory -Path ".n8n-data" | Out-Null
-    Write-Host "Created .n8n-data directory"
-}
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  n8n Startup Script" -ForegroundColor Cyan
+Write-Host "  Rocky Web Studio" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
 
-# Get the current directory path
-$currentPath = (Get-Location).Path
+Write-Host "Configuring n8n environment variables..." -ForegroundColor Green
 
-# Run n8n Docker container
-Write-Host "Starting n8n container..."
-docker run -d `
-  --name rocky-n8n `
-  -p 5678:5678 `
-  -v "${currentPath}\.n8n-data:/home/node/.n8n" `
-  -e N8N_BASIC_AUTH_ACTIVE=true `
-  -e N8N_BASIC_AUTH_USER=admin `
-  -e N8N_BASIC_AUTH_PASSWORD=27ParkAvenue `
-  n8nio/n8n
+# Database Configuration
+$env:DB_SQLITE_POOL_SIZE = "10"
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "n8n started successfully!"
-    Write-Host "Access n8n at: http://localhost:5678"
-    Write-Host "Username: admin"
-    Write-Host "Password: 27ParkAvenue"
-} else {
-    Write-Host "Failed to start n8n. Make sure Docker Desktop is running."
-}
+# Task Runners (Required for future versions)
+$env:N8N_RUNNERS_ENABLED = "true"
 
+# Environment Variable Access (Set to false to allow $env in Code nodes)
+$env:N8N_BLOCK_ENV_ACCESS_IN_NODE = "false"
+
+# Git Node Security (Set to true if not using bare repos)
+$env:N8N_GIT_NODE_DISABLE_BARE_REPOS = "true"
+
+Write-Host ""
+Write-Host "Environment variables configured:" -ForegroundColor Green
+Write-Host "  ✓ DB_SQLITE_POOL_SIZE = $env:DB_SQLITE_POOL_SIZE" -ForegroundColor Yellow
+Write-Host "  ✓ N8N_RUNNERS_ENABLED = $env:N8N_RUNNERS_ENABLED" -ForegroundColor Yellow
+Write-Host "  ✓ N8N_BLOCK_ENV_ACCESS_IN_NODE = $env:N8N_BLOCK_ENV_ACCESS_IN_NODE" -ForegroundColor Yellow
+Write-Host "  ✓ N8N_GIT_NODE_DISABLE_BARE_REPOS = $env:N8N_GIT_NODE_DISABLE_BARE_REPOS" -ForegroundColor Yellow
+Write-Host ""
+
+Write-Host "Starting n8n..." -ForegroundColor Green
+Write-Host "  Editor will be available at: http://localhost:5678" -ForegroundColor Cyan
+Write-Host "  Press Ctrl+C to stop" -ForegroundColor Gray
+Write-Host ""
+
+# Start n8n
+n8n

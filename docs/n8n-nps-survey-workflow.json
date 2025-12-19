@@ -1,0 +1,518 @@
+{
+  "name": "Post-Service NPS Survey",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nps-survey-trigger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-booking-completed",
+      "name": "Webhook: Booking Completed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "nps-survey-trigger-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "days"
+      },
+      "id": "wait-1-day",
+      "name": "Wait 1 Day",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT sl.id, sl.first_name, sl.last_name, sl.email, sl.phone, sb.id as booking_id, sb.service_type FROM service_leads sl INNER JOIN service_bookings sb ON sb.lead_id = sl.id WHERE sb.id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.bookingId] }}"
+        }
+      },
+      "id": "query-customer-booking",
+      "name": "Query Customer & Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO customer_surveys (lead_id, booking_id, survey_type, survey_sent_date, follow_up_status) VALUES ($1, $2, 'combined', NOW(), 'sent') RETURNING id",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id, $json.booking_id] }}"
+        }
+      },
+      "id": "create-survey-record",
+      "name": "Create Survey Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst survey = items[0].json;\nconst customer = items[1]?.json || {};\n\nconst baseUrl = 'https://form.typeform.com/to/YOUR_FORM_ID';\nconst params = new URLSearchParams({\n  customer_name: `${customer.first_name} ${customer.last_name}`,\n  service_type: customer.service_type,\n  booking_id: customer.booking_id,\n  survey_id: survey.id\n});\n\nconst surveyLink = `${baseUrl}?${params.toString()}`;\n\nreturn [{\n  json: {\n    ...survey,\n    ...customer,\n    survey_link: surveyLink\n  }\n}];"
+      },
+      "id": "generate-survey-link",
+      "name": "Generate Survey Link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $json.phone }}",
+        "message": "How was your service? Rate us: {{ $json.survey_link }}"
+      },
+      "id": "sms-survey",
+      "name": "SMS: Survey Invitation",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1.1,
+      "position": [1250, 200],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-credentials",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "How was your service experience?",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.header{background:#134252;color:white;padding:20px;}.content{padding:20px;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"header\"><h1>We'd Love Your Feedback!</h1></div><div class=\"content\"><p>Hi {{ $json.first_name }},</p><p>Thank you for choosing Rocky Web Studio for your {{ $json.service_type }} service.</p><p>We'd love to hear about your experience. Your feedback helps us improve!</p><p><a href=\"{{ $json.survey_link }}\" class=\"button\">Take 2-Minute Survey</a></p><p>Thank you for your time!</p></div></body></html>"
+      },
+      "id": "email-survey",
+      "name": "Email: Survey Invitation",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 400],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "typeform-survey-response",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-typeform",
+      "name": "Webhook: Typeform Response",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 600],
+      "webhookId": "typeform-survey-response-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response-typeform",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1850, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\n// Extract answers from Typeform response\nconst answers = response.form_response?.answers || [];\nconst hidden = response.form_response?.hidden || {};\n\n// Find answers by field reference or ID\nconst npsAnswer = answers.find(a => a.field?.ref === 'nps_question' || a.type === 'number');\nconst csatAnswer = answers.find(a => a.field?.ref === 'csat_question' || (a.type === 'number' && a !== npsAnswer));\nconst effortAnswer = answers.find(a => a.field?.ref === 'effort_question');\nconst feedbackAnswer = answers.find(a => a.field?.ref === 'feedback_question' || a.type === 'text');\n\nconst npsScore = npsAnswer?.number || parseInt(npsAnswer?.text) || null;\nconst csatScore = csatAnswer?.number || parseInt(csatAnswer?.text) || null;\nconst effortScore = effortAnswer?.number || parseInt(effortAnswer?.text) || null;\nconst feedback = feedbackAnswer?.text || '';\n\n// Categorize NPS\nlet category = 'detractor';\nif (npsScore >= 9) category = 'promoter';\nelse if (npsScore >= 7) category = 'passive';\n\nreturn [{\n  json: {\n    survey_id: hidden.survey_id || response.form_response?.form_id,\n    booking_id: hidden.booking_id,\n    nps_score: npsScore,\n    csat_score: csatScore,\n    effort_score: effortScore,\n    feedback_text: feedback,\n    category: category,\n    response_date: response.form_response?.submitted_at || new Date().toISOString()\n  }\n}];"
+      },
+      "id": "process-survey-response",
+      "name": "Process Survey Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "promoter",
+              "leftValue": "={{ $json.nps_score }}",
+              "rightValue": 9,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "passive",
+              "leftValue": "={{ $json.nps_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "detractor",
+              "leftValue": "={{ $json.nps_score }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "route-by-nps",
+      "name": "Route by NPS Category",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customer_surveys SET nps_score = $1, csat_score = $2, effort_score = $3, feedback_text = $4, survey_response_date = NOW(), survey_completed = true, sentiment = 'positive', follow_up_status = 'responded' WHERE id = $5",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.nps_score, $json.csat_score, $json.effort_score, $json.feedback_text, $json.survey_id] }}"
+        }
+      },
+      "id": "update-promoter",
+      "name": "Update: Promoter Response",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customer_surveys SET nps_score = $1, csat_score = $2, effort_score = $3, feedback_text = $4, survey_response_date = NOW(), survey_completed = true, sentiment = 'neutral', follow_up_status = 'responded' WHERE id = $5",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.nps_score, $json.csat_score, $json.effort_score, $json.feedback_text, $json.survey_id] }}"
+        }
+      },
+      "id": "update-passive",
+      "name": "Update: Passive Response",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customer_surveys SET nps_score = $1, csat_score = $2, effort_score = $3, feedback_text = $4, survey_response_date = NOW(), survey_completed = true, sentiment = 'negative', follow_up_status = 'pending', follow_up_date = NOW() + INTERVAL '1 day' WHERE id = $5",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.nps_score, $json.csat_score, $json.effort_score, $json.feedback_text, $json.survey_id] }}"
+        }
+      },
+      "id": "update-detractor",
+      "name": "Update: Detractor Response",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 700],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credentials",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Thank you for being a promoter!",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.offer{background:#fff3cd;border:2px solid #ffc107;padding:20px;margin:20px 0;text-align:center;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"content\"><h1>Thank You!</h1><p>Hi {{ $json.first_name }},</p><p>We're thrilled you had a great experience!</p><div class=\"offer\"><h2>Refer a Friend, Get $50 Credit</h2><p>Share the love and earn $50 credit for each referral!</p></div><p><a href=\"https://rockywebstudio.com.au/refer?customer={{ $json.lead_id }}\" class=\"button\">Refer a Friend</a></p><p>Would you be willing to share your experience as a testimonial?</p></div></body></html>"
+      },
+      "id": "email-promoter",
+      "name": "Email: Promoter Thank You",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 500],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@rockywebstudio.com.au",
+        "toEmail": "={{ $json.email }}",
+        "subject": "How can we improve?",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.button{background:#134252;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;display:inline-block;}</style></head><body><div class=\"content\"><h1>How Can We Improve?</h1><p>Hi {{ $json.first_name }},</p><p>Thank you for your feedback. We'd love to hear more about how we can improve your experience.</p><p>What specific areas would you like us to focus on?</p><p><a href=\"https://rockywebstudio.com.au/feedback?survey={{ $json.survey_id }}\" class=\"button\">Share More Feedback</a></p></div></body></html>"
+      },
+      "id": "email-passive",
+      "name": "Email: Passive Follow-up",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 600],
+      "credentials": {
+        "smtp": {
+          "id": "resend-credentials",
+          "name": "Resend"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#customer-feedback",
+        "text": "🚨 *Detractor Alert*\n\nCustomer: {{ $json.first_name }} {{ $json.last_name }}\nNPS Score: {{ $json.nps_score }}\nBooking ID: {{ $json.booking_id }}\n\nFeedback: {{ $json.feedback_text }}\n\n*Action Required:* Manager to call within 24 hours"
+      },
+      "id": "slack-detractor",
+      "name": "Slack: Detractor Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1050, 700],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credentials",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "create",
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a sentiment analysis assistant. Analyze customer feedback and return JSON with: sentiment (positive/neutral/negative), confidence (0-100), key_issues (array), themes (array)."
+            },
+            {
+              "role": "user",
+              "content": "Analyze this customer feedback: {{ $json.feedback_text }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "ai-sentiment-analysis",
+      "name": "AI: Sentiment Analysis",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.3,
+      "position": [1050, 800],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Booking Completed": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Day": {
+      "main": [
+        [
+          {
+            "node": "Query Customer & Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Customer & Booking": {
+      "main": [
+        [
+          {
+            "node": "Create Survey Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Survey Record": {
+      "main": [
+        [
+          {
+            "node": "Generate Survey Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Survey Link": {
+      "main": [
+        [
+          {
+            "node": "SMS: Survey Invitation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email: Survey Invitation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Typeform Response": {
+      "main": [
+        [
+          {
+            "node": "Process Survey Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Survey Response": {
+      "main": [
+        [
+          {
+            "node": "Route by NPS Category",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI: Sentiment Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by NPS Category": {
+      "main": [
+        [
+          {
+            "node": "Update: Promoter Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update: Passive Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update: Detractor Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Promoter Response": {
+      "main": [
+        [
+          {
+            "node": "Email: Promoter Thank You",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Passive Response": {
+      "main": [
+        [
+          {
+            "node": "Email: Passive Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Detractor Response": {
+      "main": [
+        [
+          {
+            "node": "Slack: Detractor Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 2,
+  "updatedAt": "2025-12-19T00:00:00.000Z",
+  "versionId": "1"
+}

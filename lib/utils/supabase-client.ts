@@ -146,9 +146,9 @@ export async function storeQuestionnaireResponse(
       // Required fields
       first_name: formData.firstName,
       last_name: formData.lastName,
-      email: formData.businessEmail,
-      phone: formData.businessPhone,
-      company_name: formData.businessName,
+      business_email: formData.businessEmail, // Changed from 'email' to 'business_email'
+      business_phone: formData.businessPhone, // Changed from 'phone' to 'business_phone'
+      business_name: formData.businessName, // Changed from 'company_name' to 'business_name'
       sector: formData.sector,
       pain_points: formData.selectedPainPoints || [],
       challenges: challenges,
@@ -172,8 +172,8 @@ export async function storeQuestionnaireResponse(
       payloadPreview: {
         first_name: insertPayload.first_name,
         last_name: insertPayload.last_name,
-        email: insertPayload.email,
-        company_name: insertPayload.company_name,
+        business_email: insertPayload.business_email,
+        business_name: insertPayload.business_name,
         sector: insertPayload.sector,
         pain_points_count: Array.isArray(insertPayload.pain_points) ? insertPayload.pain_points.length : 0,
         challenges_count: Array.isArray(insertPayload.challenges) ? insertPayload.challenges.length : 0,

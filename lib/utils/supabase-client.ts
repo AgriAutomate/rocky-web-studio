@@ -196,7 +196,19 @@ export async function storeQuestionnaireResponse(
         businessName: formData.businessName,
         businessEmail: formData.businessEmail,
         insertPayloadKeys: Object.keys(insertPayload),
-        fullError: JSON.stringify(error),
+        insertPayloadPreview: {
+          first_name: insertPayload.first_name,
+          last_name: insertPayload.last_name,
+          business_email: insertPayload.business_email,
+          business_name: insertPayload.business_name,
+          sector: insertPayload.sector,
+          status: insertPayload.status,
+        },
+        fullError: JSON.stringify(error, null, 2),
+        // Environment check
+        hasSupabaseUrl: !!process.env.SUPABASE_URL,
+        hasNextPublicSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       });
       return null;
     }

@@ -164,10 +164,17 @@ export async function POST(req: NextRequest) {
           businessName: formData.businessName,
           businessEmail: formData.businessEmail,
         });
+        
+        // In development, return more details
+        const isDev = process.env.NODE_ENV !== 'production';
         return NextResponse.json(
           {
             success: false,
             error: "Failed to save questionnaire response",
+            ...(isDev && {
+              debug: "storeQuestionnaireResponse returned null - check server logs for details",
+              hint: "Common causes: RLS blocking, missing env vars, or table doesn't exist",
+            }),
           },
           { status: 500 }
         );
@@ -181,12 +188,20 @@ export async function POST(req: NextRequest) {
       await logger.error("Database error storing questionnaire response", {
         error: String(dbError),
         errorMessage: dbError instanceof Error ? dbError.message : String(dbError),
+        errorStack: dbError instanceof Error ? dbError.stack : undefined,
         businessName: formData.businessName,
       });
+      
+      // In development, return error details
+      const isDev = process.env.NODE_ENV !== 'production';
       return NextResponse.json(
         {
           success: false,
           error: "Failed to save questionnaire response",
+          ...(isDev && {
+            debug: dbError instanceof Error ? dbError.message : String(dbError),
+            hint: "Check Vercel function logs for full Supabase error details",
+          }),
         },
         { status: 500 }
       );
@@ -208,7 +223,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        responseId: Number(responseId), // Convert string ID to number
+        responseId: responseId, // Keep as string (matches database BIGSERIAL)
         message: "Thank you! We are processing your questionnaire.",
       },
       { 

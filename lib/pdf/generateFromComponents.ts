@@ -15,6 +15,8 @@ interface ReportData {
     roiTimeline: string;
     projectCostRange: string;
   }>;
+  selectedGoals?: string[]; // All selected goals from q3
+  selectedPrimaryOffers?: string[]; // All selected primary offers from q5
   generatedDate: string;
 }
 
@@ -67,6 +69,8 @@ export async function generatePDFFromComponents(
       sector: reportData.sector,
       generatedDate: reportData.generatedDate,
       topChallenges: reportData.topChallenges,
+      selectedGoals: reportData.selectedGoals || [],
+      selectedPrimaryOffers: reportData.selectedPrimaryOffers || [],
     });
     
     // Render to PDF buffer

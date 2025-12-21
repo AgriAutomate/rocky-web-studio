@@ -4,6 +4,7 @@ import * as React from "react";
 import { validateQuestionnaireFormSafe, formatValidationErrors } from "@/lib/utils/validators";
 import { getTopChallengesForSector, formatSectorName } from "@/lib/utils/sector-mapping";
 import { getChallengeDetails } from "@/lib/utils/pain-point-mapping";
+import { painPointsToChallengeIds } from "@/lib/utils/pain-point-to-challenge";
 import { storeQuestionnaireResponse, updateEmailSentTimestamp } from "@/lib/utils/supabase-client";
 import ClientAcknowledgementEmail from "@/lib/email/ClientAcknowledgementEmail";
 import { generatePDFFromComponents } from "@/lib/pdf/generateFromComponents";
@@ -103,6 +104,9 @@ export async function POST(req: NextRequest) {
     const utmSource = url.searchParams.get('utm_source') || body.utm_source || null;
     const utmCampaign = url.searchParams.get('utm_campaign') || body.utm_campaign || null;
     
+    // Store raw body for goals/offers extraction (before validation)
+    const rawBodyForExtraction = { ...body };
+    
     const validationResult = validateQuestionnaireFormSafe(body);
 
     if (!validationResult.success) {
@@ -120,15 +124,31 @@ export async function POST(req: NextRequest) {
 
     const formData = validationResult.data;
 
-    // STEP 2: GENERATE REPORT DATA (for email)
-    const topChallengeIds = getTopChallengesForSector(formData.sector);
-    const challengeDetails = getChallengeDetails(topChallengeIds);
+    // STEP 2: GENERATE REPORT DATA (for email and PDF)
+    // Use ALL selected pain points, not just top 3 from sector
+    const allChallengeIds = formData.selectedPainPoints && formData.selectedPainPoints.length > 0
+      ? painPointsToChallengeIds(formData.selectedPainPoints, 100) // Get ALL challenges (high limit)
+      : getTopChallengesForSector(formData.sector); // Fallback to sector-based if no pain points selected
+    
+    const challengeDetails = getChallengeDetails(allChallengeIds);
+
+    // Extract goals and primary offers from raw body (q3 and q5)
+    // These are checkbox arrays in the form but not in the validated formData type
+    const selectedGoals = Array.isArray(rawBodyForExtraction.q3) 
+      ? rawBodyForExtraction.q3 
+      : (rawBodyForExtraction.q3 ? [rawBodyForExtraction.q3] : []);
+    
+    const selectedPrimaryOffers = Array.isArray(rawBodyForExtraction.q5) 
+      ? rawBodyForExtraction.q5 
+      : (rawBodyForExtraction.q5 ? [rawBodyForExtraction.q5] : []);
 
     const reportData = {
       clientName: formData.firstName,
       businessName: formData.businessName,
       sector: formatSectorName(formData.sector as any),
-      topChallenges: challengeDetails,
+      topChallenges: challengeDetails, // All selected challenges
+      selectedGoals: selectedGoals, // All selected goals
+      selectedPrimaryOffers: selectedPrimaryOffers, // All selected primary offers
       generatedDate: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
     };
 

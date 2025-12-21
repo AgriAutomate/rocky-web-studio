@@ -29,6 +29,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 25,
+    break: false, // Allow breaking between sections
   },
   sectionTitle: {
     fontSize: 18,
@@ -42,6 +43,7 @@ const styles = StyleSheet.create({
     border: '1 solid #e0d9d0',
     borderRadius: 8,
     backgroundColor: '#FFFCF9',
+    break: false, // Prevent breaking inside challenge box
   },
   challengeTitle: {
     fontSize: 14,
@@ -83,7 +85,37 @@ interface PDFDocumentProps {
     roiTimeline: string;
     projectCostRange: string;
   }>;
+  selectedGoals?: string[]; // All selected goals from q3
+  selectedPrimaryOffers?: string[]; // All selected primary offers from q5
 }
+
+// Goal labels mapping
+const goalLabels: Record<string, string> = {
+  "reduce-operating-costs": "1. Reduce Operating Costs",
+  "increase-online-visibility": "2. Increase Online Visibility & Lead Generation",
+  "improve-digital-maturity": "3. Improve Digital Maturity",
+  "enhance-customer-experience": "4. Enhance Customer Experience",
+  "streamline-operations": "5. Streamline Operations with Automation",
+  "grow-revenue-ecommerce": "6. Grow Revenue Through E-commerce",
+  "better-security": "7. Better Security & Cyber Protection",
+  "simplify-marketing": "8. Simplify Marketing & Social Media Management",
+  "build-trust-professionalism": "9. Build Trust & Professionalism Online",
+  "access-grants-support": "10. Access Grants & Support for Digital Upgrades",
+};
+
+// Primary offer labels mapping
+const primaryOfferLabels: Record<string, string> = {
+  "hospitality-food": "Hospitality & Food Services",
+  "retail-trade": "Retail Trade",
+  "trades-services": "Trades & Services",
+  "health-wellness": "Health & Wellness",
+  "property-real-estate": "Property & Real Estate",
+  "professional-services": "Professional Services",
+  "manufacturing-industrial": "Manufacturing & Industrial",
+  "agriculture-primary": "Agriculture & Primary Production",
+  "transport-logistics": "Transport & Logistics",
+  "creative-media": "Creative & Media",
+};
 
 export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
   clientName,
@@ -91,10 +123,12 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
   sector,
   generatedDate,
   topChallenges,
+  selectedGoals = [],
+  selectedPrimaryOffers = [],
 }) => {
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Custom Deep-Dive Report</Text>
@@ -112,27 +146,70 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
           </Text>
         </View>
 
+        {/* Goals Section */}
+        {selectedGoals.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Business Goals</Text>
+            <Text style={styles.challengeText}>
+              Based on your responses, you've identified the following key goals:
+            </Text>
+            {selectedGoals.map((goal, index) => (
+              <View key={index} style={{ marginBottom: 8, paddingLeft: 10 }}>
+                <Text style={styles.challengeText}>
+                  • {goalLabels[goal] || goal}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Primary Offers Section */}
+        {selectedPrimaryOffers.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Primary Business Offers</Text>
+            <Text style={styles.challengeText}>
+              Your business focuses on the following service areas:
+            </Text>
+            {selectedPrimaryOffers.map((offer, index) => (
+              <View key={index} style={{ marginBottom: 8, paddingLeft: 10 }}>
+                <Text style={styles.challengeText}>
+                  • {primaryOfferLabels[offer] || offer}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Challenges Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Top Digital Challenges</Text>
-          {topChallenges.map((challenge, index) => (
-            <View key={index} style={styles.challenge}>
-              <Text style={styles.challengeTitle}>
-                Challenge {challenge.number}: {challenge.title}
-              </Text>
-              {challenge.sections.map((section, sectionIndex) => (
-                <Text key={sectionIndex} style={styles.challengeText}>
-                  {section}
+          <Text style={styles.sectionTitle}>
+            Your Digital Challenges & Solutions
+            {topChallenges.length > 0 && ` (${topChallenges.length} identified)`}
+          </Text>
+          {topChallenges.length > 0 ? (
+            topChallenges.map((challenge, index) => (
+              <View key={index} style={styles.challenge}>
+                <Text style={styles.challengeTitle}>
+                  Challenge {challenge.number}: {challenge.title}
                 </Text>
-              ))}
-              <Text style={styles.challengeText}>
-                <Text style={styles.challengeLabel}>ROI Timeline:</Text> {challenge.roiTimeline}
-              </Text>
-              <Text style={styles.challengeText}>
-                <Text style={styles.challengeLabel}>Investment Range:</Text> {challenge.projectCostRange}
-              </Text>
-            </View>
-          ))}
+                {challenge.sections.map((section, sectionIndex) => (
+                  <Text key={sectionIndex} style={styles.challengeText}>
+                    {section}
+                  </Text>
+                ))}
+                <Text style={styles.challengeText}>
+                  <Text style={styles.challengeLabel}>ROI Timeline:</Text> {challenge.roiTimeline}
+                </Text>
+                <Text style={styles.challengeText}>
+                  <Text style={styles.challengeLabel}>Investment Range:</Text> {challenge.projectCostRange}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.challengeText}>
+              No specific challenges identified. We can help you assess your digital needs.
+            </Text>
+          )}
         </View>
 
         {/* Footer */}

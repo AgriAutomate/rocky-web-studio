@@ -6,6 +6,7 @@ import { getTopChallengesForSector, formatSectorName } from "@/lib/utils/sector-
 import { getChallengeDetails } from "@/lib/utils/pain-point-mapping";
 import { storeQuestionnaireResponse, updateEmailSentTimestamp } from "@/lib/utils/supabase-client";
 import ClientAcknowledgementEmail from "@/lib/email/ClientAcknowledgementEmail";
+import { generatePDFFromComponents } from "@/lib/pdf/generateFromComponents";
 import { env } from "@/lib/env";
 import type { Sector } from "@/lib/types/questionnaire";
 
@@ -227,10 +228,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // STEP 3: SEND EMAIL VIA RESEND (restored functionality)
+    // STEP 3: GENERATE PDF FROM SUPABASE COMPONENTS
+    let pdfBuffer: Buffer | null = null;
+    try {
+      pdfBuffer = await generatePDFFromComponents('questionnaire-report', reportData);
+      await logger.info("PDF generated successfully", {
+        responseId,
+        pdfSize: pdfBuffer.length,
+      });
+    } catch (pdfError) {
+      // Log error but continue - email will be sent without PDF
+      await logger.error("PDF generation failed", {
+        error: String(pdfError),
+        errorMessage: pdfError instanceof Error ? pdfError.message : String(pdfError),
+        responseId,
+      });
+      // Continue to send email without PDF
+    }
+
+    // STEP 4: SEND EMAIL VIA RESEND WITH PDF ATTACHMENT
     const resend = new Resend(env.RESEND_API_KEY);
     try {
-      await resend.emails.send({
+      const emailConfig: any = {
         from: RESEND_FROM,
         to: formData.businessEmail,
         subject: `Your Custom Deep-Dive Report – ${formData.businessName}`,
@@ -239,8 +258,21 @@ export async function POST(req: NextRequest) {
           businessName: formData.businessName,
           sector: reportData.sector,
         }),
-        // Note: PDF attachment will be handled by n8n workflow when configured
-      });
+      };
+
+      // Attach PDF if generated successfully
+      if (pdfBuffer) {
+        const pdfBase64 = pdfBuffer.toString('base64');
+        emailConfig.attachments = [
+          {
+            filename: `RockyWebStudio-Deep-Dive-Report-${reportData.generatedDate}.pdf`,
+            content: pdfBase64,
+            contentType: "application/pdf",
+          },
+        ];
+      }
+
+      await resend.emails.send(emailConfig);
 
       // Update email_sent_at timestamp
       await updateEmailSentTimestamp(responseId, new Date().toISOString()).catch((err) => {
@@ -253,6 +285,7 @@ export async function POST(req: NextRequest) {
       await logger.info("Questionnaire email sent successfully", {
         responseId,
         businessEmail: formData.businessEmail,
+        hasPdfAttachment: !!pdfBuffer,
       });
     } catch (emailError) {
       // Do not fail the overall request; log for manual follow-up

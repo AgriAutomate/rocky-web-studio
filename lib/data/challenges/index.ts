@@ -157,6 +157,7 @@ export const CHALLENGE_LIBRARY = new Proxy({} as Record<string, ChallengeDetail>
 
 /**
  * Export challenge details lookup function for compatibility.
+ * Returns challenges sorted numerically by challenge number.
  */
 export function getChallengeDetails(ids: number[]): ChallengeDetail[] {
   if (!ids || ids.length === 0) {
@@ -180,7 +181,8 @@ export function getChallengeDetails(ids: number[]): ChallengeDetail[] {
         projectCostRange: base.projectCostRange,
       } as ChallengeDetail;
     })
-    .filter((c): c is ChallengeDetail => Boolean(c));
+    .filter((c): c is ChallengeDetail => Boolean(c))
+    .sort((a, b) => a.number - b.number); // Sort numerically by challenge number
 
   return details;
 }

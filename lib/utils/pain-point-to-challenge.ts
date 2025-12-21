@@ -7,16 +7,16 @@ import type { PainPoint } from "@/lib/types/questionnaire";
  * content in the PDF report.
  */
 export const painPointToChallengeMap: Record<PainPoint, number> = {
-  "high-operating-costs": 1,        // → "Reduce Operational Costs"
-  "cash-flow-strain": 2,            // → "Improve Revenue & Conversions"
-  "regulatory-compliance": 9,       // → "Risk, Compliance & Resilience"
-  "digital-transformation": 4,      // → "Modernise Digital Experience"
-  "cybersecurity": 9,               // → "Risk, Compliance & Resilience" (security aspect)
-  "labour-shortages": 3,            // → "Scaling Service Delivery"
-  "reduced-demand": 7,              // → "Brand & Market Positioning"
-  "market-access": 8,               // → "Innovation & New Service Development"
-  "connectivity": 8,                // → "Innovation & New Service Development" (connectivity solutions)
-  "lack-of-leadership": 10,         // → "Team Capability & Culture"
+  "high-operating-costs": 1,        // → Challenge 1: "Reduce Operational Costs"
+  "cash-flow-strain": 2,            // → Challenge 2: "Improve Revenue & Conversions"
+  "regulatory-compliance": 3,       // → Challenge 3: "Complex Regulatory & Compliance Burdens"
+  "digital-transformation": 4,      // → Challenge 4: "Modernise Digital Experience"
+  "cybersecurity": 5,               // → Challenge 5: "Cybersecurity Threats"
+  "labour-shortages": 6,            // → Challenge 6: "Labour Shortages & Rising Wage Costs"
+  "reduced-demand": 7,              // → Challenge 7: "Brand & Market Positioning"
+  "market-access": 8,               // → Challenge 8: "Innovation & New Service Development"
+  "connectivity": 9,                // → Challenge 9: "Digital Connectivity Limitations"
+  "lack-of-leadership": 10,         // → Challenge 10: "Team Capability & Culture"
 };
 
 /**

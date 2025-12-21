@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Resend } from "resend";
+import * as React from "react";
 import { validateQuestionnaireFormSafe, formatValidationErrors } from "@/lib/utils/validators";
-import { storeQuestionnaireResponse } from "@/lib/utils/supabase-client";
+import { getTopChallengesForSector, formatSectorName } from "@/lib/utils/sector-mapping";
+import { getChallengeDetails } from "@/lib/utils/pain-point-mapping";
+import { storeQuestionnaireResponse, updateEmailSentTimestamp } from "@/lib/utils/supabase-client";
+import ClientAcknowledgementEmail from "@/lib/email/ClientAcknowledgementEmail";
+import { env } from "@/lib/env";
 import type { Sector } from "@/lib/types/questionnaire";
 
 // Module load logging - confirms this route is being used
@@ -9,6 +15,8 @@ console.log('[Questionnaire] API route module for /api/questionnaire/submit load
 // Force dynamic rendering - prevents Next.js from trying to statically analyze this route during build
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+const RESEND_FROM = "noreply@rockywebstudio.com.au";
 
 // Lazy import helpers - import modules only when needed to prevent load-time errors
 async function getLogger() {
@@ -111,6 +119,18 @@ export async function POST(req: NextRequest) {
 
     const formData = validationResult.data;
 
+    // STEP 2: GENERATE REPORT DATA (for email)
+    const topChallengeIds = getTopChallengesForSector(formData.sector);
+    const challengeDetails = getChallengeDetails(topChallengeIds);
+
+    const reportData = {
+      clientName: formData.firstName,
+      businessName: formData.businessName,
+      sector: formatSectorName(formData.sector as any),
+      topChallenges: challengeDetails,
+      generatedDate: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
+    };
+
     // Validate sector exists
     if (!formData.sector) {
       await logger.error("Missing sector in form data", { 
@@ -207,14 +227,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // STEP 3: TRIGGER N8N WEBHOOK (non-blocking)
+    // STEP 3: SEND EMAIL VIA RESEND (restored functionality)
+    const resend = new Resend(env.RESEND_API_KEY);
+    try {
+      await resend.emails.send({
+        from: RESEND_FROM,
+        to: formData.businessEmail,
+        subject: `Your Custom Deep-Dive Report – ${formData.businessName}`,
+        react: React.createElement(ClientAcknowledgementEmail, {
+          clientFirstName: formData.firstName,
+          businessName: formData.businessName,
+          sector: reportData.sector,
+        }),
+        // Note: PDF attachment will be handled by n8n workflow when configured
+      });
+
+      // Update email_sent_at timestamp
+      await updateEmailSentTimestamp(responseId, new Date().toISOString()).catch((err) => {
+        void logger.error("updateEmailSentTimestamp failed", { 
+          error: String(err), 
+          responseId 
+        });
+      });
+
+      await logger.info("Questionnaire email sent successfully", {
+        responseId,
+        businessEmail: formData.businessEmail,
+      });
+    } catch (emailError) {
+      // Do not fail the overall request; log for manual follow-up
+      await logger.error("Resend email send failed", { 
+        error: String(emailError), 
+        responseId,
+        businessEmail: formData.businessEmail,
+      });
+    }
+
+    // STEP 4: TRIGGER N8N WEBHOOK (non-blocking, for PDF generation)
     // Fire and forget - don't wait for response
+    // This will handle PDF generation and attachment in the future
     void triggerN8nWebhook(responseId, formData).catch((err) => {
       // Error already logged in triggerN8nWebhook
       console.error('[Questionnaire] n8n webhook trigger failed (non-blocking)', err);
     });
 
-    // STEP 4: RETURN SUCCESS IMMEDIATELY
+    // STEP 5: RETURN SUCCESS IMMEDIATELY
     await logger.info("Questionnaire submission processed successfully", {
       responseId,
       sector: formData.sector,

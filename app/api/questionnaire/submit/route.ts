@@ -5,13 +5,19 @@ import { validateQuestionnaireFormSafe, formatValidationErrors } from "@/lib/uti
 import { getTopChallengesForSector, formatSectorName } from "@/lib/utils/sector-mapping";
 import { getChallengeDetails } from "@/lib/utils/pain-point-mapping";
 import { painPointsToChallengeIds } from "@/lib/utils/pain-point-to-challenge";
-import { storeQuestionnaireResponse, updateEmailSentTimestamp } from "@/lib/utils/supabase-client";
+import { storeQuestionnaireResponse, updateEmailSentTimestamp, uploadPdfToStorage } from "@/lib/utils/supabase-client";
 import ClientAcknowledgementEmail from "@/lib/email/ClientAcknowledgementEmail";
 import { generatePDFFromComponents } from "@/lib/pdf/generateFromComponents";
 import { buildCQAdvantageSection } from "@/backend-workflow/services/pdf-content-builder";
 import { getSector } from "@/backend-workflow/types/sectors";
+import { createServerSupabaseClient } from "@/lib/supabase/client";
 import { env } from "@/lib/env";
 import type { Sector } from "@/lib/types/questionnaire";
+
+// Lazy import for Supabase client (only when needed)
+async function getSupabaseClient() {
+  return createServerSupabaseClient(true);
+}
 
 // Module load logging - confirms this route is being used
 console.log('[Questionnaire] API route module for /api/questionnaire/submit loaded');
@@ -283,12 +289,47 @@ export async function POST(req: NextRequest) {
 
     // STEP 3: GENERATE PDF FROM SUPABASE COMPONENTS
     let pdfBuffer: Buffer | null = null;
+    let pdfUrl: string | null = null;
     try {
       pdfBuffer = await generatePDFFromComponents('questionnaire-report', reportData);
       await logger.info("PDF generated successfully", {
         responseId,
         pdfSize: pdfBuffer.length,
       });
+
+      // STEP 3a: UPLOAD PDF TO SUPABASE STORAGE
+      const fileName = `${responseId}-${reportData.generatedDate}.pdf`;
+      pdfUrl = await uploadPdfToStorage(fileName, pdfBuffer);
+      
+      if (pdfUrl) {
+        await logger.info("PDF uploaded to Supabase Storage", {
+          responseId,
+          pdfUrl,
+          fileName,
+        });
+
+        // Update response record with PDF URL
+        const supabase = await getSupabaseClient();
+        await (supabase as any)
+          .from("questionnaire_responses")
+          .update({
+            pdf_url: pdfUrl,
+            pdf_generated_at: new Date().toISOString(),
+          })
+          .eq("id", responseId)
+          .then((result: any) => {
+            if (result.error) {
+              void logger.error("Failed to update PDF URL in database", {
+                responseId,
+                error: result.error.message,
+              });
+            }
+          });
+      } else {
+        await logger.info("PDF upload to storage failed, will use base64 for email", {
+          responseId,
+        });
+      }
     } catch (pdfError) {
       // Log error but continue - email will be sent without PDF
       await logger.error("PDF generation failed", {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/client";
 import { generatePDFFromComponents } from "@/lib/pdf/generateFromComponents";
+import { uploadPdfToStorage } from "@/lib/utils/supabase-client";
 // import { computeResponseSummary } from "@/backend-workflow/services/pdf-content-builder"; // Not used in this implementation
 import { formatSectorName } from "@/lib/utils/sector-mapping";
 import { getChallengeDetails } from "@/lib/utils/pain-point-mapping";
@@ -115,15 +116,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Upload PDF to Supabase Storage or S3
-    // For now, we'll store the PDF as base64 in a URL field
-    // In production, upload to storage and get a public URL
-    const pdfBase64 = pdfBuffer.toString('base64');
-    const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
+    // Upload PDF to Supabase Storage
+    const fileName = `${responseId}-${reportData.generatedDate}.pdf`;
+    const pdfUrl = await uploadPdfToStorage(fileName, pdfBuffer);
+
+    if (!pdfUrl) {
+      console.error("Failed to upload PDF to storage");
+      return NextResponse.json(
+        { success: false, error: "Failed to upload PDF to storage" },
+        { status: 500 }
+      );
+    }
 
     // Update response with PDF URL and timestamp
     const updatePayload: Record<string, any> = {
-      pdf_url: pdfDataUrl, // In production, use actual storage URL
+      pdf_url: pdfUrl, // Supabase Storage public URL
       pdf_generated_at: new Date().toISOString(),
       // pdf_generation_status: 'completed' // Field may not exist yet
     };
@@ -145,6 +152,9 @@ export async function POST(request: NextRequest) {
     if (sendEmail) {
       try {
         const resend = new Resend(env.RESEND_API_KEY);
+        
+        // Convert PDF buffer to base64 for email attachment
+        const pdfBase64 = pdfBuffer.toString('base64');
         
         await resend.emails.send({
           from: RESEND_FROM,
@@ -177,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      pdf_url: pdfDataUrl, // In production, return actual storage URL
+      pdf_url: pdfUrl, // Supabase Storage public URL
       responseId,
       message: "PDF generated successfully",
     });

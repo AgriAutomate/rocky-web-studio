@@ -216,7 +216,12 @@ export function QuestionnaireForm() {
         throw new Error(result.error || result.details || "Failed to submit questionnaire");
       }
 
-      setIsSubmitted(true);
+      // Redirect to confirmation page with response ID
+      if (result.responseId) {
+        window.location.href = `/confirmation?id=${result.responseId}`;
+      } else {
+        setIsSubmitted(true);
+      }
     } catch (error) {
       console.error("Form submission error:", error);
       setSubmitError(

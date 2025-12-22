@@ -8,6 +8,8 @@ import { painPointsToChallengeIds } from "@/lib/utils/pain-point-to-challenge";
 import { storeQuestionnaireResponse, updateEmailSentTimestamp } from "@/lib/utils/supabase-client";
 import ClientAcknowledgementEmail from "@/lib/email/ClientAcknowledgementEmail";
 import { generatePDFFromComponents } from "@/lib/pdf/generateFromComponents";
+import { buildCQAdvantageSection } from "@/backend-workflow/services/pdf-content-builder";
+import { getSector } from "@/backend-workflow/types/sectors";
 import { env } from "@/lib/env";
 import type { Sector } from "@/lib/types/questionnaire";
 
@@ -142,6 +144,36 @@ export async function POST(req: NextRequest) {
       ? rawBodyForExtraction.q5 
       : (rawBodyForExtraction.q5 ? [rawBodyForExtraction.q5] : []);
 
+    // Map form sector to backend-workflow sector slug
+    // Form uses simple slugs (e.g., "healthcare", "hospitality")
+    // Backend-workflow uses specific slugs (e.g., "healthcare-allied-health", "hospitality-retail")
+    const sectorSlugMap: Record<string, string> = {
+      "healthcare": "healthcare-allied-health",
+      "hospitality": "hospitality-retail",
+      "retail": "hospitality-retail",
+      "construction": "trades-construction",
+      "agriculture": "agriculture-rural",
+      "professional-services": "professional-services",
+      "fitness-wellness": "fitness-wellness",
+      "real-estate-property": "real-estate-property",
+      "education-training": "education-training",
+      "government-council": "government-council",
+      "automotive-mechanical": "automotive-mechanical",
+      "arts-creative": "arts-creative",
+      "veterans-defence": "veterans-defence",
+      "non-profit-community": "non-profit-community",
+      "transport-logistics": "transport-logistics",
+      "events-entertainment": "events-entertainment",
+    };
+    
+    const backendSectorSlug = sectorSlugMap[formData.sector] || formData.sector;
+    const sectorDefinition = getSector(backendSectorSlug);
+    
+    // Build CQ Advantage section if sector definition has strategic intelligence
+    const cqAdvantage = sectorDefinition 
+      ? buildCQAdvantageSection(sectorDefinition)
+      : null;
+
     const reportData = {
       clientName: formData.firstName,
       businessName: formData.businessName,
@@ -150,6 +182,7 @@ export async function POST(req: NextRequest) {
       selectedGoals: selectedGoals, // All selected goals
       selectedPrimaryOffers: selectedPrimaryOffers, // All selected primary offers
       generatedDate: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
+      cqAdvantage, // CQ Advantage section data
     };
 
     // Validate sector exists

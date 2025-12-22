@@ -18,6 +18,11 @@ interface ReportData {
   selectedGoals?: string[]; // All selected goals from q3
   selectedPrimaryOffers?: string[]; // All selected primary offers from q5
   generatedDate: string;
+  cqAdvantage?: {
+    cqInsiderInsight: string;
+    localCompetitorFailure: string;
+    rwsSurvivalKit: string;
+  } | null;
 }
 
 // Note: HTML formatting functions removed - using React PDF components instead
@@ -71,6 +76,7 @@ export async function generatePDFFromComponents(
       topChallenges: reportData.topChallenges,
       selectedGoals: reportData.selectedGoals || [],
       selectedPrimaryOffers: reportData.selectedPrimaryOffers || [],
+      cqAdvantage: reportData.cqAdvantage || null,
     });
     
     // Render to PDF buffer

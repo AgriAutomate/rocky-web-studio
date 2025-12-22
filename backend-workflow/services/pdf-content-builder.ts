@@ -10,6 +10,7 @@ import type { QuestionnaireFormData } from "@/lib/types/questionnaire";
 import { getChallengeDetails } from "@/lib/data/challenges";
 import { painPointsToChallengeIds } from "@/lib/utils/pain-point-to-challenge";
 import { formatSectorName } from "@/lib/utils/sector-mapping";
+import type { SectorDefinition } from "@/backend-workflow/types/sectors";
 
 /**
  * Response Summary Data
@@ -78,6 +79,35 @@ export async function composePDFTemplate(
   }
 ): Promise<Buffer> {
   return generatePDFFromComponents(templateKey, reportData);
+}
+
+/**
+ * Build CQ Advantage Section
+ * 
+ * Creates the Central Queensland Advantage section content for PDF generation.
+ * This section includes localized competitive intelligence that positions RWS services
+ * as non-negotiable solutions for the client's specific market.
+ * 
+ * @param sectorDefinition - Sector definition with strategic intelligence
+ * @returns Formatted CQ Advantage section content
+ */
+export function buildCQAdvantageSection(
+  sectorDefinition: SectorDefinition
+): {
+  cqInsiderInsight: string;
+  localCompetitorFailure: string;
+  rwsSurvivalKit: string;
+} | null {
+  // Return null if sector definition doesn't have strategic intelligence
+  if (!sectorDefinition.cqInsiderInsight || !sectorDefinition.localCompetitorFailure || !sectorDefinition.rwsSurvivalKit) {
+    return null;
+  }
+
+  return {
+    cqInsiderInsight: sectorDefinition.cqInsiderInsight,
+    localCompetitorFailure: sectorDefinition.localCompetitorFailure,
+    rwsSurvivalKit: sectorDefinition.rwsSurvivalKit,
+  };
 }
 
 /**

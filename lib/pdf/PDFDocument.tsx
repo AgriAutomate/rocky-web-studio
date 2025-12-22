@@ -87,6 +87,11 @@ interface PDFDocumentProps {
   }>;
   selectedGoals?: string[]; // All selected goals from q3
   selectedPrimaryOffers?: string[]; // All selected primary offers from q5
+  cqAdvantage?: {
+    cqInsiderInsight: string;
+    localCompetitorFailure: string;
+    rwsSurvivalKit: string;
+  } | null;
 }
 
 // Goal labels mapping
@@ -125,6 +130,7 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
   topChallenges,
   selectedGoals = [],
   selectedPrimaryOffers = [],
+  cqAdvantage = null,
 }) => {
   return (
     <Document>
@@ -145,6 +151,37 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
             <Text style={{ fontWeight: 'bold' }}>{sector}</Text> sector.
           </Text>
         </View>
+
+        {/* CQ Advantage Section */}
+        {cqAdvantage && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>The Central Queensland Advantage</Text>
+            <Text style={styles.challengeText}>
+              You operate in a unique market. Rockhampton isn't Brisbane, and your digital strategy shouldn't look like it is.
+            </Text>
+            
+            <View style={{ marginTop: 15, marginBottom: 10 }}>
+              <Text style={[styles.challengeTitle, { fontSize: 12, marginBottom: 8 }]}>The Local Reality</Text>
+              <Text style={styles.challengeText}>{cqAdvantage.cqInsiderInsight}</Text>
+            </View>
+            
+            <View style={{ marginTop: 15, marginBottom: 10 }}>
+              <Text style={[styles.challengeTitle, { fontSize: 12, marginBottom: 8 }]}>Where Your Competitors Are Failing</Text>
+              <Text style={styles.challengeText}>{cqAdvantage.localCompetitorFailure}</Text>
+            </View>
+            
+            <View style={{ marginTop: 15, marginBottom: 10 }}>
+              <Text style={[styles.challengeTitle, { fontSize: 12, marginBottom: 8 }]}>How You Win: The Non-Negotiable Upgrade</Text>
+              <Text style={styles.challengeText}>
+                To dominate this market, you don't just need a "better website." You need a {cqAdvantage.rwsSurvivalKit}
+              </Text>
+            </View>
+            
+            <Text style={[styles.challengeText, { marginTop: 15, fontStyle: 'italic' }]}>
+              This is why Rocky Web Studio recommends the following roadmap...
+            </Text>
+          </View>
+        )}
 
         {/* Goals Section */}
         {selectedGoals.length > 0 && (

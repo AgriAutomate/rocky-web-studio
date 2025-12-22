@@ -35,23 +35,28 @@ SET
 -- 2. Create these policies:
 --
 --    Policy 1: "Public PDF Read Access"
---    - Operation: SELECT
+--    - Operation: SELECT (MUST CHECK THIS BOX in Dashboard)
 --    - Target roles: public
---    - USING expression: bucket_id = 'rockywebstudio' AND (storage.foldername(name))[1] = 'questionnaire-reports'
+--    - USING expression: bucket_id = 'rockywebstudio'
+--      OR: bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
 --
 --    Policy 2: "Service Role PDF Upload"
---    - Operation: INSERT
+--    - Operation: INSERT (MUST CHECK THIS BOX in Dashboard)
 --    - Target roles: service_role
---    - WITH CHECK expression: bucket_id = 'rockywebstudio' AND (storage.foldername(name))[1] = 'questionnaire-reports'
+--    - WITH CHECK expression: bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
 --
 --    Policy 3: "Service Role PDF Update"
---    - Operation: UPDATE
+--    - Operation: UPDATE (MUST CHECK THIS BOX in Dashboard)
 --    - Target roles: service_role
---    - USING expression: bucket_id = 'rockywebstudio' AND (storage.foldername(name))[1] = 'questionnaire-reports'
+--    - USING expression: bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
+--    - WITH CHECK expression: bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
 --
 --    Policy 4: "Service Role PDF Delete"
---    - Operation: DELETE
+--    - Operation: DELETE (MUST CHECK THIS BOX in Dashboard)
 --    - Target roles: service_role
---    - USING expression: bucket_id = 'rockywebstudio' AND (storage.foldername(name))[1] = 'questionnaire-reports'
+--    - USING expression: bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
+--
+-- IMPORTANT: In Supabase Dashboard, you MUST check the operation checkbox
+-- (SELECT/INSERT/UPDATE/DELETE) - the expression alone isn't enough!
 --
 -- Note: For public buckets, read access is usually automatic, but Policy 1 ensures it.

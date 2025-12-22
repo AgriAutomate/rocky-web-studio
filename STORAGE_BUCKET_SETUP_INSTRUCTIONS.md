@@ -50,14 +50,20 @@ Click **"Policies"** tab, then **"New Policy"** for each:
 
 **Settings:**
 - **Policy Name:** `Public PDF Read Access`
-- **Operation:** `SELECT`
-- **Target roles:** `public`
+- **Operation:** `SELECT` (check this box)
+- **Target roles:** `public` (or leave blank for public access)
 - **USING expression:**
   ```sql
-  bucket_id = 'rockywebstudio' AND (storage.foldername(name))[1] = 'questionnaire-reports'
+  bucket_id = 'rockywebstudio'
+  ```
+  **OR** if you want to restrict to questionnaire-reports folder:
+  ```sql
+  bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
   ```
 
 **Purpose:** Allows anyone to read/download PDFs from the bucket.
+
+**Note:** For public buckets, SELECT access is usually automatic. This policy ensures it.
 
 ---
 
@@ -65,14 +71,16 @@ Click **"Policies"** tab, then **"New Policy"** for each:
 
 **Settings:**
 - **Policy Name:** `Service Role PDF Upload`
-- **Operation:** `INSERT`
-- **Target roles:** `service_role`
+- **Operation:** `INSERT` (check this box)
+- **Target roles:** `service_role` (select from dropdown)
 - **WITH CHECK expression:**
   ```sql
-  bucket_id = 'rockywebstudio' AND (storage.foldername(name))[1] = 'questionnaire-reports'
+  bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
   ```
 
 **Purpose:** Allows server-side code (using service role key) to upload PDFs.
+
+**Important:** Make sure `INSERT` operation is checked/enabled in the Dashboard UI.
 
 ---
 
@@ -80,14 +88,16 @@ Click **"Policies"** tab, then **"New Policy"** for each:
 
 **Settings:**
 - **Policy Name:** `Service Role PDF Update`
-- **Operation:** `UPDATE`
-- **Target roles:** `service_role`
+- **Operation:** `UPDATE` (check this box)
+- **Target roles:** `service_role` (select from dropdown)
 - **USING expression:**
   ```sql
-  bucket_id = 'rockywebstudio' AND (storage.foldername(name))[1] = 'questionnaire-reports'
+  bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
   ```
 
 **Purpose:** Allows server-side code to update/replace PDFs.
+
+**Important:** Make sure `UPDATE` operation is checked/enabled in the Dashboard UI.
 
 ---
 
@@ -95,14 +105,16 @@ Click **"Policies"** tab, then **"New Policy"** for each:
 
 **Settings:**
 - **Policy Name:** `Service Role PDF Delete`
-- **Operation:** `DELETE`
-- **Target roles:** `service_role`
+- **Operation:** `DELETE` (check this box)
+- **Target roles:** `service_role` (select from dropdown)
 - **USING expression:**
   ```sql
-  bucket_id = 'rockywebstudio' AND (storage.foldername(name))[1] = 'questionnaire-reports'
+  bucket_id = 'rockywebstudio' AND name LIKE 'questionnaire-reports/%'
   ```
 
 **Purpose:** Allows server-side code to delete PDFs for cleanup.
+
+**Important:** Make sure `DELETE` operation is checked/enabled in the Dashboard UI.
 
 ---
 

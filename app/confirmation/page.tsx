@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Download, Mail, Calendar, Loader2 } from "lucide-react";
@@ -18,7 +18,7 @@ interface QuestionnaireResponse {
   created_at: string;
 }
 
-export default function ConfirmationPage() {
+function ConfirmationContent() {
   const searchParams = useSearchParams();
   const responseId = searchParams.get("id");
   
@@ -282,5 +282,22 @@ export default function ConfirmationPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+export default function ConfirmationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <ConfirmationContent />
+    </Suspense>
   );
 }

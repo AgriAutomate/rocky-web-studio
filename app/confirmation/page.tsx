@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/footer";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
+// Force dynamic rendering - this page requires search params
+export const dynamic = 'force-dynamic';
+
 interface QuestionnaireResponse {
   id: string;
   business_name: string;

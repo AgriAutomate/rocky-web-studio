@@ -24,13 +24,15 @@
 export interface WebsiteAuditResult {
   websiteInfo: WebsiteInfo;
   techStack: TechStackInfo;
-  performance: PerformanceMetrics;
+  performance?: PerformanceMetrics; // Optional for partial audits
   seo: SeoMetrics;
   metadata: SiteMetadata;
   contentAnalysis: ContentAnalysis;
   recommendations: Recommendation[];
   auditDate: string; // ISO 8601 timestamp
   auditDurationMs: number;
+  errors?: Record<string, string>; // Partial failure errors by category
+  warnings?: string[]; // Warnings about low confidence or missing data
 }
 
 /**

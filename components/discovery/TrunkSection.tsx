@@ -69,14 +69,15 @@ export function TrunkSection({ trunk, onUpdate }: TrunkSectionProps) {
 
     const integrations: IntegrationRequirement[] = updated.map((val) => {
       const existing = trunk?.integrations?.find((i) => i.systemName === val);
-      return (
-        existing || {
-          systemName: val,
-          systemType: mapSystemType(val),
-          integrationType: "unknown",
-          priority: "important",
-        }
-      );
+      if (existing) {
+        return existing;
+      }
+      return {
+        systemName: val,
+        systemType: mapSystemType(val),
+        integrationType: "unknown" as const,
+        priority: "important" as const,
+      };
     });
 
     onUpdate({ integrations });
@@ -168,14 +169,17 @@ export function TrunkSection({ trunk, onUpdate }: TrunkSectionProps) {
               const otherIdx = integrations.findIndex(
                 (i) => i.systemName === "other"
               );
-              if (otherIdx >= 0 && e.target.value) {
-                const updated = [...integrations];
-                updated[otherIdx] = {
-                  ...updated[otherIdx],
-                  systemName: e.target.value,
-                };
-                onUpdate({ integrations: updated });
-              }
+      if (otherIdx >= 0 && e.target.value) {
+        const updated = [...integrations];
+        const existing = updated[otherIdx];
+        if (existing) {
+          updated[otherIdx] = {
+            ...existing,
+            systemName: e.target.value,
+          };
+          onUpdate({ integrations: updated });
+        }
+      }
             }}
           />
         )}

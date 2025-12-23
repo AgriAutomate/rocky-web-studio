@@ -6,9 +6,7 @@
 
 import type {
   WebsiteAuditResult,
-  Recommendation,
   TechStackInfo,
-  DetectedTechnology,
   AuditFetchResponse,
 } from "@/lib/types/audit";
 import type { IntegrationRequirement } from "@/lib/types/discovery";
@@ -36,7 +34,7 @@ export function normalizeUrl(url: string): string {
 
   // Convert to lowercase (except protocol)
   const protocolMatch = normalized.match(/^(https?:\/\/)/i);
-  if (protocolMatch) {
+  if (protocolMatch && protocolMatch[1]) {
     const protocol = protocolMatch[1];
     normalized = protocol + normalized.slice(protocol.length).toLowerCase();
   }
@@ -126,13 +124,15 @@ export function calculateOverallHealthScore(audit: WebsiteAuditResult): number {
   let score = 0;
   let weight = 0;
 
-  // Performance score (40% weight)
-  if (audit.performance.overallScore !== undefined) {
-    score += audit.performance.overallScore * 0.4;
-    weight += 0.4;
-  } else if (audit.performance.mobileScore !== undefined) {
-    score += audit.performance.mobileScore * 0.4;
-    weight += 0.4;
+  // Performance score (40% weight) - optional field
+  if (audit.performance) {
+    if (audit.performance.overallScore !== undefined) {
+      score += audit.performance.overallScore * 0.4;
+      weight += 0.4;
+    } else if (audit.performance.mobileScore !== undefined) {
+      score += audit.performance.mobileScore * 0.4;
+      weight += 0.4;
+    }
   }
 
   // SEO score (30% weight)
@@ -258,8 +258,8 @@ function calculateTechnicalScore(audit: WebsiteAuditResult): number {
   // Has contact info (15 points)
   maxScore += 15;
   if (audit.metadata.contactInfo) {
-    const hasEmail = audit.metadata.contactInfo.emails?.length > 0;
-    const hasPhone = audit.metadata.contactInfo.phones?.length > 0;
+    const hasEmail = (audit.metadata.contactInfo.emails?.length ?? 0) > 0;
+    const hasPhone = (audit.metadata.contactInfo.phones?.length ?? 0) > 0;
     if (hasEmail && hasPhone) {
       score += 15;
     } else if (hasEmail || hasPhone) {
@@ -284,12 +284,12 @@ export function getSummaryForClient(audit: WebsiteAuditResult): {
                    audit.techStack.frameworks?.[0]?.name || 
                    "Unknown";
 
-  const performanceScore = audit.performance.overallScore || 
-                          audit.performance.desktopScore || 
-                          audit.performance.mobileScore || 
+  const performanceScore = audit.performance?.overallScore || 
+                          audit.performance?.desktopScore || 
+                          audit.performance?.mobileScore || 
                           0;
 
-  const mobileScore = audit.performance.mobileScore || 0;
+  const mobileScore = audit.performance?.mobileScore || 0;
 
   // Count social profiles
   const socialsFound = audit.metadata.socialProfiles

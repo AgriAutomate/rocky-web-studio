@@ -2,15 +2,14 @@
 
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type {
   HospitalityBranch,
   RetailBranch,
   TradesBranch,
   ProfessionalServicesBranch,
-  Sector,
 } from "@/lib/types/discovery";
+import type { Sector } from "@/lib/types/questionnaire";
 
 interface BranchSectionProps {
   sector: Sector;

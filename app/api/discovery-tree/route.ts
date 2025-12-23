@@ -79,7 +79,7 @@ function deriveCurrentStack(
       if (systemsMatch) {
         sectorStack.systems = [
           ...new Set(systemsMatch.map((s: string) => s.toLowerCase())),
-        ];
+        ] as string[];
       }
     }
 
@@ -92,7 +92,7 @@ function deriveCurrentStack(
       if (toolsMatch) {
         sectorStack.systems = [
           ...new Set(toolsMatch.map((s: string) => s.toLowerCase())),
-        ];
+        ] as string[];
       }
     }
 
@@ -101,7 +101,7 @@ function deriveCurrentStack(
       const channels = Array.isArray(sectorSpecificData.r7)
         ? sectorSpecificData.r7
         : [sectorSpecificData.r7];
-      sectorStack.systems = channels.filter((c: string) => c);
+      sectorStack.systems = channels.filter((c: any): c is string => typeof c === "string" && c.length > 0);
     }
 
     // Professional: Delivery tooling
@@ -113,7 +113,7 @@ function deriveCurrentStack(
       if (toolsMatch) {
         sectorStack.systems = [
           ...new Set(toolsMatch.map((s: string) => s.toLowerCase())),
-        ];
+        ] as string[];
       }
     }
   }
@@ -148,7 +148,7 @@ function deriveCurrentStack(
     const normalizedAuditSystem = normalizedAuditSystems[i];
 
     // Check if normalized name already exists in sector systems
-    if (!normalizedSectorSystems.includes(normalizedAuditSystem)) {
+    if (normalizedAuditSystem && auditSystem && !normalizedSectorSystems.includes(normalizedAuditSystem)) {
       mergedSystems.push(auditSystem);
       mergedSystemsSources.push("audit");
     }
@@ -161,10 +161,15 @@ function deriveCurrentStack(
   const finalSystemsSources: ("sector" | "audit")[] = [];
   const seenNormalized = new Set<string>();
   for (let i = 0; i < mergedSystems.length; i++) {
-    const normalized = normalizeSystemName(mergedSystems[i]);
-    if (!seenNormalized.has(normalized)) {
+    const system = mergedSystems[i];
+    if (!system) continue;
+    const normalized = normalizeSystemName(system);
+    if (normalized && !seenNormalized.has(normalized)) {
       seenNormalized.add(normalized);
-      finalSystemsSources.push(mergedSystemsSources[i]);
+      const source = mergedSystemsSources[i];
+      if (source) {
+        finalSystemsSources.push(source);
+      }
     }
   }
 
@@ -179,7 +184,7 @@ function deriveCurrentStack(
     const normalizedAuditIntegration = normalizedAuditIntegrations[i];
 
     // Check if normalized name already exists in sector integrations
-    if (!normalizedSectorIntegrations.includes(normalizedAuditIntegration)) {
+    if (normalizedAuditIntegration && auditIntegration && !normalizedSectorIntegrations.includes(normalizedAuditIntegration)) {
       mergedIntegrations.push(auditIntegration);
       mergedIntegrationsSources.push("audit");
     }
@@ -191,10 +196,15 @@ function deriveCurrentStack(
   const finalIntegrationsSources: ("sector" | "audit")[] = [];
   const seenNormalizedInt = new Set<string>();
   for (let i = 0; i < mergedIntegrations.length; i++) {
-    const normalized = normalizeSystemName(mergedIntegrations[i]);
-    if (!seenNormalizedInt.has(normalized)) {
+    const integration = mergedIntegrations[i];
+    if (!integration) continue;
+    const normalized = normalizeSystemName(integration);
+    if (normalized && !seenNormalizedInt.has(normalized)) {
       seenNormalizedInt.add(normalized);
-      finalIntegrationsSources.push(mergedIntegrationsSources[i]);
+      const source = mergedIntegrationsSources[i];
+      if (source) {
+        finalIntegrationsSources.push(source);
+      }
     }
   }
 
@@ -419,10 +429,13 @@ export async function POST(req: NextRequest) {
           ...mergedDiscoveryTree?.branches,
           ...body.discoveryTree.branches,
         },
-        priorities: {
-          ...mergedDiscoveryTree?.priorities,
-          ...body.discoveryTree.priorities,
-        },
+        priorities: body.discoveryTree.priorities
+          ? {
+              mustHave: body.discoveryTree.priorities.mustHave ?? mergedDiscoveryTree?.priorities?.mustHave ?? [],
+              niceToHave: body.discoveryTree.priorities.niceToHave ?? mergedDiscoveryTree?.priorities?.niceToHave ?? [],
+              future: body.discoveryTree.priorities.future ?? mergedDiscoveryTree?.priorities?.future ?? [],
+            }
+          : mergedDiscoveryTree?.priorities,
       };
     }
 

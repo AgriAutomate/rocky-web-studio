@@ -30,7 +30,10 @@ export function SummarySidebar({
   businessProfile,
   currentStack,
   discoveryTree,
+  auditStatus,
   audit,
+  auditErrorMessage,
+  auditWarnings,
   auditLoading = false,
 }: SummarySidebarProps) {
   // Calculate estimates from priorities

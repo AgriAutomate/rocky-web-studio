@@ -1,7 +1,6 @@
 "use client";
 
 import { useReducer, useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { TrunkSection } from "./TrunkSection";
 import { BranchSection } from "./BranchSection";
@@ -105,7 +104,7 @@ export function DiscoveryTreeForm({
   auditWarnings,
   auditLoading = false,
 }: DiscoveryTreeFormProps) {
-  const router = useRouter();
+  // const router = useRouter(); // Reserved for future navigation
   const [state, dispatch] = useReducer(discoveryTreeReducer, {
     businessProfile: null,
     discoveryTree: {
@@ -190,9 +189,19 @@ export function DiscoveryTreeForm({
         {/* Branch Section */}
         <BranchSection
           sector={sector}
-          branchData={state.discoveryTree.branches?.[sector]}
+          branchData={
+            sector === "professional-services"
+              ? state.discoveryTree.branches?.professionalServices
+              : state.discoveryTree.branches?.[sector as keyof typeof state.discoveryTree.branches]
+          }
           onUpdate={(data) =>
-            dispatch({ type: "UPDATE_BRANCH", payload: { sector, data } })
+            dispatch({
+              type: "UPDATE_BRANCH",
+              payload: {
+                sector: sector === "professional-services" ? "professionalServices" : sector,
+                data,
+              },
+            })
           }
         />
 

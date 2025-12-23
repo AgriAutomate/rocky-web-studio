@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { format, parse } from "date-fns";
 import { CheckCircle, Loader2, Calendar, User, FileCheck } from "lucide-react";
 import {
@@ -51,16 +52,17 @@ const serviceOptions = [
   "Follow-up Meeting (30 min)",
 ];
 
-export default function BookPage() {
+function BookPageContent() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("calendar");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [formData, setFormData] = useState<FormData>({
-    serviceType: "",
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
+    serviceType: searchParams.get("serviceType") || "",
+    name: searchParams.get("name") || "",
+    email: searchParams.get("email") || "",
+    phone: searchParams.get("phone") || "",
+    message: searchParams.get("message") || "",
     smsOptIn: false,
   });
   const [loading, setLoading] = useState(false);
@@ -670,6 +672,23 @@ export default function BookPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BookPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-background via-muted to-muted flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
+            <p className="text-muted-foreground">Loading booking form...</p>
+          </div>
+        </div>
+      }
+    >
+      <BookPageContent />
+    </Suspense>
   );
 }
 

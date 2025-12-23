@@ -15,6 +15,8 @@ interface QuestionnaireResponse {
   id: string;
   business_name: string;
   first_name: string;
+  business_email: string | null;
+  business_phone: string | null;
   pdf_url: string | null;
   pdf_generated_at: string | null;
   email_sent_at: string | null;
@@ -42,7 +44,7 @@ function ConfirmationContent() {
         const supabase = getSupabaseBrowserClient();
         const { data, error: fetchError } = await (supabase as any)
           .from("questionnaire_responses")
-          .select("id, business_name, first_name, pdf_url, pdf_generated_at, email_sent_at, created_at")
+          .select("id, business_name, first_name, business_email, business_phone, pdf_url, pdf_generated_at, email_sent_at, created_at")
           .eq("id", String(responseId))
           .single();
 
@@ -59,6 +61,8 @@ function ConfirmationContent() {
             id: responseData.id,
             business_name: responseData.business_name || "",
             first_name: responseData.first_name || "",
+            business_email: responseData.business_email || null,
+            business_phone: responseData.business_phone || null,
             pdf_url: responseData.pdf_url || null,
             pdf_generated_at: responseData.pdf_generated_at || null,
             email_sent_at: responseData.email_sent_at || null,
@@ -251,17 +255,31 @@ function ConfirmationContent() {
                 <p className="text-sm text-muted-foreground mb-3">
                   Let's discuss how Rocky Web Studio can help {businessName} implement these solutions.
                 </p>
-                <a
-                  href="https://calendly.com/martin-rws/15min"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href={(() => {
+                    const params = new URLSearchParams();
+                    if (response?.first_name) {
+                      params.set("name", response.first_name);
+                    }
+                    if (response?.business_email) {
+                      params.set("email", response.business_email);
+                    }
+                    if (response?.business_phone) {
+                      params.set("phone", response.business_phone);
+                    }
+                    // Pre-select "Project Discovery Call" as the service type
+                    params.set("serviceType", "Project Discovery Call (1 hour)");
+                    // Pre-fill message with reference to the report
+                    params.set("message", `I'd like to discuss the custom report for ${businessName}.`);
+                    return `/book?${params.toString()}`;
+                  })()}
                   className="inline-block"
                 >
                   <Button className="bg-primary text-white hover:bg-primary/90">
                     <Calendar className="h-4 w-4 mr-2" />
                     Book Free Strategy Session - Discuss Your Report
                   </Button>
-                </a>
+                </Link>
                 <p className="text-xs text-muted-foreground mt-2">
                   ⚡ Limited spots this week • No obligation • Get answers to your questions
                 </p>

@@ -18,7 +18,7 @@ export default function QuestionnairePage() {
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground mt-6">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <span>500+ Businesses Helped</span>
+              <span>Expert Service</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />

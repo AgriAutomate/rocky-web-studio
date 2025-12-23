@@ -17,7 +17,6 @@ import {
   isValidUrl,
   extractEmail,
   extractPhone,
-  extractYear,
 } from "@/lib/utils/audit-utils";
 import type {
   WebsiteAuditResult,
@@ -261,8 +260,8 @@ async function extractWebsiteInfo(
  */
 function extractTechStack(
   html: string,
-  $: cheerio.CheerioAPI,
-  url: string
+  _$: cheerio.CheerioAPI,
+  _url: string
 ): TechStackInfo {
   const techStack: TechStackInfo = {
     analytics: [],
@@ -271,9 +270,6 @@ function extractTechStack(
     languages: [],
     otherTechnologies: [],
   };
-
-  const htmlLower = html.toLowerCase();
-  const htmlUpper = html.toUpperCase();
 
   // CMS Detection (WordPress, Shopify, etc.)
   const cmsPatterns: Array<{
@@ -474,7 +470,6 @@ async function getPageSpeedMetrics(url: string): Promise<PerformanceMetrics> {
     });
 
     const desktopData = desktopResponse.data?.lighthouseResult?.categories?.performance?.score;
-    const desktopAudits = desktopResponse.data?.lighthouseResult?.audits || {};
 
     const metrics: PerformanceMetrics = {
       mobileScore: mobileData ? Math.round(mobileData * 100) : undefined,
@@ -522,7 +517,7 @@ function parseHtmlMetadata(
   metadata.keywords = $('meta[name="keywords"]')
     .attr("content")
     ?.split(",")
-    .map((k) => k.trim())
+    .map((k: string) => k.trim())
     .filter(Boolean);
   metadata.author = $('meta[name="author"]').attr("content")?.trim() || undefined;
   metadata.language = $("html").attr("lang") || $('meta[http-equiv="content-language"]').attr("content") || undefined;
@@ -609,7 +604,6 @@ function extractSeoMetrics(
 
   // Check for sitemap
   const sitemapLink = $('link[rel="sitemap"]').attr("href");
-  const robotsTxt = url.replace(/\/$/, "") + "/robots.txt";
   // Note: Would need to fetch robots.txt to verify, but we'll check for reference
 
   // Count headings
@@ -620,7 +614,7 @@ function extractSeoMetrics(
   const images = $("img");
   const totalImages = images.length;
   let withAlt = 0;
-  images.each((_, el) => {
+  images.each((_index: number, el) => {
     if ($(el).attr("alt")) withAlt++;
   });
 
@@ -653,7 +647,7 @@ function extractSeoMetrics(
 function analyzeContent(
   $: cheerio.CheerioAPI,
   html: string,
-  url: string
+  _url: string
 ): ContentAnalysis {
   const bodyText = $("body").text();
   const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
@@ -837,6 +831,14 @@ async function saveAuditResults(
  * Note: This function is deprecated in favor of setAuditStatus(status: 'failed', extra: { error })
  * Kept for backward compatibility but status should be set via setAuditStatus
  */
+/**
+ * Save audit error to database
+ * Note: This function is deprecated in favor of setAuditStatus(status: 'failed', extra: { error })
+ * Kept for backward compatibility but status should be set via setAuditStatus
+ * @deprecated Use setAuditStatus instead
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/ban-ts-comment
+// @ts-ignore - Deprecated function, kept for backward compatibility
 async function saveAuditError(
   questionnaireResponseId: string | number,
   errorMessage: string

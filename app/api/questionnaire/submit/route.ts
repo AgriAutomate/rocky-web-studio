@@ -233,8 +233,28 @@ export async function POST(req: NextRequest) {
     // STEP 2: SAVE TO SUPABASE
     let responseId: string | null = null;
     try {
+      // Extract sector-specific data, goals, and primary offers from raw body
+      // These are collected in the form but not in the validated formData type
+      const sectorSpecificData: Record<string, any> = {};
+      const sectorKeys = ['h6', 'h7', 'h8', 'h9', 'h10', 't6', 't7', 't8', 't9', 't10', 
+                          'r6', 'r7', 'r8', 'r9', 'r10', 'p6', 'p7', 'p8', 'p9', 'p10'];
+      
+      sectorKeys.forEach(key => {
+        if (rawBodyForExtraction[key] !== undefined) {
+          sectorSpecificData[key] = rawBodyForExtraction[key];
+        }
+      });
+
+      // Attach extracted data to formData for storage
+      const formDataWithExtras = {
+        ...formData,
+        sectorSpecificData: Object.keys(sectorSpecificData).length > 0 ? sectorSpecificData : undefined,
+        goals: selectedGoals.length > 0 ? selectedGoals : undefined,
+        primaryOffers: selectedPrimaryOffers.length > 0 ? selectedPrimaryOffers : undefined,
+      };
+
       responseId = await storeQuestionnaireResponse(
-        formData,
+        formDataWithExtras as any,
         utmSource,
         utmCampaign
       );
@@ -397,6 +417,55 @@ export async function POST(req: NextRequest) {
       // Error already logged in triggerN8nWebhook
       console.error('[Questionnaire] n8n webhook trigger failed (non-blocking)', err);
     });
+
+    // STEP 4a: TRIGGER WEBSITE AUDIT (non-blocking)
+    // If website URL provided (q2), trigger audit asynchronously
+    const websiteUrl = rawBodyForExtraction.q2;
+    if (websiteUrl && typeof websiteUrl === "string" && websiteUrl.trim()) {
+      try {
+        // Store website URL in database
+        const supabase = await getSupabaseClient();
+        await (supabase as any)
+          .from("questionnaire_responses")
+          .update({ website_url: websiteUrl.trim() })
+          .eq("id", responseId)
+          .then((result: any) => {
+            if (result.error) {
+              void logger.error("Failed to update website_url", {
+                responseId,
+                error: result.error.message,
+              });
+            }
+          });
+
+        // Fire-and-forget: trigger audit without awaiting
+        const baseUrl = process.env.NEXT_PUBLIC_URL || 
+                       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+        
+        void fetch(`${baseUrl}/api/audit-website`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questionnaireResponseId: responseId,
+            websiteUrl: websiteUrl.trim(),
+          }),
+        }).catch((err) => {
+          // Error already logged in audit service
+          console.error('[Questionnaire] Audit trigger failed (non-blocking)', err);
+        });
+
+        await logger.info("Website audit triggered", {
+          questionnaireResponseId: responseId,
+          websiteUrl: websiteUrl.trim(),
+        });
+      } catch (auditError) {
+        // Don't fail questionnaire submission if audit trigger fails
+        await logger.error("Failed to trigger website audit", {
+          questionnaireResponseId: responseId,
+          error: auditError instanceof Error ? auditError.message : String(auditError),
+        });
+      }
+    }
 
     // STEP 5: RETURN SUCCESS IMMEDIATELY
     await logger.info("Questionnaire submission processed successfully", {

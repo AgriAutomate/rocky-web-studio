@@ -88,11 +88,23 @@ export async function composePDFTemplate(
  * This section includes localized competitive intelligence that positions RWS services
  * as non-negotiable solutions for the client's specific market.
  * 
+ * Structure:
+ * - Heading: "The Central Queensland Advantage"
+ * - Subheading: "The Local Reality" → uses cqInsiderInsight
+ * - Subheading: "Where Your Competitors Are Failing" → uses localCompetitorFailure
+ * - Subheading: "How You Win: The Non-Negotiable Upgrade" → uses rwsSurvivalKit
+ * 
  * @param sectorDefinition - Sector definition with strategic intelligence
+ * @param sectorSpecificOverride - Optional override for sector-specific custom copy
  * @returns Formatted CQ Advantage section content
  */
 export function buildCQAdvantageSection(
-  sectorDefinition: SectorDefinition
+  sectorDefinition: SectorDefinition,
+  sectorSpecificOverride?: {
+    cqInsiderInsight?: string;
+    localCompetitorFailure?: string;
+    rwsSurvivalKit?: string;
+  }
 ): {
   cqInsiderInsight: string;
   localCompetitorFailure: string;
@@ -103,10 +115,11 @@ export function buildCQAdvantageSection(
     return null;
   }
 
+  // Use override if provided, otherwise use sector definition
   return {
-    cqInsiderInsight: sectorDefinition.cqInsiderInsight,
-    localCompetitorFailure: sectorDefinition.localCompetitorFailure,
-    rwsSurvivalKit: sectorDefinition.rwsSurvivalKit,
+    cqInsiderInsight: sectorSpecificOverride?.cqInsiderInsight || sectorDefinition.cqInsiderInsight,
+    localCompetitorFailure: sectorSpecificOverride?.localCompetitorFailure || sectorDefinition.localCompetitorFailure,
+    rwsSurvivalKit: sectorSpecificOverride?.rwsSurvivalKit || sectorDefinition.rwsSurvivalKit,
   };
 }
 

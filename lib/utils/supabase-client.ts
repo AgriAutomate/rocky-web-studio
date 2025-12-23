@@ -155,6 +155,11 @@ export async function storeQuestionnaireResponse(
       status: 'submitted',
     };
 
+    // Store website URL if provided (from q2)
+    if ((formData as any).websiteUrl) {
+      insertPayload.website_url = (formData as any).websiteUrl;
+    }
+
     // Add optional fields only if they have values
     if (formData.additionalContext) {
       insertPayload.job_description = formData.additionalContext;
@@ -164,6 +169,22 @@ export async function storeQuestionnaireResponse(
     }
     if (utmCampaign) {
       insertPayload.utm_campaign = utmCampaign;
+    }
+
+    // Store sector-specific data if provided (from formData raw object)
+    // This captures h6-h10, t6-t10, r6-r10, p6-p10 answers
+    if ((formData as any).sectorSpecificData) {
+      insertPayload.sector_specific_data = (formData as any).sectorSpecificData;
+    }
+
+    // Store goals array if provided (from q3 checkbox selections)
+    if ((formData as any).goals && Array.isArray((formData as any).goals)) {
+      insertPayload.goals = (formData as any).goals;
+    }
+
+    // Store primary offers array if provided (from q5 checkbox selections)
+    if ((formData as any).primaryOffers && Array.isArray((formData as any).primaryOffers)) {
+      insertPayload.primary_offers = (formData as any).primaryOffers;
     }
 
     await logger.info("Attempting to store questionnaire response", {

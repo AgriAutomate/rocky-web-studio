@@ -1,5 +1,6 @@
 import { QuestionnaireForm } from "@/components/QuestionnaireForm";
 import { Footer } from "@/components/footer";
+import { CheckCircle2 } from "lucide-react";
 
 export default function QuestionnairePage() {
   return (
@@ -12,6 +13,37 @@ export default function QuestionnairePage() {
           <p className="text-muted-foreground">
             Help us understand your business needs so we can create a tailored proposal for you.
           </p>
+          
+          {/* Trust Signals */}
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground mt-6">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <span>500+ Businesses Helped</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <span>Australian Veteran Owned</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <span>Free Custom Report</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <span>Takes 3-5 Minutes</span>
+            </div>
+          </div>
+          
+          {/* Value Proposition */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6 max-w-2xl mx-auto">
+            <h3 className="font-semibold text-blue-900 mb-2">What You'll Get:</h3>
+            <ul className="text-sm text-blue-800 space-y-1 text-left">
+              <li>✓ Custom analysis of your digital challenges</li>
+              <li>✓ Sector-specific solutions for Central Queensland</li>
+              <li>✓ ROI projections and investment ranges</li>
+              <li>✓ Clear next steps to move forward</li>
+            </ul>
+          </div>
         </div>
         <QuestionnaireForm />
       </main>

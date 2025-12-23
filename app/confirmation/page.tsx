@@ -257,11 +257,14 @@ function ConfirmationContent() {
                   rel="noopener noreferrer"
                   className="inline-block"
                 >
-                  <Button variant="outline">
+                  <Button className="bg-primary text-white hover:bg-primary/90">
                     <Calendar className="h-4 w-4 mr-2" />
-                    Book Your 15-Minute Consultation
+                    Book Free Strategy Session - Discuss Your Report
                   </Button>
                 </a>
+                <p className="text-xs text-muted-foreground mt-2">
+                  ⚡ Limited spots this week • No obligation • Get answers to your questions
+                </p>
               </div>
             </div>
           </div>

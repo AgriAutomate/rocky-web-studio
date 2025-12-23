@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,13 @@ import {
 
 type FormData = Record<string, any>;
 
+// GA4 Event Tracking - SSR-safe wrapper
+const trackEvent = (eventName: string, params?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    (window as any).gtag('event', eventName, params);
+  }
+};
+
 export function QuestionnaireForm() {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
@@ -23,6 +30,8 @@ export function QuestionnaireForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [hasSavedData, setHasSavedData] = useState(false);
+  const startTimeRef = useRef<number>(Date.now());
 
   // Get trunk questions (universal first questions)
   const trunkSet = QUESTION_SETS.find((set) => set.id === "trunk");
@@ -66,6 +75,75 @@ export function QuestionnaireForm() {
   // Calculate total steps: trunk + sector questions (if selected) + leaves
   const totalSteps = trunkQuestions.length + (selectedSector ? sectorQuestions.length : 0) + leavesQuestions.length;
   const isLastStep = currentStep === totalSteps - 1;
+
+  // Load saved form data from localStorage on mount
+  useEffect(() => {
+    // Initialize start time when component mounts
+    startTimeRef.current = Date.now();
+
+    // Load saved form data from localStorage
+    const savedData = localStorage.getItem('questionnaire_form_data');
+    const savedStep = localStorage.getItem('questionnaire_form_step');
+    
+    if (savedData && savedStep) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        const parsedStep = parseInt(savedStep, 10);
+        
+        if (parsedData && parsedStep >= 0) {
+          setFormData(parsedData);
+          setCurrentStep(parsedStep);
+          setHasSavedData(true);
+        }
+      } catch (e) {
+        console.error('Failed to load saved form data:', e);
+      }
+    }
+
+    // Track initial form view
+    const initialTotalSteps = trunkQuestions.length + leavesQuestions.length;
+    trackEvent('form_step_viewed', {
+      step_number: 1,
+      total_steps: initialTotalSteps,
+      sector: 'none',
+    });
+  }, []);
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    // Save form data to localStorage whenever it changes
+    if (Object.keys(formData).length > 0) {
+      localStorage.setItem('questionnaire_form_data', JSON.stringify(formData));
+      localStorage.setItem('questionnaire_form_step', currentStep.toString());
+    }
+  }, [formData, currentStep]);
+
+  // Track step progression and abandonment
+  useEffect(() => {
+    // Reset start time when step changes
+    startTimeRef.current = Date.now();
+    
+    // Track step view when step changes (but not on initial mount)
+    if (currentStep > 0 || Object.keys(formData).length > 0) {
+      trackEvent('form_step_viewed', {
+        step_number: currentStep + 1,
+        total_steps: totalSteps,
+        sector: selectedSector || 'none',
+      });
+    }
+    
+    return () => {
+      // Track abandonment when component unmounts or user navigates away
+      if (!isSubmitted && currentStep > 0) {
+        const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
+        trackEvent('form_abandoned', {
+          step_abandoned: currentStep + 1,
+          time_spent: timeSpent,
+          sector: selectedSector || 'none',
+        });
+      }
+    };
+  }, [currentStep, isSubmitted, selectedSector, totalSteps, formData]);
 
   // Handle answers (including sector selection from first question)
   const handleAnswer = (questionId: string, value: any) => {
@@ -215,6 +293,27 @@ export function QuestionnaireForm() {
       if (!response.ok || !result.success) {
         throw new Error(result.error || result.details || "Failed to submit questionnaire");
       }
+
+      // Track form completion
+      trackEvent('form_completed', {
+        sector: formData.sector,
+        pain_points_count: formData.q4 ? (Array.isArray(formData.q4) ? formData.q4.length : 1) : 0,
+        goals_count: formData.q3 ? (Array.isArray(formData.q3) ? formData.q3.length : 1) : 0,
+        digital_maturity: formData.currentDigitalMaturity || 'basic',
+        budget: formData.q21 || '5k-15k',
+        timeline: formData.q22 || 'flexible',
+      });
+
+      // Track conversion goal (update with your actual GA4 conversion ID)
+      trackEvent('conversion', {
+        send_to: 'AW-CONVERSION_ID/CONVERSION_LABEL', // Replace with your GA4 conversion ID
+        value: 1.0,
+        currency: 'AUD',
+      });
+
+      // Clear saved form data after successful submission
+      localStorage.removeItem('questionnaire_form_data');
+      localStorage.removeItem('questionnaire_form_step');
 
       // Redirect to confirmation page with response ID
       if (result.responseId) {
@@ -482,19 +581,28 @@ export function QuestionnaireForm() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 rounded-lg bg-white p-8 shadow-sm">
-      {/* Progress indicator */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Question {currentStep + 1} of {totalSteps}</span>
-          <span>{Math.round(((currentStep + 1) / totalSteps) * 100)}%</span>
+      {/* Enhanced Progress Bar */}
+      <div className="mb-6">
+        <div className="flex justify-between text-sm text-muted-foreground mb-2">
+          <span>Step {currentStep + 1} of {totalSteps}</span>
+          <span>{Math.round(((currentStep + 1) / totalSteps) * 100)}% Complete</span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full bg-primary transition-all duration-300"
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-primary h-2 rounded-full transition-all duration-300"
             style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
           />
         </div>
       </div>
+
+      {/* Resume Banner */}
+      {hasSavedData && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-800">
+            ✓ We found your saved progress. You can continue where you left off.
+          </p>
+        </div>
+      )}
 
       {/* Question */}
       <div className="space-y-4">

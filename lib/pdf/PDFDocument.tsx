@@ -59,6 +59,19 @@ const styles = StyleSheet.create({
   challengeLabel: {
     fontWeight: 'bold',
     fontSize: 10,
+    color: '#208091',
+  },
+  challengeMetadata: {
+    marginTop: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
+    borderTop: '1 solid #e0d9d0',
+    backgroundColor: '#F9F9F9',
+    borderRadius: 4,
+    padding: 10,
+  },
+  challengeMetadataRow: {
+    marginBottom: 8,
   },
   footer: {
     marginTop: 40,
@@ -239,12 +252,24 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
                     {section}
                   </Text>
                 ))}
-                <Text style={styles.challengeText}>
-                  <Text style={styles.challengeLabel}>ROI Timeline:</Text> {challenge.roiTimeline}
-                </Text>
-                <Text style={styles.challengeText}>
-                  <Text style={styles.challengeLabel}>Investment Range:</Text> {challenge.projectCostRange}
-                </Text>
+                <View style={styles.challengeMetadata}>
+                  <View style={styles.challengeMetadataRow}>
+                    <Text style={styles.challengeLabel}>ROI Timeline: </Text>
+                    <Text style={styles.challengeText}>
+                      {challenge.roiTimeline && challenge.roiTimeline.trim() 
+                        ? challenge.roiTimeline 
+                        : 'To be determined based on project scope'}
+                    </Text>
+                  </View>
+                  <View style={styles.challengeMetadataRow}>
+                    <Text style={styles.challengeLabel}>Investment Range: </Text>
+                    <Text style={styles.challengeText}>
+                      {challenge.projectCostRange && challenge.projectCostRange.trim() 
+                        ? challenge.projectCostRange 
+                        : 'To be determined based on project scope'}
+                    </Text>
+                  </View>
+                </View>
               </View>
             ))
           ) : (

@@ -233,8 +233,8 @@ async function calculateRoiSnapshotForProposal(
   }
   
   // Error handling: Log warnings for missing data
-  if (!sector || sector === "retail") {
-    await logger.info("ROI calculation: Using default sector 'retail'", {
+  if (!responseData.sector) {
+    await logger.info("ROI calculation: Sector missing, using default 'retail'", {
       questionnaireResponseId: responseData.id,
     });
   }

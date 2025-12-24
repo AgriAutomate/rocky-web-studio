@@ -6,7 +6,7 @@
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/client";
-import { calculateOverallHealthScore } from "@/lib/utils/audit-utils";
+import { calculateOverallHealthScore, extractAuditTechStack } from "@/lib/utils/audit-utils";
 import { estimateProject } from "@/lib/utils/feature-estimator";
 import { getFeatureKeysFromPriorities } from "@/lib/config/feature-estimates";
 import type { ProposalData, HealthScorecard, ProjectScope, Investment, RoiSnapshot, CurrentStateAnalysis, ProposedSolution } from "@/lib/types/proposal";
@@ -68,11 +68,101 @@ function calculateHealthScorecard(
     auditResults.performance?.mobileScore ||
     auditResults.performance?.desktopScore;
 
-  // Calculate SEO score (simplified - can be enhanced)
-  const seoScore = auditResults.seo.httpsEnabled ? 80 : 60; // Placeholder
+  // Calculate SEO score using existing utility (if available)
+  // For now, use a simplified calculation based on SEO metrics
+  let seoScore: number | undefined;
+  if (auditResults.seo) {
+    let seoPoints = 0;
+    let maxSeoPoints = 0;
+    
+    // Title tag (10 points)
+    maxSeoPoints += 10;
+    if (auditResults.seo.hasTitleTag) {
+      seoPoints += 5;
+      if (auditResults.seo.titleLength && auditResults.seo.titleLength >= 30 && auditResults.seo.titleLength <= 60) {
+        seoPoints += 5;
+      }
+    }
+    
+    // Meta description (10 points)
+    maxSeoPoints += 10;
+    if (auditResults.seo.hasMetaDescription) {
+      seoPoints += 5;
+      if (auditResults.seo.descriptionLength && auditResults.seo.descriptionLength >= 120 && auditResults.seo.descriptionLength <= 160) {
+        seoPoints += 5;
+      }
+    }
+    
+    // HTTPS (15 points)
+    maxSeoPoints += 15;
+    if (auditResults.seo.httpsEnabled) {
+      seoPoints += 15;
+    }
+    
+    // Mobile friendly (15 points)
+    maxSeoPoints += 15;
+    if (auditResults.seo.mobileFriendly) {
+      seoPoints += 15;
+    }
+    
+    // Structured data (10 points)
+    maxSeoPoints += 10;
+    if (auditResults.seo.hasStructuredData) {
+      seoPoints += 10;
+    }
+    
+    seoScore = maxSeoPoints > 0 ? Math.round((seoPoints / maxSeoPoints) * 100) : undefined;
+  }
 
-  // Calculate technical score (simplified - can be enhanced)
-  const technicalScore = auditResults.websiteInfo.isAccessible ? 70 : 40; // Placeholder
+  // Calculate technical score using existing utility (if available)
+  // For now, use a simplified calculation
+  let technicalScore: number | undefined;
+  if (auditResults.websiteInfo) {
+    let techPoints = 0;
+    let maxTechPoints = 0;
+    
+    // Website accessible (30 points)
+    maxTechPoints += 30;
+    if (auditResults.websiteInfo.isAccessible) {
+      techPoints += 30;
+    }
+    
+    // HTTPS enabled (20 points)
+    maxTechPoints += 20;
+    if (auditResults.seo.httpsEnabled) {
+      techPoints += 20;
+    }
+    
+    // Modern tech stack (20 points)
+    maxTechPoints += 20;
+    if (auditResults.techStack.cms || auditResults.techStack.frameworks?.length) {
+      techPoints += 20;
+    }
+    
+    // Fast load time (15 points)
+    maxTechPoints += 15;
+    if (auditResults.websiteInfo.loadTimeMs) {
+      if (auditResults.websiteInfo.loadTimeMs < 3000) {
+        techPoints += 15;
+      } else if (auditResults.websiteInfo.loadTimeMs < 5000) {
+        techPoints += 10;
+      }
+    }
+    
+    // Has contact info (15 points)
+    maxTechPoints += 15;
+    if (auditResults.metadata.contactInfo) {
+      const hasEmail = (auditResults.metadata.contactInfo.emails?.length ?? 0) > 0;
+      const hasPhone = (auditResults.metadata.contactInfo.phones?.length ?? 0) > 0;
+      if (hasEmail && hasPhone) {
+        techPoints += 15;
+      } else if (hasEmail || hasPhone) {
+        techPoints += 8;
+      }
+    }
+    
+    technicalScore = maxTechPoints > 0 ? Math.round((techPoints / maxTechPoints) * 100) : undefined;
+  }
 
   // Extract platform
   const platform = auditResults.techStack.cms?.name ||
@@ -237,8 +327,10 @@ function shapeCurrentStateAnalysis(
   auditResults: WebsiteAuditResult | null | undefined
 ): CurrentStateAnalysis {
   const businessProfile = responseData.business_profile as BusinessProfile | null | undefined;
+  const sector = (responseData.sector as Sector) || "other";
+  const sectorSpecificData = responseData.sector_specific_data || {};
 
-  // Extract current stack from sector_specific_data or audit
+  // Extract current stack from audit using existing utility
   const currentStack = {
     systems: [] as string[],
     integrations: [] as string[],
@@ -247,18 +339,78 @@ function shapeCurrentStateAnalysis(
 
   // Extract from audit if available
   if (auditResults?.techStack) {
-    if (auditResults.techStack.cms) {
-      currentStack.systems.push(auditResults.techStack.cms.name);
+    const auditTech = extractAuditTechStack(auditResults.techStack);
+    currentStack.systems = auditTech.systems;
+    currentStack.integrations = auditTech.integrations;
+    
+    // Add notes about detected technologies
+    if (auditTech.allTechnologies.length > 0) {
+      currentStack.notes = `Detected via site analysis: ${auditTech.allTechnologies.join(", ")}`;
     }
-    if (auditResults.techStack.ecommerce) {
-      currentStack.systems.push(auditResults.techStack.ecommerce.name);
+  }
+
+  // Also extract from sector_specific_data if available (complement audit data)
+  // This matches the logic from discovery-tree API
+  if (sectorSpecificData && typeof sectorSpecificData === "object") {
+    // Hospitality: POS/PMS stack
+    if (sector === "hospitality" && sectorSpecificData.h9) {
+      const systemsMatch = sectorSpecificData.h9.match(
+        /\b(?:POS|PMS|Square|Toast|Resy|OpenTable|ResDiary)\b/gi
+      );
+      if (systemsMatch) {
+        const sectorSystems = [...new Set(systemsMatch.map((s: string) => s.toLowerCase()))] as string[];
+        // Merge with audit systems (avoid duplicates)
+        sectorSystems.forEach((sys) => {
+          if (!currentStack.systems.some((s) => s.toLowerCase() === sys)) {
+            currentStack.systems.push(sys);
+          }
+        });
+      }
     }
-    auditResults.techStack.paymentProcessors?.forEach((p) => {
-      currentStack.integrations.push(p.name);
-    });
-    auditResults.techStack.analytics?.forEach((a) => {
-      currentStack.integrations.push(a.name);
-    });
+
+    // Retail: Channels
+    if (sector === "retail" && sectorSpecificData.r7) {
+      const channels = Array.isArray(sectorSpecificData.r7)
+        ? sectorSpecificData.r7
+        : [sectorSpecificData.r7];
+      channels.forEach((channel: any) => {
+        if (typeof channel === "string" && channel.length > 0) {
+          if (!currentStack.systems.some((s) => s.toLowerCase() === channel.toLowerCase())) {
+            currentStack.systems.push(channel);
+          }
+        }
+      });
+    }
+
+    // Construction/Trades: Tools
+    if (sector === "construction" && sectorSpecificData.t8) {
+      const toolsMatch = (sectorSpecificData.t8 as string).match(
+        /\b(?:Jobber|ServiceM8|AroFlo|Simpro|Xero|MYOB)\b/gi
+      );
+      if (toolsMatch) {
+        const sectorSystems = [...new Set(toolsMatch.map((s: string) => s.toLowerCase()))] as string[];
+        sectorSystems.forEach((sys) => {
+          if (!currentStack.systems.some((s) => s.toLowerCase() === sys)) {
+            currentStack.systems.push(sys);
+          }
+        });
+      }
+    }
+
+    // Professional Services: Delivery tools
+    if (sector === "professional-services" && sectorSpecificData.p9) {
+      const toolsMatch = sectorSpecificData.p9.match(
+        /\b(?:Asana|Trello|Monday|Jira|Notion|Airtable)\b/gi
+      );
+      if (toolsMatch) {
+        const sectorSystems = [...new Set(toolsMatch.map((s: string) => s.toLowerCase()))] as string[];
+        sectorSystems.forEach((sys) => {
+          if (!currentStack.systems.some((s) => s.toLowerCase() === sys)) {
+            currentStack.systems.push(sys);
+          }
+        });
+      }
+    }
   }
 
   // Extract pain points

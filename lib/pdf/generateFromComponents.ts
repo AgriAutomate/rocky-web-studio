@@ -85,7 +85,7 @@ export async function generatePDFFromComponents(
       selectedGoals: reportData.selectedGoals || [],
       selectedPrimaryOffers: reportData.selectedPrimaryOffers || [],
       cqAdvantage: reportData.cqAdvantage || null,
-      auditData: reportData.auditData || null,
+      auditData: reportData.auditData || { status: "pending", websiteUrl: null, results: null, error: null },
     });
     
     // Render to PDF buffer

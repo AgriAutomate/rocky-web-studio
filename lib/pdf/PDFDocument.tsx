@@ -236,7 +236,7 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
   selectedGoals = [],
   selectedPrimaryOffers = [],
   cqAdvantage = null,
-  auditData = null,
+  auditData = { status: "pending", websiteUrl: null, results: null, error: null },
 }) => {
   return (
     <Document>
@@ -328,57 +328,65 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
           </View>
         )}
 
-        {/* Website Audit Section */}
-        {auditData && (
-          <View style={styles.section}>
-            <View style={styles.auditSection}>
-              <Text style={styles.auditTitle}>Website Audit Results</Text>
-              {auditData.status === "pending" || auditData.status === "running" ? (
-                <Text style={styles.auditStatus}>
-                  Audit {auditData.status === "running" ? "in progress" : "queued"}. Results will be available shortly.
-                  {auditData.websiteUrl && ` Analyzing: ${auditData.websiteUrl}`}
-                </Text>
-              ) : auditData.status === "failed" || auditData.error ? (
-                <Text style={styles.auditStatus}>
-                  Audit unavailable: {auditData.error || "Failed to complete audit"}
-                </Text>
-              ) : auditData.results ? (
-                <>
-                  {auditData.results.performance && (
-                    <Text style={styles.auditMetric}>
-                      <Text style={styles.auditMetricLabel}>Performance Score: </Text>
-                      {auditData.results.performance.overallScore || 
-                       auditData.results.performance.mobileScore || 
-                       auditData.results.performance.desktopScore || 
-                       "N/A"} / 100
-                    </Text>
-                  )}
-                  {auditData.results.techStack?.cms && (
-                    <Text style={styles.auditMetric}>
-                      <Text style={styles.auditMetricLabel}>Platform: </Text>
-                      {auditData.results.techStack.cms.name || "Unknown"}
-                    </Text>
-                  )}
-                  {auditData.results.recommendations && auditData.results.recommendations.length > 0 && (
-                    <View style={{ marginTop: 8 }}>
-                      <Text style={styles.auditMetricLabel}>Top Issues:</Text>
-                      {auditData.results.recommendations.slice(0, 3).map((rec: any, idx: number) => (
-                        <Text key={idx} style={[styles.auditMetric, { marginLeft: 8 }]}>
-                          • {rec.title || rec}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-                  {auditData.websiteUrl && (
-                    <Text style={[styles.auditStatus, { marginTop: 8 }]}>
-                      Analyzed: {auditData.websiteUrl}
-                    </Text>
-                  )}
-                </>
-              ) : null}
-            </View>
+        {/* Website Audit Section - Always render, even when auditData is null */}
+        <View style={styles.section}>
+          <View style={styles.auditSection}>
+            <Text style={styles.auditTitle}>Website Audit Results</Text>
+            {!auditData || (!auditData.status && !auditData.results) ? (
+              <Text style={styles.auditStatus}>
+                Your website audit is being prepared. This typically takes 10–30 seconds. 
+                {auditData?.websiteUrl && ` Analyzing: ${auditData.websiteUrl}`}
+              </Text>
+            ) : auditData.status === "pending" || auditData.status === "running" ? (
+              <Text style={styles.auditStatus}>
+                Audit {auditData.status === "running" ? "in progress" : "queued"}. Results will be available shortly.
+                {auditData.websiteUrl && ` Analyzing: ${auditData.websiteUrl}`}
+              </Text>
+            ) : auditData.status === "failed" || auditData.error ? (
+              <Text style={styles.auditStatus}>
+                Audit unavailable: {auditData.error || "Failed to complete audit"}
+                {auditData.websiteUrl && ` (URL: ${auditData.websiteUrl})`}
+              </Text>
+            ) : auditData.results ? (
+              <>
+                {auditData.results.performance && (
+                  <Text style={styles.auditMetric}>
+                    <Text style={styles.auditMetricLabel}>Performance Score: </Text>
+                    {auditData.results.performance.overallScore || 
+                     auditData.results.performance.mobileScore || 
+                     auditData.results.performance.desktopScore || 
+                     "N/A"} / 100
+                  </Text>
+                )}
+                {auditData.results.techStack?.cms && (
+                  <Text style={styles.auditMetric}>
+                    <Text style={styles.auditMetricLabel}>Platform: </Text>
+                    {auditData.results.techStack.cms.name || "Unknown"}
+                  </Text>
+                )}
+                {auditData.results.recommendations && auditData.results.recommendations.length > 0 && (
+                  <View style={{ marginTop: 8 }}>
+                    <Text style={styles.auditMetricLabel}>Top Issues:</Text>
+                    {auditData.results.recommendations.slice(0, 3).map((rec: any, idx: number) => (
+                      <Text key={idx} style={[styles.auditMetric, { marginLeft: 8 }]}>
+                        • {rec.title || rec}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+                {auditData.websiteUrl && (
+                  <Text style={[styles.auditStatus, { marginTop: 8 }]}>
+                    Analyzed: {auditData.websiteUrl}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <Text style={styles.auditStatus}>
+                Audit status unknown. Please regenerate this report in about 30 seconds to see results.
+              </Text>
+            )}
           </View>
-        )}
+        </View>
 
         {/* Challenges Section */}
         <View style={styles.section}>

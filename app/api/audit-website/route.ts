@@ -201,6 +201,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body: AuditRequest = await req.json();
+    await logger.info("[Audit] POST /api/audit-website received", {
+      questionnaireResponseId: body.questionnaireResponseId,
+      websiteUrl: body.websiteUrl,
+    });
 
     // Validate required fields
     if (!body.questionnaireResponseId) {

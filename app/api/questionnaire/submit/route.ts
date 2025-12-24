@@ -307,30 +307,98 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // STEP 3: GENERATE PDF FROM SUPABASE COMPONENTS
-    // Try to fetch audit data if available (audit may still be running)
-    // Note: Audit runs asynchronously, so it may not be complete yet
-    let auditDataForPDF: any = null;
+    // STEP 3a: TRIGGER WEBSITE AUDIT (BEFORE PDF generation to ensure status exists)
+    // If website URL provided (q2), trigger audit BEFORE generating PDF
+    const websiteUrl = rawBodyForExtraction.q2;
+    if (websiteUrl && typeof websiteUrl === "string" && websiteUrl.trim()) {
+      try {
+        // Store website URL in database
+        const supabase = await getSupabaseClient();
+        await (supabase as any)
+          .from("questionnaire_responses")
+          .update({ website_url: websiteUrl.trim() })
+          .eq("id", responseId)
+          .then((result: any) => {
+            if (result.error) {
+              void logger.error("Failed to update website_url", {
+                responseId,
+                error: result.error.message,
+              });
+            }
+          });
+
+        // Trigger audit BEFORE PDF generation to ensure audit_status exists
+        const baseUrl = process.env.NEXT_PUBLIC_URL || 
+                       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+        
+        await logger.info("Triggering audit before PDF generation", {
+          responseId,
+          websiteUrl: websiteUrl.trim(),
+        });
+
+        // Fire-and-forget: trigger audit without awaiting completion
+        // But we await the initial POST to ensure status is set
+        void fetch(`${baseUrl}/api/audit-website`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questionnaireResponseId: responseId,
+            websiteUrl: websiteUrl.trim(),
+          }),
+        }).then(async (res) => {
+          await logger.info("Audit trigger response", {
+            responseId,
+            status: res.status,
+            statusText: res.statusText,
+          });
+        }).catch((err) => {
+          console.error('[Questionnaire] Audit trigger failed (non-blocking)', err);
+          void logger.error("Audit trigger failed", {
+            responseId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+
+        // Small delay to allow audit_status to be set to "pending"
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (auditTriggerError) {
+        // Don't fail PDF generation if audit trigger fails
+        await logger.error("Failed to trigger website audit", {
+          responseId,
+          error: auditTriggerError instanceof Error ? auditTriggerError.message : String(auditTriggerError),
+        });
+      }
+    }
+
+    // STEP 3b: FETCH AUDIT DATA FOR PDF (after trigger, so status should exist)
+    // Build auditDataForPDF defensively - always return an object with status
+    let auditDataForPDF: any = {
+      status: "pending",
+      websiteUrl: websiteUrl && typeof websiteUrl === "string" ? websiteUrl.trim() : null,
+      results: null,
+      error: null,
+    };
+
     try {
       const supabase = await getSupabaseClient();
-      const { data: auditResponse } = await (supabase as any)
+      const { data: auditResponse, error: auditQueryError } = await (supabase as any)
         .from("questionnaire_responses")
         .select("audit_results, audit_status, audit_error, website_url")
         .eq("id", responseId)
         .single();
       
-      if (auditResponse?.audit_results) {
+      if (auditQueryError) {
+        await logger.info("Could not fetch audit data for PDF", {
+          responseId,
+          error: auditQueryError.message,
+        });
+      } else if (auditResponse) {
+        // Build auditData object defensively - always include status
         auditDataForPDF = {
-          results: auditResponse.audit_results,
-          status: auditResponse.audit_status || "completed",
-          websiteUrl: auditResponse.website_url,
-        };
-      } else if (auditResponse?.audit_status) {
-        // Audit is pending or running
-        auditDataForPDF = {
-          status: auditResponse.audit_status,
-          websiteUrl: auditResponse.website_url,
-          error: auditResponse.audit_error,
+          status: auditResponse.audit_status || "pending",
+          websiteUrl: auditResponse.website_url || websiteUrl || null,
+          results: auditResponse.audit_results || null,
+          error: auditResponse.audit_error || null,
         };
       }
     } catch (auditFetchError) {
@@ -346,7 +414,7 @@ export async function POST(req: NextRequest) {
     try {
       pdfBuffer = await generatePDFFromComponents('questionnaire-report', {
         ...reportData,
-        auditData: auditDataForPDF, // Add audit data to report
+        auditData: auditDataForPDF || { status: "pending", websiteUrl: websiteUrl || null, results: null, error: null }, // Always include audit data
       });
       await logger.info("PDF generated successfully", {
         responseId,
@@ -454,54 +522,7 @@ export async function POST(req: NextRequest) {
       console.error('[Questionnaire] n8n webhook trigger failed (non-blocking)', err);
     });
 
-    // STEP 4a: TRIGGER WEBSITE AUDIT (non-blocking)
-    // If website URL provided (q2), trigger audit asynchronously
-    const websiteUrl = rawBodyForExtraction.q2;
-    if (websiteUrl && typeof websiteUrl === "string" && websiteUrl.trim()) {
-      try {
-        // Store website URL in database
-        const supabase = await getSupabaseClient();
-        await (supabase as any)
-          .from("questionnaire_responses")
-          .update({ website_url: websiteUrl.trim() })
-          .eq("id", responseId)
-          .then((result: any) => {
-            if (result.error) {
-              void logger.error("Failed to update website_url", {
-                responseId,
-                error: result.error.message,
-              });
-            }
-          });
-
-        // Fire-and-forget: trigger audit without awaiting
-        const baseUrl = process.env.NEXT_PUBLIC_URL || 
-                       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-        
-        void fetch(`${baseUrl}/api/audit-website`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            questionnaireResponseId: responseId,
-            websiteUrl: websiteUrl.trim(),
-          }),
-        }).catch((err) => {
-          // Error already logged in audit service
-          console.error('[Questionnaire] Audit trigger failed (non-blocking)', err);
-        });
-
-        await logger.info("Website audit triggered", {
-          questionnaireResponseId: responseId,
-          websiteUrl: websiteUrl.trim(),
-        });
-      } catch (auditError) {
-        // Don't fail questionnaire submission if audit trigger fails
-        await logger.error("Failed to trigger website audit", {
-          questionnaireResponseId: responseId,
-          error: auditError instanceof Error ? auditError.message : String(auditError),
-        });
-      }
-    }
+    // Note: Audit trigger moved to STEP 3a (before PDF generation) to ensure status exists
 
     // STEP 5: RETURN SUCCESS IMMEDIATELY
     await logger.info("Questionnaire submission processed successfully", {

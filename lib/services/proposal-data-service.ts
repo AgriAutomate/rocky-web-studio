@@ -6,7 +6,7 @@
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/client";
-import { extractAuditTechStack } from "@/lib/utils/audit-utils";
+import { calculateOverallHealthScore, extractAuditTechStack } from "@/lib/utils/audit-utils";
 import { estimateProject } from "@/lib/utils/feature-estimator";
 import { getFeatureKeysFromPriorities } from "@/lib/config/feature-estimates";
 import { calculateRoiSnapshot } from "@/lib/services/roi-calculator";
@@ -51,16 +51,144 @@ async function fetchQuestionnaireResponse(
  * Calculate health scorecard from audit results
  */
 function calculateHealthScorecard(
-  _auditResults: WebsiteAuditResult | null | undefined
+  auditResults: WebsiteAuditResult | null | undefined
 ): HealthScorecard {
+  if (!auditResults) {
+    return {
+      overallScore: 0,
+      topIssues: ["No audit data available"],
+      recommendations: ["Complete website audit to assess current state"],
+    };
+  }
+
+  // Calculate overall health score using utility function
+  const overallScore = calculateOverallHealthScore(auditResults);
+
+  // Extract performance score
+  const performanceScore = auditResults.performance?.overallScore ||
+    auditResults.performance?.mobileScore ||
+    auditResults.performance?.desktopScore;
+
+  // Calculate SEO score using existing utility (if available)
+  // For now, use a simplified calculation based on SEO metrics
+  let seoScore: number | undefined;
+  if (auditResults.seo) {
+    let seoPoints = 0;
+    let maxSeoPoints = 0;
+    
+    // Title tag (10 points)
+    maxSeoPoints += 10;
+    if (auditResults.seo.hasTitleTag) {
+      seoPoints += 5;
+      if (auditResults.seo.titleLength && auditResults.seo.titleLength >= 30 && auditResults.seo.titleLength <= 60) {
+        seoPoints += 5;
+      }
+    }
+    
+    // Meta description (10 points)
+    maxSeoPoints += 10;
+    if (auditResults.seo.hasMetaDescription) {
+      seoPoints += 5;
+      if (auditResults.seo.descriptionLength && auditResults.seo.descriptionLength >= 120 && auditResults.seo.descriptionLength <= 160) {
+        seoPoints += 5;
+      }
+    }
+    
+    // HTTPS (15 points)
+    maxSeoPoints += 15;
+    if (auditResults.seo.httpsEnabled) {
+      seoPoints += 15;
+    }
+    
+    // Mobile friendly (15 points)
+    maxSeoPoints += 15;
+    if (auditResults.seo.mobileFriendly) {
+      seoPoints += 15;
+    }
+    
+    // Structured data (10 points)
+    maxSeoPoints += 10;
+    if (auditResults.seo.hasStructuredData) {
+      seoPoints += 10;
+    }
+    
+    seoScore = maxSeoPoints > 0 ? Math.round((seoPoints / maxSeoPoints) * 100) : undefined;
+  }
+
+  // Calculate technical score using existing utility (if available)
+  // For now, use a simplified calculation
+  let technicalScore: number | undefined;
+  if (auditResults.websiteInfo) {
+    let techPoints = 0;
+    let maxTechPoints = 0;
+    
+    // Website accessible (30 points)
+    maxTechPoints += 30;
+    if (auditResults.websiteInfo.isAccessible) {
+      techPoints += 30;
+    }
+    
+    // HTTPS enabled (20 points)
+    maxTechPoints += 20;
+    if (auditResults.seo?.httpsEnabled) {
+      techPoints += 20;
+    }
+    
+    // Modern tech stack (20 points)
+    maxTechPoints += 20;
+    if (auditResults.techStack?.cms || auditResults.techStack?.frameworks?.length) {
+      techPoints += 20;
+    }
+    
+    // Fast load time (15 points)
+    maxTechPoints += 15;
+    if (auditResults.websiteInfo.loadTimeMs) {
+      if (auditResults.websiteInfo.loadTimeMs < 3000) {
+        techPoints += 15;
+      } else if (auditResults.websiteInfo.loadTimeMs < 5000) {
+        techPoints += 10;
+      }
+    }
+    
+    // Has contact info (15 points)
+    maxTechPoints += 15;
+    if (auditResults.metadata?.contactInfo) {
+      const hasEmail = (auditResults.metadata.contactInfo.emails?.length ?? 0) > 0;
+      const hasPhone = (auditResults.metadata.contactInfo.phones?.length ?? 0) > 0;
+      if (hasEmail && hasPhone) {
+        techPoints += 15;
+      } else if (hasEmail || hasPhone) {
+        techPoints += 8;
+      }
+    }
+    
+    technicalScore = maxTechPoints > 0 ? Math.round((techPoints / maxTechPoints) * 100) : undefined;
+  }
+
+  // Extract platform
+  const platform = auditResults.techStack?.cms?.name ||
+    auditResults.techStack?.frameworks?.[0]?.name ||
+    "Unknown";
+
+  // Extract top issues from recommendations (prioritized)
+  const topIssues = auditResults.recommendations
+    ?.filter((rec) => rec.priority === "critical" || rec.priority === "high")
+    .slice(0, 5)
+    .map((rec) => rec.title) || [];
+
+  // Extract top recommendations
+  const recommendations = auditResults.recommendations
+    ?.slice(0, 5)
+    .map((rec) => rec.title) || [];
+
   return {
-    overallScore: 65,
-    performanceScore: 62,
-    seoScore: 68,
-    technicalScore: 72,
-    platform: 'Custom (Audit pending)',
-    topIssues: ['Audit not yet performed'],
-    recommendations: ['Run website audit for accurate metrics']
+    overallScore,
+    performanceScore,
+    seoScore,
+    technicalScore,
+    platform,
+    topIssues: topIssues.length > 0 ? topIssues : ["No critical issues identified"],
+    recommendations: recommendations.length > 0 ? recommendations : ["No recommendations available"],
   };
 }
 
@@ -373,8 +501,8 @@ function shapeCurrentStateAnalysis(
 
   // Use flat database columns directly, fallback to business_profile if available
   const profile = businessProfile || {
-    annualRevenue: "0-100k" as const,
-    employeeCount: "1-5" as const,
+    annualRevenue: (responseData.annual_revenue as any) || "0-100k",
+    employeeCount: (responseData.employee_count as any) || "1-5",
     yearsInBusiness: "0-2" as const,
     digitalMaturity: "basic" as const,
   };

@@ -6,9 +6,9 @@ const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
-    fontSize: 11,
+    fontSize: 12, // Increased from 11 to meet accessibility standards (12pt minimum)
     color: '#134252',
-    lineHeight: 1.6,
+    lineHeight: 1.6, // 1.5-1.6 is optimal for readability
   },
   header: {
     textAlign: 'center',
@@ -38,18 +38,18 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   challenge: {
-    marginBottom: 20,
-    padding: 15,
+    marginBottom: 24, // Increased spacing between challenges
+    padding: 18, // Increased padding for better breathing room
     border: '1 solid #e0d9d0',
     borderRadius: 8,
     backgroundColor: '#FFFCF9',
     break: false, // Prevent breaking inside challenge box
   },
   challengeTitle: {
-    fontSize: 14,
+    fontSize: 16, // Increased from 14 for better hierarchy
     fontWeight: 'bold',
     color: '#208091',
-    marginBottom: 10,
+    marginBottom: 12, // Increased spacing
   },
   challengeText: {
     fontSize: 10,
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   challengeLabel: {
     fontWeight: 'bold',
-    fontSize: 10,
+    fontSize: 12, // Increased from 10 for better readability
     color: '#208091',
   },
   challengeMetadata: {
@@ -71,25 +71,25 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   challengeMetadataRow: {
-    marginBottom: 8,
+    marginBottom: 10, // Increased spacing between rows
   },
   problemSection: {
-    marginTop: 10,
-    marginBottom: 12,
+    marginTop: 12, // Increased spacing
+    marginBottom: 14,
   },
   problemTitle: {
-    fontSize: 11,
+    fontSize: 13, // Increased from 11 for better hierarchy
     fontWeight: 'bold',
     color: '#134252',
-    marginBottom: 6,
+    marginBottom: 8, // Increased spacing
   },
   problemBullet: {
-    fontSize: 9,
+    fontSize: 12, // Increased from 9 to meet accessibility standards (12pt minimum)
     color: '#134252',
-    marginBottom: 6,
+    marginBottom: 8, // Increased spacing between bullets
     marginLeft: 12,
     paddingLeft: 4,
-    lineHeight: 1.4,
+    lineHeight: 1.6, // Increased from 1.4 to meet accessibility standards (1.5 minimum)
     textAlign: 'left',
   },
   solutionSection: {
@@ -130,11 +130,14 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     borderTop: '1 solid #e0d9d0',
     textAlign: 'center',
-    fontSize: 9,
+    fontSize: 10, // Increased from 9 for better readability
     color: '#5E5240',
+    lineHeight: 1.5,
   },
   footerText: {
-    marginBottom: 5,
+    marginBottom: 6, // Slightly increased spacing
+    fontSize: 10, // Explicit font size for footer
+    lineHeight: 1.5,
   },
 });
 

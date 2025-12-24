@@ -25,6 +25,12 @@ interface ReportData {
     localCompetitorFailure: string;
     rwsSurvivalKit: string;
   } | null;
+  auditData?: {
+    results?: any;
+    status?: string;
+    websiteUrl?: string;
+    error?: string;
+  } | null;
 }
 
 // Note: HTML formatting functions removed - using React PDF components instead
@@ -79,6 +85,7 @@ export async function generatePDFFromComponents(
       selectedGoals: reportData.selectedGoals || [],
       selectedPrimaryOffers: reportData.selectedPrimaryOffers || [],
       cqAdvantage: reportData.cqAdvantage || null,
+      auditData: reportData.auditData || null,
     });
     
     // Render to PDF buffer

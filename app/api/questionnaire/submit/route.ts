@@ -308,10 +308,46 @@ export async function POST(req: NextRequest) {
     }
 
     // STEP 3: GENERATE PDF FROM SUPABASE COMPONENTS
+    // Try to fetch audit data if available (audit may still be running)
+    // Note: Audit runs asynchronously, so it may not be complete yet
+    let auditDataForPDF: any = null;
+    try {
+      const supabase = await getSupabaseClient();
+      const { data: auditResponse } = await (supabase as any)
+        .from("questionnaire_responses")
+        .select("audit_results, audit_status, audit_error, website_url")
+        .eq("id", responseId)
+        .single();
+      
+      if (auditResponse?.audit_results) {
+        auditDataForPDF = {
+          results: auditResponse.audit_results,
+          status: auditResponse.audit_status || "completed",
+          websiteUrl: auditResponse.website_url,
+        };
+      } else if (auditResponse?.audit_status) {
+        // Audit is pending or running
+        auditDataForPDF = {
+          status: auditResponse.audit_status,
+          websiteUrl: auditResponse.website_url,
+          error: auditResponse.audit_error,
+        };
+      }
+    } catch (auditFetchError) {
+      // Don't fail PDF generation if audit fetch fails
+      await logger.info("Could not fetch audit data for PDF (audit may still be running)", {
+        responseId,
+        error: auditFetchError instanceof Error ? auditFetchError.message : String(auditFetchError),
+      });
+    }
+
     let pdfBuffer: Buffer | null = null;
     let pdfUrl: string | null = null;
     try {
-      pdfBuffer = await generatePDFFromComponents('questionnaire-report', reportData);
+      pdfBuffer = await generatePDFFromComponents('questionnaire-report', {
+        ...reportData,
+        auditData: auditDataForPDF, // Add audit data to report
+      });
       await logger.info("PDF generated successfully", {
         responseId,
         pdfSize: pdfBuffer.length,

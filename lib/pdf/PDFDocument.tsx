@@ -139,6 +139,35 @@ const styles = StyleSheet.create({
     fontSize: 10, // Explicit font size for footer
     lineHeight: 1.5,
   },
+  auditSection: {
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 4,
+    border: '1 solid #e0d9d0',
+  },
+  auditTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#208091',
+    marginBottom: 10,
+  },
+  auditStatus: {
+    fontSize: 11,
+    color: '#5E5240',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  auditMetric: {
+    fontSize: 11,
+    color: '#134252',
+    marginBottom: 4,
+  },
+  auditMetricLabel: {
+    fontWeight: 'bold',
+    color: '#208091',
+  },
 });
 
 interface PDFDocumentProps {
@@ -161,6 +190,12 @@ interface PDFDocumentProps {
     cqInsiderInsight: string;
     localCompetitorFailure: string;
     rwsSurvivalKit: string;
+  } | null;
+  auditData?: {
+    results?: any;
+    status?: string;
+    websiteUrl?: string;
+    error?: string;
   } | null;
 }
 
@@ -201,6 +236,7 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
   selectedGoals = [],
   selectedPrimaryOffers = [],
   cqAdvantage = null,
+  auditData = null,
 }) => {
   return (
     <Document>
@@ -289,6 +325,58 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
                 </Text>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Website Audit Section */}
+        {auditData && (
+          <View style={styles.section}>
+            <View style={styles.auditSection}>
+              <Text style={styles.auditTitle}>Website Audit Results</Text>
+              {auditData.status === "pending" || auditData.status === "running" ? (
+                <Text style={styles.auditStatus}>
+                  Audit {auditData.status === "running" ? "in progress" : "queued"}. Results will be available shortly.
+                  {auditData.websiteUrl && ` Analyzing: ${auditData.websiteUrl}`}
+                </Text>
+              ) : auditData.status === "failed" || auditData.error ? (
+                <Text style={styles.auditStatus}>
+                  Audit unavailable: {auditData.error || "Failed to complete audit"}
+                </Text>
+              ) : auditData.results ? (
+                <>
+                  {auditData.results.performance && (
+                    <Text style={styles.auditMetric}>
+                      <Text style={styles.auditMetricLabel}>Performance Score: </Text>
+                      {auditData.results.performance.overallScore || 
+                       auditData.results.performance.mobileScore || 
+                       auditData.results.performance.desktopScore || 
+                       "N/A"} / 100
+                    </Text>
+                  )}
+                  {auditData.results.techStack?.cms && (
+                    <Text style={styles.auditMetric}>
+                      <Text style={styles.auditMetricLabel}>Platform: </Text>
+                      {auditData.results.techStack.cms.name || "Unknown"}
+                    </Text>
+                  )}
+                  {auditData.results.recommendations && auditData.results.recommendations.length > 0 && (
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={styles.auditMetricLabel}>Top Issues:</Text>
+                      {auditData.results.recommendations.slice(0, 3).map((rec: any, idx: number) => (
+                        <Text key={idx} style={[styles.auditMetric, { marginLeft: 8 }]}>
+                          • {rec.title || rec}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                  {auditData.websiteUrl && (
+                    <Text style={[styles.auditStatus, { marginTop: 8 }]}>
+                      Analyzed: {auditData.websiteUrl}
+                    </Text>
+                  )}
+                </>
+              ) : null}
+            </View>
           </View>
         )}
 

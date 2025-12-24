@@ -48,6 +48,16 @@ export async function POST(request: NextRequest) {
 
     if (fetchError) {
       console.error("[Generate Proposal] Database error:", fetchError);
+      // Check if it's a "not found" error
+      if (fetchError.code === "PGRST116" || fetchError.message?.includes("No rows")) {
+        return NextResponse.json(
+          {
+            error: "Questionnaire response not found",
+            details: `No response found with ID: ${questionnaireResponseId}`,
+          },
+          { status: 404 }
+        );
+      }
       return NextResponse.json(
         {
           error: "Failed to fetch questionnaire response",
@@ -96,11 +106,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Return PDF with proper headers
-    const businessName = response.business_name || "proposal";
+    const businessName = response.business_name || "Client";
     const sanitizedBusinessName = businessName
       .replace(/[^a-zA-Z0-9-_]/g, "_")
-      .toLowerCase();
-    const fileName = `${sanitizedBusinessName}-proposal-${questionnaireResponseId}.pdf`;
+      .replace(/\s+/g, "_");
+    
+    // Format date as YYYY-MM-DD
+    const proposalDate = new Date().toISOString().split("T")[0];
+    const fileName = `${sanitizedBusinessName}-Proposal-${proposalDate}.pdf`;
 
     return new NextResponse(pdfBuffer as any, {
       status: 200,

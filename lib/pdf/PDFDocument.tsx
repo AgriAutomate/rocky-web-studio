@@ -194,8 +194,8 @@ interface PDFDocumentProps {
   auditData?: {
     results?: any;
     status?: string;
-    websiteUrl?: string;
-    error?: string;
+    websiteUrl?: string | null;
+    error?: string | null;
   } | null;
 }
 

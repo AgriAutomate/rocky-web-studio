@@ -15,30 +15,42 @@ export interface ChallengeDetail {
 }
 
 /**
- * Break long paragraphs into bullet points by splitting on sentence boundaries and key phrases.
+ * Break long paragraphs into bullet points by splitting on sentence boundaries only.
+ * Keeps complete sentences together and avoids splitting on commas or mid-sentence.
  */
 function breakIntoBulletPoints(text: string): string[] {
   if (!text || text.trim().length === 0) return [];
   
-  // Split on common separators and sentence endings
+  // First, normalize whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  // Split only on sentence boundaries (period, exclamation, question mark followed by space and capital letter)
+  // This ensures we only split complete sentences, not fragments
   const sentences = text
-    .split(/(?<=[.!?])\s+(?=[A-Z])|\.\s+(?=[A-Z])|,\s+(?=and|or|but|while|whereas|however|meanwhile|additionally|furthermore|moreover|specifically|particularly|especially|including|such as|for example|e\.g\.|i\.e\.)/i)
+    .split(/(?<=[.!?])\s+(?=[A-Z])/)
     .map(s => s.trim())
     .filter(s => s.length > 0);
   
-  // If sentences are too long (>150 chars), try to split further
+  // If we have very long sentences (>200 chars), we can optionally split on semicolons
+  // but only if they're clearly separating independent clauses
   const bullets: string[] = [];
   for (const sentence of sentences) {
-    if (sentence.length > 150) {
-      // Try to split on common connectors
-      const parts = sentence.split(/(?:\s+and\s+|\s+or\s+|\s+with\s+|\s+including\s+|\s+such as\s+)/i);
-      bullets.push(...parts.map(p => p.trim()).filter(p => p.length > 0));
+    if (sentence.length > 200 && sentence.includes(';')) {
+      // Split on semicolons only if both parts are substantial
+      const parts = sentence.split(/\s*;\s+/);
+      const validParts = parts.filter(p => p.trim().length > 30); // Only keep substantial parts
+      if (validParts.length > 1) {
+        bullets.push(...validParts.map(p => p.trim()));
+      } else {
+        bullets.push(sentence);
+      }
     } else {
       bullets.push(sentence);
     }
   }
   
-  return bullets.filter(b => b.length > 10); // Filter out very short fragments
+  // Filter out very short fragments (likely from parsing errors)
+  return bullets.filter(b => b.length > 20 && b.match(/[a-zA-Z]/)); // At least 20 chars and contains letters
 }
 
 /**
@@ -105,8 +117,11 @@ function parseChallengeMarkdown(content: string, challengeNumber: number): Chall
   const problems: string[] = [];
   const solutions: string[] = [];
   
-  // Process each paragraph
-  const paragraphs = sectionsText.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+  // Process each paragraph - split on double newlines to get actual paragraphs
+  const paragraphs = sectionsText
+    .split(/\n\s*\n/)
+    .map(p => p.replace(/\n/g, ' ').trim()) // Replace single newlines with spaces
+    .filter(p => p.length > 0);
   
   for (const paragraph of paragraphs) {
     // Check if this paragraph contains solutions
@@ -115,8 +130,14 @@ function parseChallengeMarkdown(content: string, challengeNumber: number): Chall
       solutions.push(...extracted);
     } else {
       // This is a problem paragraph - break it into bullets
+      // Only split on sentence boundaries, keep complete thoughts together
       const bullets = breakIntoBulletPoints(paragraph);
-      problems.push(...bullets);
+      if (bullets.length > 0) {
+        problems.push(...bullets);
+      } else {
+        // Fallback: if parsing fails, use the whole paragraph as one bullet
+        problems.push(paragraph);
+      }
     }
   }
   

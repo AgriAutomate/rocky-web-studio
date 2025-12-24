@@ -86,9 +86,11 @@ const styles = StyleSheet.create({
   problemBullet: {
     fontSize: 9,
     color: '#134252',
-    marginBottom: 4,
-    marginLeft: 8,
+    marginBottom: 6,
+    marginLeft: 12,
     paddingLeft: 4,
+    lineHeight: 1.4,
+    textAlign: 'left',
   },
   solutionSection: {
     marginTop: 12,
@@ -305,9 +307,10 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
                   <View style={styles.problemSection}>
                     <Text style={styles.problemTitle}>The Challenge:</Text>
                     {challenge.problems.map((problem, problemIndex) => (
-                      <Text key={problemIndex} style={styles.problemBullet}>
-                        • {problem}
-                      </Text>
+                      <View key={problemIndex} style={{ flexDirection: 'row', marginBottom: 6 }}>
+                        <Text style={[styles.problemBullet, { marginLeft: 0, paddingLeft: 0, marginRight: 8, flexShrink: 0 }]}>•</Text>
+                        <Text style={[styles.problemBullet, { marginLeft: 0, paddingLeft: 0, flex: 1 }]}>{problem}</Text>
+                      </View>
                     ))}
                   </View>
                 )}

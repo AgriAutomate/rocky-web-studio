@@ -23,9 +23,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 13, // Increased from 12 for better readability
     color: '#5E5240',
-    marginTop: 5,
+    marginTop: 6, // Slightly increased spacing
+    lineHeight: 1.5,
   },
   section: {
     marginBottom: 25,
@@ -130,9 +131,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     borderTop: '1 solid #e0d9d0',
     textAlign: 'center',
-    fontSize: 10, // Increased from 9 for better readability
+    fontSize: 9,
     color: '#5E5240',
-    lineHeight: 1.5,
   },
   footerText: {
     marginBottom: 6, // Slightly increased spacing

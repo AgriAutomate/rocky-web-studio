@@ -70,6 +70,8 @@ export function formatReportData(input: ReportDataInput): ReportDataOutput {
         number: index + 1,
         title: "Untitled Challenge",
         sections: [],
+        problems: [],
+        solutions: ["Custom solution tailored to your business needs"],
         roiTimeline: "TBC",
         projectCostRange: "TBC",
       };
@@ -79,6 +81,8 @@ export function formatReportData(input: ReportDataInput): ReportDataOutput {
       number: challenge.number ?? index + 1,
       title: challenge.title,
       sections: Array.isArray(challenge.sections) ? challenge.sections : [],
+      problems: Array.isArray(challenge.problems) ? challenge.problems : (Array.isArray(challenge.sections) ? challenge.sections : []),
+      solutions: Array.isArray(challenge.solutions) ? challenge.solutions : ["Custom solution tailored to your business needs"],
       roiTimeline: challenge.roiTimeline || "TBC",
       projectCostRange: challenge.projectCostRange || "TBC",
     };

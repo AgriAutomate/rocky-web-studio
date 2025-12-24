@@ -12,6 +12,8 @@ interface ReportData {
     number: number;
     title: string;
     sections: string[];
+    problems: string[];
+    solutions: string[];
     roiTimeline: string;
     projectCostRange: string;
   }>;

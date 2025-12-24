@@ -73,6 +73,56 @@ const styles = StyleSheet.create({
   challengeMetadataRow: {
     marginBottom: 8,
   },
+  problemSection: {
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  problemTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#134252',
+    marginBottom: 6,
+  },
+  problemBullet: {
+    fontSize: 9,
+    color: '#134252',
+    marginBottom: 4,
+    marginLeft: 8,
+    paddingLeft: 4,
+  },
+  solutionSection: {
+    marginTop: 12,
+    marginBottom: 10,
+    padding: 12,
+    backgroundColor: '#F0F8FA',
+    borderRadius: 4,
+    border: '1 solid #208091',
+  },
+  solutionTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#208091',
+    marginBottom: 8,
+  },
+  solutionItem: {
+    flexDirection: 'row',
+    marginBottom: 6,
+    alignItems: 'flex-start',
+  },
+  checkbox: {
+    width: 12,
+    height: 12,
+    border: '1 solid #208091',
+    borderRadius: 2,
+    marginRight: 8,
+    marginTop: 2,
+  },
+  solutionText: {
+    fontSize: 9,
+    color: '#134252',
+    flex: 1,
+    lineHeight: 1.4,
+  },
   footer: {
     marginTop: 40,
     paddingTop: 20,
@@ -95,6 +145,8 @@ interface PDFDocumentProps {
     number: number;
     title: string;
     sections: string[];
+    problems: string[];
+    solutions: string[];
     roiTimeline: string;
     projectCostRange: string;
   }>;
@@ -247,11 +299,35 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
                 <Text style={styles.challengeTitle}>
                   Challenge {challenge.number}: {challenge.title}
                 </Text>
-                {challenge.sections.map((section, sectionIndex) => (
-                  <Text key={sectionIndex} style={styles.challengeText}>
-                    {section}
-                  </Text>
-                ))}
+                
+                {/* Problems Section - Bullet Points */}
+                {(challenge.problems && challenge.problems.length > 0) && (
+                  <View style={styles.problemSection}>
+                    <Text style={styles.problemTitle}>The Challenge:</Text>
+                    {challenge.problems.map((problem, problemIndex) => (
+                      <Text key={problemIndex} style={styles.problemBullet}>
+                        • {problem}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+                
+                {/* Solutions Section - With Checkboxes */}
+                {(challenge.solutions && challenge.solutions.length > 0) && (
+                  <View style={styles.solutionSection}>
+                    <Text style={styles.solutionTitle}>
+                      Proposed Solutions (✓ Check the solutions you'd like to explore):
+                    </Text>
+                    {challenge.solutions.map((solution, solutionIndex) => (
+                      <View key={solutionIndex} style={styles.solutionItem}>
+                        <View style={styles.checkbox} />
+                        <Text style={styles.solutionText}>{solution}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                
+                {/* Investment Details */}
                 <View style={styles.challengeMetadata}>
                   <View style={styles.challengeMetadataRow}>
                     <Text style={styles.challengeLabel}>ROI Timeline: </Text>

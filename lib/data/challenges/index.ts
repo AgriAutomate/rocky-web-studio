@@ -8,8 +8,79 @@ export interface ChallengeDetail {
   number: number;
   title: string;
   sections: string[];
+  problems: string[]; // Broken down into bullet points
+  solutions: string[]; // Actionable solutions for tick-and-flick approval
   roiTimeline: string;
   projectCostRange: string;
+}
+
+/**
+ * Break long paragraphs into bullet points by splitting on sentence boundaries and key phrases.
+ */
+function breakIntoBulletPoints(text: string): string[] {
+  if (!text || text.trim().length === 0) return [];
+  
+  // Split on common separators and sentence endings
+  const sentences = text
+    .split(/(?<=[.!?])\s+(?=[A-Z])|\.\s+(?=[A-Z])|,\s+(?=and|or|but|while|whereas|however|meanwhile|additionally|furthermore|moreover|specifically|particularly|especially|including|such as|for example|e\.g\.|i\.e\.)/i)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  
+  // If sentences are too long (>150 chars), try to split further
+  const bullets: string[] = [];
+  for (const sentence of sentences) {
+    if (sentence.length > 150) {
+      // Try to split on common connectors
+      const parts = sentence.split(/(?:\s+and\s+|\s+or\s+|\s+with\s+|\s+including\s+|\s+such as\s+)/i);
+      bullets.push(...parts.map(p => p.trim()).filter(p => p.length > 0));
+    } else {
+      bullets.push(sentence);
+    }
+  }
+  
+  return bullets.filter(b => b.length > 10); // Filter out very short fragments
+}
+
+/**
+ * Extract solutions from text that mentions "Rocky Web Studio addresses" or similar patterns.
+ */
+function extractSolutions(text: string): string[] {
+  if (!text) return [];
+  
+  // Look for solution patterns
+  const solutionPatterns = [
+    /Rocky Web Studio addresses this through\s+([^.]*(?:\.[^.]*)*)/i,
+    /addresses this through\s+([^.]*(?:\.[^.]*)*)/i,
+    /solutions? include\s+([^.]*(?:\.[^.]*)*)/i,
+    /we provide\s+([^.]*(?:\.[^.]*)*)/i,
+  ];
+  
+  let solutionsText = "";
+  for (const pattern of solutionPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      solutionsText = match[1];
+      break;
+    }
+  }
+  
+  if (!solutionsText) return [];
+  
+  // Split solutions by common separators
+  const solutions = solutionsText
+    .split(/(?:\s*\([^)]+\)\s*)?\s*,\s*(?=[A-Z])|(?:\s+and\s+)(?=[A-Z])/i)
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && !s.match(/^(and|or|with|including)$/i));
+  
+  // Clean up solution text (remove parentheticals, format)
+  return solutions
+    .map(s => {
+      // Remove parenthetical cost/time details for cleaner bullets
+      s = s.replace(/\s*\([^)]+\)\s*/g, ' ');
+      // Capitalize first letter
+      return s.charAt(0).toUpperCase() + s.slice(1).trim();
+    })
+    .filter(s => s.length > 15); // Only keep substantial solutions
 }
 
 /**
@@ -23,10 +94,42 @@ function parseChallengeMarkdown(content: string, challengeNumber: number): Chall
   // Extract problem sections (lines under "## Problem Sections")
   const sectionsMatch = content.match(/## Problem Sections\s*\n([\s\S]*?)(?=\n## |$)/);
   const sectionsText = sectionsMatch?.[1] ?? "";
+  
+  // Keep original sections for backward compatibility
   const sections = sectionsText
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith("#"));
+  
+  // Break down into problems (bullet points)
+  const problems: string[] = [];
+  const solutions: string[] = [];
+  
+  // Process each paragraph
+  const paragraphs = sectionsText.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+  
+  for (const paragraph of paragraphs) {
+    // Check if this paragraph contains solutions
+    if (paragraph.match(/Rocky Web Studio|addresses this|solutions? include|we provide/i)) {
+      const extracted = extractSolutions(paragraph);
+      solutions.push(...extracted);
+    } else {
+      // This is a problem paragraph - break it into bullets
+      const bullets = breakIntoBulletPoints(paragraph);
+      problems.push(...bullets);
+    }
+  }
+  
+  // If no solutions extracted, try to extract from the full text
+  if (solutions.length === 0) {
+    const allSolutions = extractSolutions(sectionsText);
+    solutions.push(...allSolutions);
+  }
+  
+  // Fallback: if still no solutions, use a generic message
+  if (solutions.length === 0) {
+    solutions.push("Custom solution tailored to your business needs");
+  }
 
   // Extract ROI Timeline
   const roiMatch = content.match(/## ROI Timeline\s*\n(.+?)(?=\n## |$)/);
@@ -39,9 +142,11 @@ function parseChallengeMarkdown(content: string, challengeNumber: number): Chall
   return {
     number: challengeNumber,
     title,
-    sections,
-    roiTimeline,
-    projectCostRange,
+    sections, // Keep for backward compatibility
+    problems: problems.length > 0 ? problems : (sections.length > 0 ? sections : ["Challenge details not available"]), // Fallback to sections if parsing fails
+    solutions: solutions.length > 0 ? solutions : ["Custom solution tailored to your business needs"],
+    roiTimeline: roiTimeline || "TBD",
+    projectCostRange: projectCostRange || "TBD",
   };
 }
 
@@ -80,6 +185,8 @@ function loadChallengeLibrary(): Record<string, ChallengeDetail> {
           number: num,
           title: `Challenge ${num}`,
           sections: [`Challenge ${num} content not available`],
+          problems: [`Challenge ${num} content not available`],
+          solutions: ["Custom solution tailored to your business needs"],
           roiTimeline: "TBD",
           projectCostRange: "TBD",
         };
@@ -96,6 +203,8 @@ function loadChallengeLibrary(): Record<string, ChallengeDetail> {
         number: num,
         title: `Challenge ${num}`,
         sections: [`Challenge ${num} content not available`],
+        problems: [`Challenge ${num} content not available`],
+        solutions: ["Custom solution tailored to your business needs"],
         roiTimeline: "TBD",
         projectCostRange: "TBD",
       };
@@ -177,6 +286,8 @@ export function getChallengeDetails(ids: number[]): ChallengeDetail[] {
         number: base.number,
         title: base.title,
         sections: base.sections,
+        problems: base.problems || base.sections, // Fallback for backward compatibility
+        solutions: base.solutions || ["Custom solution tailored to your business needs"],
         roiTimeline: base.roiTimeline,
         projectCostRange: base.projectCostRange,
       } as ChallengeDetail;

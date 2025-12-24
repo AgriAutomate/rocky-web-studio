@@ -195,27 +195,31 @@ function calculateHealthScorecard(
 /**
  * Calculate ROI snapshot using the ROI calculator service
  * 
- * This function uses the real ROI calculator with actual benchmarks
- * to calculate time savings, revenue increases, payback period, and 3-year ROI.
+ * This function orchestrates the ROI calculation by extracting parameters
+ * from the questionnaire response data and calling the ROI calculator.
+ * 
+ * @param responseData - Raw questionnaire response data
+ * @param investment - Calculated investment (from feature estimator)
+ * @returns RoiSnapshot ready for proposal PDF
  */
 async function calculateRoiSnapshotForProposal(
-  businessProfile: BusinessProfile | null | undefined,
-  sector: Sector | null | undefined,
-  investment: Investment,
-  projectScope: ProjectScope
+  responseData: any,
+  investment: Investment
 ): Promise<RoiSnapshot> {
-  // If we don't have required data, return minimal ROI snapshot
-  if (!sector || !projectScope.mustHaveFeatures || projectScope.mustHaveFeatures.length === 0) {
-    return {
-      assumptions: [
-        "ROI calculations require sector and feature information",
-        "Complete the discovery tree to get accurate ROI projections",
-      ],
-    };
-  }
-
+  // Extract sector (default to "retail" if missing)
+  const sector = (responseData.sector as Sector) || "retail";
+  
+  // Extract must-have features from discovery tree priorities
+  // priorities.mustHave is an array of strings (feature keys)
+  const discoveryTree = responseData.discovery_tree as DiscoveryTree | null | undefined;
+  const mustHaveFeatures = discoveryTree?.priorities?.mustHave || [];
+  
+  // Extract total investment (use calculated investment if available, otherwise 0)
+  const totalInvestment = investment.totalCost || 0;
+  
   // Extract annual revenue from business profile
   // Map revenue ranges to approximate values for calculation
+  const businessProfile = responseData.business_profile as BusinessProfile | null | undefined;
   let currentYearlyRevenue: number | undefined;
   if (businessProfile?.annualRevenue) {
     const revenueMap: Record<string, number> = {
@@ -225,19 +229,44 @@ async function calculateRoiSnapshotForProposal(
       "1-5m": 3000000,
       "5m+": 7500000,
     };
-    currentYearlyRevenue = revenueMap[businessProfile.annualRevenue] || 300000;
+    currentYearlyRevenue = revenueMap[businessProfile.annualRevenue];
   }
-
-  // Calculate ROI using the ROI calculator service
+  
+  // Error handling: Log warnings for missing data
+  if (!sector || sector === "retail") {
+    await logger.info("ROI calculation: Using default sector 'retail'", {
+      questionnaireResponseId: responseData.id,
+    });
+  }
+  
+  if (mustHaveFeatures.length === 0) {
+    await logger.info("ROI calculation: No must-have features found", {
+      questionnaireResponseId: responseData.id,
+    });
+    return {
+      assumptions: [
+        "ROI calculations require feature information from the discovery tree",
+        "Complete the discovery tree to get accurate ROI projections",
+      ],
+    };
+  }
+  
+  if (totalInvestment === 0) {
+    await logger.info("ROI calculation: Total investment is 0", {
+      questionnaireResponseId: responseData.id,
+    });
+  }
+  
+  // Call the ROI calculator service
   const detailedRoi = await calculateRoiSnapshot({
     sector,
-    mustHaveFeatures: projectScope.mustHaveFeatures,
-    niceToHaveFeatures: projectScope.niceToHaveFeatures,
-    totalInvestment: investment.totalCost,
+    mustHaveFeatures,
+    niceToHaveFeatures: discoveryTree?.priorities?.niceToHave,
+    totalInvestment,
     currentYearlyRevenue,
-    confidence: 'moderate', // Use moderate confidence for proposals
+    confidence: "moderate", // Always use moderate for proposals
   });
-
+  
   // Map detailed ROI to proposal RoiSnapshot format
   const assumptions: string[] = [
     `Based on ${sector} sector benchmarks and ${detailedRoi.assumptions.featuresAnalyzed} features analyzed`,
@@ -248,7 +277,7 @@ async function calculateRoiSnapshotForProposal(
     "Actual results may vary based on implementation quality and market conditions",
     ...detailedRoi.summaryLines,
   ];
-
+  
   return {
     estimatedAnnualSavings: detailedRoi.annualTimeSavingsValue > 0
       ? detailedRoi.annualTimeSavingsValue
@@ -575,7 +604,7 @@ export async function getProposalData(
     const investment = calculateInvestment(sector, projectScope);
 
     // Calculate ROI snapshot using real ROI calculator
-    const roiSnapshot = await calculateRoiSnapshotForProposal(businessProfile, sector, investment, projectScope);
+    const roiSnapshot = await calculateRoiSnapshotForProposal(responseData, investment);
 
     // Shape current state analysis
     const currentStateAnalysis = shapeCurrentStateAnalysis(responseData, auditResults);

@@ -173,8 +173,13 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
             <View style={{ marginTop: 15, marginBottom: 10 }}>
               <Text style={[styles.challengeTitle, { fontSize: 12, marginBottom: 8 }]}>How You Win: The Non-Negotiable Upgrade</Text>
               <Text style={styles.challengeText}>
-                To dominate this market, you don't just need a "better website." You need a {cqAdvantage.rwsSurvivalKit}
+                To dominate this market, you don't just need a "better website." You need a digital system that captures local opportunities and converts them into revenue. This means investing in local SEO, 'open now near me' optimization, and simple online booking systems that capture transient traffic and drive market spend.
               </Text>
+              {cqAdvantage.rwsSurvivalKit && (
+                <Text style={[styles.challengeText, { marginTop: 10 }]}>
+                  {cqAdvantage.rwsSurvivalKit}
+                </Text>
+              )}
             </View>
             
             <Text style={[styles.challengeText, { marginTop: 15, fontStyle: 'italic' }]}>

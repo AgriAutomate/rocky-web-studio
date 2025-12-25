@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { BackButton } from "@/components/ui/back-button";
-import ChatWidget from "@/components/ChatWidget";
+import { AIAssistantWidget } from "@/components/AIAssistantWidget";
 import SentryInit from "./sentry-init";
 import "./globals.css";
 
@@ -61,7 +61,7 @@ export default function RootLayout({
         <BackButton />
         {children}
         {gaMeasurementId && <GoogleAnalytics gaId={gaMeasurementId} />}
-        <ChatWidget />
+        <AIAssistantWidget />
       </body>
     </html>
   );

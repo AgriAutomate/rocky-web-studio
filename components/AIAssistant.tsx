@@ -70,9 +70,9 @@ export function AIAssistant({ className }: AIAssistantProps) {
       // Filter out any empty messages and ensure we have valid messages
       const validMessages = messages.filter(
         (m): m is AIMessage => 
-          m.content && 
-          m.role && 
+          typeof m.content === 'string' &&
           m.content.trim().length > 0 &&
+          typeof m.role === 'string' &&
           (m.role === 'user' || m.role === 'assistant')
       );
       
@@ -144,7 +144,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
-                  if (lastMessage.role === 'assistant') {
+                  if (lastMessage && lastMessage.role === 'assistant') {
                     lastMessage.content = fullResponse;
                   }
                   return newMessages;

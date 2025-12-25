@@ -16,6 +16,36 @@ const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
 const RATE_LIMIT_MAX = 10; // 10 requests per minute
 
 /**
+ * Rate limit constants for all endpoints
+ */
+export const RATE_LIMITS = {
+  DEFAULT: {
+    window: RATE_LIMIT_WINDOW,
+    max: RATE_LIMIT_MAX,
+  },
+  BOOKING_CREATE: {
+    limit: 10,
+    windowSeconds: 60,
+    keyPrefix: "booking:create",
+  },
+  SMS_SEND: {
+    limit: 100,
+    windowSeconds: 86400, // 24 hours
+    keyPrefix: "sms:send",
+  },
+  CREDITS_CHECK: {
+    limit: 60,
+    windowSeconds: 3600, // 1 hour
+    keyPrefix: "credits:check",
+  },
+  AUTH_SIGNIN: {
+    limit: 5,
+    windowSeconds: 900, // 15 minutes
+    keyPrefix: "auth:signin",
+  },
+} as const;
+
+/**
  * Check if request is within rate limit
  * 
  * @param identifier - IP address or user identifier
@@ -77,9 +107,9 @@ export function checkRateLimit(identifier: string): {
 }
 
 /**
- * Get client IP from request
+ * Get client IP from request (supports both Request and NextRequest)
  */
-export function getClientIP(request: Request): string {
+export function getClientIP(request: Request | { headers: Headers }): string {
   // Try various headers for IP address
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
@@ -94,4 +124,61 @@ export function getClientIP(request: Request): string {
 
   // Fallback to a default identifier
   return 'unknown';
+}
+
+/**
+ * Alias for backward compatibility (camelCase version)
+ */
+export const getClientIp = getClientIP;
+
+/**
+ * Rate limit function for middleware compatibility
+ * Supports key prefix for namespacing rate limits
+ */
+export async function rateLimit(
+  identifier: string,
+  limit: number,
+  windowSeconds: number,
+  keyPrefix?: string
+): Promise<{
+  allowed: boolean;
+  remaining: number;
+  retryAfter?: number;
+  resetAt: number;
+}> {
+  const now = Date.now();
+  const window = windowSeconds * 1000; // Convert to milliseconds
+  const key = keyPrefix ? `${keyPrefix}:${identifier}` : identifier;
+  const entry = rateLimitStore.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitStore.set(key, {
+      count: 1,
+      resetAt: now + window,
+    });
+    return {
+      allowed: true,
+      remaining: limit - 1,
+      resetAt: now + window,
+    };
+  }
+
+  if (entry.count >= limit) {
+    const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfter,
+      resetAt: entry.resetAt,
+    };
+  }
+
+  entry.count += 1;
+  rateLimitStore.set(key, entry);
+
+  return {
+    allowed: true,
+    remaining: limit - entry.count,
+    resetAt: entry.resetAt,
+  };
 }

@@ -218,6 +218,19 @@ async function handlePost(req: NextRequest, requestId: string) {
     try {
       const supabase = createServerSupabaseClient(true); // Use service role for bypass RLS
 
+      // Store additional metadata in notes as JSON
+      const additionalMetadata = {
+        occasion: metadata.occasion,
+        mood: metadata.mood,
+        genre: metadata.genre,
+        eventDate: metadata.eventDate,
+        additionalInfo: metadata.additionalInfo,
+      };
+      const notesContent = [
+        metadata.additionalInfo,
+        JSON.stringify(additionalMetadata),
+      ].filter(Boolean).join('\n\n---\n\n');
+
       const orderData: SongOrderInsert = {
         order_id: metadata.orderId,
         stripe_payment_id: paymentIntent.id,
@@ -226,12 +239,8 @@ async function handlePost(req: NextRequest, requestId: string) {
         customer_phone: metadata.phone || null,
         song_brief: metadata.storyDetails,
         package_type: metadata.package,
-        occasion: metadata.occasion,
-        mood: metadata.mood || null,
-        genre: metadata.genre || null,
-        event_date: metadata.eventDate || null,
         status: 'PENDING',
-        notes: metadata.additionalInfo || null,
+        notes: notesContent || null,
       };
 
       const { data: insertedOrder, error: dbError } = await supabase

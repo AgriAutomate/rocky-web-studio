@@ -46,6 +46,13 @@ MOBILE_MESSAGE_SENDER_ID=Rocky Web
 
 ---
 
+## 🤖 AI Assistant (Claude API)
+
+```bash
+# Claude API for AI Assistant chatbot
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
 ## 🤖 OpenAI API (AI Chat)
 
 ```bash

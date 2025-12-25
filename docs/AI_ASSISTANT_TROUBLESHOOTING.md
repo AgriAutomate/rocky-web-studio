@@ -33,7 +33,9 @@ cat .env.local | grep ANTHROPIC_API_KEY
 
 **Common Error Messages:**
 - `ANTHROPIC_API_KEY environment variable is not set` → API key missing
-- `AI service temporarily unavailable` → Claude API issue
+- `AI service credits exhausted` → **No credits in Anthropic account** (add credits)
+- `AI service rate limit exceeded` → Too many requests (wait and retry)
+- `AI service temporarily unavailable` → Claude API issue or server error
 - `Request timed out` → Network or API timeout
 
 ### 3. Test the API Directly
@@ -60,12 +62,18 @@ curl -X POST https://your-domain.com/api/ai-assistant \
 3. Look for errors when sending a message
 4. Check Network tab for failed requests to `/api/ai-assistant`
 
-### 5. Verify Claude API Key
+### 5. Verify Claude API Key and Credits
 
 1. Go to https://console.anthropic.com/
 2. Check your API key is active
-3. Verify you have available credits/quota
+3. **Verify you have available credits/quota** ⚠️ **IMPORTANT**
+   - Go to Billing → Credits
+   - Ensure you have sufficient credits for API calls
+   - If credits are exhausted, you'll see errors like:
+     - "AI service credits exhausted"
+     - HTTP 402 (Payment Required) or 403 (Forbidden)
 4. Check if there are any rate limits or restrictions
+5. Review your usage in the Anthropic dashboard
 
 ### 6. Common Fixes
 

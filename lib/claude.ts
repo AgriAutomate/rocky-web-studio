@@ -85,7 +85,18 @@ export async function streamChatResponse(
         message: error.message,
         timestamp: new Date().toISOString(),
       });
-      throw new Error('AI service temporarily unavailable. Please try again later.');
+      
+      // Provide more specific error messages based on status code
+      if (error.status === 402 || error.status === 403) {
+        // 402 = Payment Required, 403 = Forbidden (often means no credits)
+        throw new Error('AI service credits exhausted. Please add credits to your Anthropic account and try again.');
+      } else if (error.status === 429) {
+        throw new Error('AI service rate limit exceeded. Please try again in a moment.');
+      } else if (error.status === 500 || error.status === 503) {
+        throw new Error('AI service temporarily unavailable. Please try again later.');
+      } else {
+        throw new Error('AI service temporarily unavailable. Please try again later.');
+      }
     } else {
       console.error('Unexpected error in Claude API:', error);
       throw new Error('An error occurred processing your request. Please try again.');
@@ -131,7 +142,18 @@ export async function createChatResponse(
         message: error.message,
         timestamp: new Date().toISOString(),
       });
-      throw new Error('AI service temporarily unavailable. Please try again later.');
+      
+      // Provide more specific error messages based on status code
+      if (error.status === 402 || error.status === 403) {
+        // 402 = Payment Required, 403 = Forbidden (often means no credits)
+        throw new Error('AI service credits exhausted. Please add credits to your Anthropic account and try again.');
+      } else if (error.status === 429) {
+        throw new Error('AI service rate limit exceeded. Please try again in a moment.');
+      } else if (error.status === 500 || error.status === 503) {
+        throw new Error('AI service temporarily unavailable. Please try again later.');
+      } else {
+        throw new Error('AI service temporarily unavailable. Please try again later.');
+      }
     } else {
       console.error('Unexpected error in Claude API:', error);
       throw new Error('An error occurred processing your request. Please try again.');

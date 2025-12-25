@@ -35,10 +35,20 @@ export async function POST(request: NextRequest) {
     // Check API key first
     if (!process.env.ANTHROPIC_API_KEY) {
       console.error('[AI Assistant] ANTHROPIC_API_KEY not set');
+      const isDevelopment = process.env.NODE_ENV === 'development';
       return NextResponse.json(
         {
           error: 'AI service configuration error',
-          message: 'The AI assistant is not properly configured. Please contact support.',
+          message: isDevelopment
+            ? 'ANTHROPIC_API_KEY is not set in .env.local. Add it and restart the dev server.'
+            : 'The AI assistant is not properly configured. Please contact support.',
+          details: isDevelopment
+            ? {
+                fix: 'Create .env.local with: ANTHROPIC_API_KEY=sk-ant-...',
+                restart: 'Restart the dev server after adding the key',
+                verify: 'Run: node scripts/test-ai-assistant-setup.js',
+              }
+            : undefined,
         },
         { status: 500 }
       );

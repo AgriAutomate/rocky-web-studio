@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/client";
-import { generateProposalPdf } from "@/lib/services/proposal-generator";
+import { getProposalData } from "@/lib/services/proposal-data-service";
+import { generateProposalPdf as generatePdfFromData } from "@/lib/services/proposal-pdf-service";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -22,6 +23,11 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body = await request.json();
     const { questionnaireResponseId } = body;
+
+    console.log('📄 [PDF] Generate proposal requested:', {
+      questionnaireResponseId,
+      timestamp: new Date().toISOString()
+    });
 
     // Validate input
     if (!questionnaireResponseId) {
@@ -45,6 +51,27 @@ export async function POST(request: NextRequest) {
       )
       .eq("id", questionnaireResponseId)
       .single();
+
+    console.log('✅ [PDF] Fetched questionnaire:', {
+      hasData: !!response,
+      auditStatus: response?.audit_status,
+      hasAuditResults: !!response?.audit_results,
+      timestamp: new Date().toISOString()
+    });
+
+    if (response?.audit_results) {
+      console.log('📊 [PDF] Audit data available:', {
+        overall_score: response.audit_results.overall_score,
+        performance_score: response.audit_results.performance_score,
+        platform: response.audit_results.platform,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.warn('⚠️ [PDF] No audit results found:', {
+        auditStatus: response?.audit_status,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     if (fetchError) {
       console.error("[Generate Proposal] Database error:", fetchError);
@@ -80,7 +107,21 @@ export async function POST(request: NextRequest) {
     // Generate PDF using the proposal service
     let pdfBuffer: Buffer;
     try {
-      pdfBuffer = await generateProposalPdf(response);
+      console.log('📋 [PDF] Calling getProposalData...', {
+        timestamp: new Date().toISOString()
+      });
+      
+      // Step 1: Get proposal data
+      const proposalData = await getProposalData(questionnaireResponseId);
+      
+      console.log('✅ [PDF] Proposal data generated:', {
+        hasHealthScorecard: !!proposalData.healthScorecard,
+        healthScorecardScore: proposalData.healthScorecard?.overallScore,
+        timestamp: new Date().toISOString()
+      });
+
+      // Step 2: Generate PDF from proposal data
+      pdfBuffer = await generatePdfFromData(proposalData);
     } catch (pdfError) {
       console.error("[Generate Proposal] PDF generation failed:", pdfError);
       return NextResponse.json(

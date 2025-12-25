@@ -124,7 +124,7 @@ export async function auditWebsiteAsync(
     const [websiteInfo, techStack, performance, metadata] = await Promise.all([
       extractWebsiteInfo(normalizedUrl, html, $),
       extractTechStack(html, $, normalizedUrl),
-      getPageSpeedMetrics(normalizedUrl),
+      getPageSpeedMetrics(normalizedUrl, questionnaireResponseId),
       parseHtmlMetadata($, html),
     ]);
 
@@ -435,7 +435,7 @@ function extractTechStack(
 /**
  * Get PageSpeed metrics from Google PageSpeed API
  */
-async function getPageSpeedMetrics(url: string): Promise<PerformanceMetrics> {
+async function getPageSpeedMetrics(url: string, questionnaireResponseId?: string | number): Promise<PerformanceMetrics> {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || process.env.GOOGLE_PAGESPEED_API_KEY;
 
   if (!apiKey) {
@@ -444,6 +444,13 @@ async function getPageSpeedMetrics(url: string): Promise<PerformanceMetrics> {
   }
 
   try {
+    console.log('🚀 [AUDIT] Starting audit fetch:', {
+      responseId: questionnaireResponseId,
+      url: url,
+      timestamp: new Date().toISOString()
+    });
+    const startTime = Date.now();
+
     // Fetch mobile metrics
     const mobileResponse = await axios.get(PAGESPEED_API_URL, {
       params: {
@@ -470,6 +477,14 @@ async function getPageSpeedMetrics(url: string): Promise<PerformanceMetrics> {
     });
 
     const desktopData = desktopResponse.data?.lighthouseResult?.categories?.performance?.score;
+
+    const auditTime = Date.now() - startTime;
+    console.log('✅ [AUDIT] Google API responded:', {
+      duration: `${auditTime}ms`,
+      status: mobileResponse.status,
+      hasData: !!(mobileData || desktopData),
+      timestamp: new Date().toISOString()
+    });
 
     const metrics: PerformanceMetrics = {
       mobileScore: mobileData ? Math.round(mobileData * 100) : undefined,
@@ -803,9 +818,15 @@ async function saveAuditResults(
   auditResult: WebsiteAuditResult
 ): Promise<void> {
   try {
+    console.log('💾 [AUDIT] Saving to database:', {
+      responseId: questionnaireResponseId,
+      auditStatus: 'completed',
+      timestamp: new Date().toISOString()
+    });
+
     const supabase = createServerSupabaseClient(true);
 
-    const { error } = await (supabase as any)
+    const updateResult = await (supabase as any)
       .from("questionnaire_responses")
       .update({
         audit_results: auditResult,
@@ -814,8 +835,15 @@ async function saveAuditResults(
       })
       .eq("id", questionnaireResponseId);
 
-    if (error) {
-      throw error;
+    console.log('✅ [AUDIT] Database update result:', {
+      responseId: questionnaireResponseId,
+      status: updateResult.status || 'success',
+      error: updateResult.error?.message || null,
+      timestamp: new Date().toISOString()
+    });
+
+    if (updateResult.error) {
+      throw updateResult.error;
     }
   } catch (error) {
     await logger.error("Failed to save audit results", {

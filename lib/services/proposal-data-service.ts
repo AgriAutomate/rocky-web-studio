@@ -584,12 +584,48 @@ export async function getProposalData(
   questionnaireResponseId: string | number
 ): Promise<ProposalData> {
   try {
+    console.log('📊 [PROPOSAL] Starting proposal data generation:', {
+      questionnaireResponseId,
+      timestamp: new Date().toISOString()
+    });
+
     await logger.info("Fetching proposal data", {
       questionnaireResponseId,
     });
 
     // Fetch complete questionnaire response
     const responseData = await fetchQuestionnaireResponse(questionnaireResponseId);
+
+    console.log('✅ [PROPOSAL] Fetched response data:', {
+      sector: responseData.sector,
+      businessName: responseData.business_name,
+      hasAuditResults: !!responseData.audit_results,
+      auditStatus: responseData.audit_status,
+      timestamp: new Date().toISOString()
+    });
+
+    if (responseData.audit_results) {
+      // Handle both raw DB structure (snake_case) and typed structure (camelCase)
+      const auditData = responseData.audit_results as any;
+      const overallScore = auditData.overall_score || 
+        auditData.performance?.overallScore || 
+        auditData.performance?.mobileScore || 
+        auditData.performance?.desktopScore;
+      const performanceScore = auditData.performance_score || 
+        auditData.performance?.overallScore || 
+        auditData.performance?.mobileScore || 
+        auditData.performance?.desktopScore;
+      const platform = auditData.platform || 
+        auditData.techStack?.cms?.name || 
+        auditData.techStack?.frameworks?.[0]?.name;
+      
+      console.log('📊 [PROPOSAL] Audit results loaded:', {
+        overall: overallScore,
+        performance: performanceScore,
+        platform: platform,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // Map flat database columns to nested structure if missing
     if (!responseData.business_profile) {
@@ -617,7 +653,25 @@ export async function getProposalData(
     const businessProfile = responseData.business_profile as BusinessProfile | null | undefined;
     const sector = (responseData.sector as Sector) || "other";
 
+    // Extract overall score for logging (handle both snake_case from DB and camelCase from typed)
+    const overallScoreValue = (responseData.audit_results as any)?.overall_score || 
+      auditResults?.performance?.overallScore || 
+      auditResults?.performance?.mobileScore || 
+      auditResults?.performance?.desktopScore || 
+      'N/A';
+    
+    console.log('✅ [PROPOSAL] Using audit results:', {
+      source: responseData.audit_results ? 'Database' : 'Defaults',
+      overall_score: overallScoreValue,
+      timestamp: new Date().toISOString()
+    });
+
     // Calculate health scorecard
+    const overallScoreForLog = overallScoreValue;
+    console.log('📊 [PROPOSAL] Calling calculateHealthScorecard with score:', {
+      score: overallScoreForLog,
+      timestamp: new Date().toISOString()
+    });
     const healthScorecard = calculateHealthScorecard(auditResults);
 
     // Shape project scope

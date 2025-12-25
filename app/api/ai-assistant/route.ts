@@ -29,7 +29,21 @@ export const runtime = 'nodejs';
  * Handles AI assistant chat requests with streaming responses
  */
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
+    // Check API key first
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('[AI Assistant] ANTHROPIC_API_KEY not set');
+      return NextResponse.json(
+        {
+          error: 'AI service configuration error',
+          message: 'The AI assistant is not properly configured. Please contact support.',
+        },
+        { status: 500 }
+      );
+    }
+
     // Get client IP for rate limiting
     const clientIP = getClientIP(request);
     
@@ -105,11 +119,22 @@ export async function POST(request: NextRequest) {
         try {
           let fullResponse = '';
 
+          console.log('[AI Assistant] Starting Claude API call', {
+            messageCount: messages.length,
+            conversationId,
+            timestamp: new Date().toISOString(),
+          });
+
           // Stream response from Claude
           await streamChatResponse(messages, (chunk) => {
             fullResponse += chunk;
             // Send chunk to client
             controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ chunk })}\n\n`));
+          });
+
+          console.log('[AI Assistant] Claude API call completed', {
+            responseLength: fullResponse.length,
+            duration: Date.now() - startTime,
           });
 
     // Store conversation in Supabase (async, don't wait)

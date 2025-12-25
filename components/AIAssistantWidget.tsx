@@ -114,21 +114,36 @@ export function AIAssistantWidget() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Call API with streaming
-      const response = await fetch('/api/ai-assistant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: messagesForAPI,
-          conversationId: convId,
-        }),
-      });
+      // Call API with streaming (with timeout)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
+      let response: Response;
+      try {
+        response = await fetch('/api/ai-assistant', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: messagesForAPI,
+            conversationId: convId,
+          }),
+          signal: controller.signal,
+        });
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
+        }
+        throw new Error('Failed to connect to server. Please check your connection.');
+      }
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
       }
 
       // Handle streaming response
@@ -174,16 +189,33 @@ export function AIAssistantWidget() {
                   setConversationId(parsed.conversationId);
                 }
               }
+
+              if (parsed.error) {
+                throw new Error(parsed.error);
+              }
             } catch (e) {
-              // Skip invalid JSON
+              // If it's our error, rethrow it
+              if (e instanceof Error && e.message) {
+                throw e;
+              }
+              // Otherwise skip invalid JSON
             }
           }
         }
       }
     } catch (err) {
       setIsLoading(false);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to send message';
+      let errorMessage = 'Failed to send message';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      // Log error for debugging
+      console.error('AI Assistant error:', err);
+      
       setError(errorMessage);
       // Remove the assistant message placeholder on error
       setMessages((prev) => prev.slice(0, -1));

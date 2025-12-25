@@ -13,8 +13,7 @@
       "maxDuration": 30
     },
     "app/api/questionnaire/submit/route.ts": {
-      "maxDuration": 60,
-      "memory": 1024
+      "maxDuration": 60
     }
   },
   "headers": [

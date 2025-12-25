@@ -293,6 +293,7 @@ export function CreateInvoiceDialog({
                         variant="ghost"
                         size="icon"
                         onClick={() => remove(index)}
+                        aria-label={`Remove line item ${index + 1}`}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

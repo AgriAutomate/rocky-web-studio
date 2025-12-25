@@ -102,6 +102,7 @@ export function XeroConnectionStatus() {
             size="icon"
             onClick={fetchStatus}
             disabled={loading}
+            aria-label="Refresh Xero connection status"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>

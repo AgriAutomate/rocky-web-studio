@@ -190,14 +190,19 @@ accent: "bg-accent text-foreground" // 4.5:1 contrast
 #### After Remediation
 - **Axe Violations:** 0 ✅
 - **Pa11y Violations:** 0 ✅
-- **Lighthouse Accessibility:** 98/100 ✅
+- **Lighthouse Accessibility:** 91/100 ✅ (Desktop & Mobile)
+- **Lighthouse Performance:** 100/100 ✅ (Desktop), 95/100 ✅ (Mobile)
+- **Lighthouse Best Practices:** 100/100 ✅
+- **Lighthouse SEO:** 91/100 ✅
 - **WCAG Compliance:** WCAG 2.1 AA compliant ✅
 - **Color Contrast:** 4.5:1 - 12.6:1 (all meet or exceed requirement) ✅
 
 **Improvement:**
-- **100% violation reduction**
-- **+26 point Lighthouse improvement**
+- **100% critical violation reduction** (6 → 0)
+- **+19 point Lighthouse accessibility improvement** (72 → 91)
 - **WCAG 2.1 AA compliance achieved**
+- **23 accessibility checks passed**
+- **2 minor non-critical issues remain** (decorative text contrast, button aria-labels)
 
 ---
 

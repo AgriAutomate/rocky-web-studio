@@ -24,12 +24,12 @@ export function HeroSection() {
             {/* Left Content */}
             <div className="space-y-8">
               {/* Eyebrow */}
-              <p className="text-brand-foreground/80 text-sm font-medium uppercase tracking-wider">
+              <p className="text-brand-foreground/95 text-sm font-medium uppercase tracking-wider">
                 Full-stack digital products for ambitious brands
               </p>
 
               {/* Company Name */}
-              <p className="text-brand-foreground/70 text-sm font-medium tracking-[0.3em] uppercase">
+              <p className="text-brand-foreground/95 text-sm font-semibold tracking-[0.3em] uppercase">
                 ROCKY WEB STUDIO
               </p>
 

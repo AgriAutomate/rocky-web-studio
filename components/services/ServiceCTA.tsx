@@ -28,7 +28,7 @@ export function ServiceCTA({
         <p className="text-base text-brand-foreground/90 md:text-lg">{description}</p>
       </div>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Button asChild size="lg" className="bg-card text-primary hover:bg-card/90">
+        <Button asChild size="lg" className="bg-card text-foreground hover:bg-card/90 border-2 border-foreground/20">
           <Link href={primaryHref}>{primaryLabel}</Link>
         </Button>
         <Button

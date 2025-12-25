@@ -30,7 +30,7 @@ const services = [
       "Responsive layouts & forms",
       "Foundational SEO setup",
     ],
-    accent: "bg-accent text-primary",
+    accent: "bg-accent text-foreground",
     href: "/services/website-design-development",
   },
   {
@@ -44,7 +44,7 @@ const services = [
       "Mobile responsiveness",
       "Content migration support",
     ],
-    accent: "bg-accent text-primary",
+    accent: "bg-accent text-foreground",
     href: "/services/website-redesign-refresh",
   },
   {
@@ -58,7 +58,7 @@ const services = [
       "Stripe/PayPal payments",
       "Basic inventory workflows",
     ],
-    accent: "bg-accent text-primary",
+    accent: "bg-accent text-foreground",
     href: "/services/ecommerce",
   },
   {
@@ -72,7 +72,7 @@ const services = [
       "Image & asset optimization",
       "Core Web Vitals improvements",
     ],
-    accent: "bg-accent text-primary",
+    accent: "bg-accent text-foreground",
     href: "/services/seo-performance",
   },
   {
@@ -100,7 +100,7 @@ const services = [
       "Knowledge base hand-offs",
       "Partner referrals for bespoke AI",
     ],
-    accent: "bg-accent text-primary",
+    accent: "bg-accent text-foreground",
     href: "/services/ai-automation",
   },
   {
@@ -114,7 +114,7 @@ const services = [
       "Sales notifications",
       "Collaboration with your ops team",
     ],
-    accent: "bg-accent text-primary",
+    accent: "bg-accent text-foreground",
     href: "/services/crm-integration",
   },
     {
@@ -128,7 +128,7 @@ const services = [
       "Multiple formats (MP3, WAV, video)",
       "Wedding, birthday, anniversary packages",
     ],
-    accent: "bg-accent text-primary",
+    accent: "bg-accent text-foreground",
     href: "/services/custom-songs",
   },
 ];

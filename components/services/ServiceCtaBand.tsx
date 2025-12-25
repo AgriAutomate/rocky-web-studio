@@ -22,7 +22,7 @@ export default function ServiceCtaBand({
         <Button
           asChild
           size="lg"
-          className="bg-card text-primary hover:bg-card/90"
+          className="bg-card text-foreground hover:bg-card/90 border-2 border-foreground/20"
         >
           <Link href={ctaHref}>{ctaLabel}</Link>
         </Button>

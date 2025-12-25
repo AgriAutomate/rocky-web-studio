@@ -65,7 +65,7 @@ export default function ServicePricing({ tiers, defaultLink = "/book" }: Service
                 href={tier.orderLink || defaultLink}
                 className={`block text-center py-3 rounded-lg font-semibold transition ${
                   tier.highlighted
-                    ? "bg-card text-primary hover:bg-card/90"
+                    ? "bg-card text-foreground hover:bg-card/90 border-2 border-foreground/20"
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 }`}
               >

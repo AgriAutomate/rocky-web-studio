@@ -44,7 +44,7 @@ export function CustomSongsBanner() {
             </Link>
             <Link
               href="/services/custom-songs/order"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-primary shadow-sm transition-colors hover:bg-card/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-foreground/20 bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-card/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
             >
               Create Your Song
             </Link>

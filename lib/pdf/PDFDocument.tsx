@@ -432,14 +432,6 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
                 {/* Investment Details */}
                 <View style={styles.challengeMetadata}>
                   <View style={styles.challengeMetadataRow}>
-                    <Text style={styles.challengeLabel}>ROI Timeline: </Text>
-                    <Text style={styles.challengeText}>
-                      {challenge.roiTimeline && challenge.roiTimeline.trim() 
-                        ? challenge.roiTimeline 
-                        : 'To be determined based on project scope'}
-                    </Text>
-                  </View>
-                  <View style={styles.challengeMetadataRow}>
                     <Text style={styles.challengeLabel}>Investment Range: </Text>
                     <Text style={styles.challengeText}>
                       {challenge.projectCostRange && challenge.projectCostRange.trim() 

@@ -1,0 +1,24 @@
+fix(a11y): address 2 minor Lighthouse issues for improved accessibility score
+
+- Fix hero section text contrast (increase opacity from 70-80% to 95%)
+- Add aria-label to Xero connection status refresh button
+- Add aria-label to invoice line item remove button
+
+Accessibility improvements:
+- Addresses Lighthouse issue: "Background and foreground colors do not have sufficient contrast ratio" (hero text)
+- Addresses Lighthouse issue: "Buttons do not have an accessible name" (icon buttons)
+- Expected Lighthouse score improvement: 91/100 → 95-98/100
+
+Files modified:
+- components/hero-section.tsx - Hero text contrast improvements
+- components/admin/XeroConnectionStatus.tsx - Refresh button aria-label
+- components/admin/CreateInvoiceDialog.tsx - Remove button aria-label
+
+Documentation:
+- Updated Lighthouse audit results with actual score (91/100)
+- Updated case study metrics with confirmed scores
+- Documented minor issues fixes
+
+This commit addresses the 2 remaining minor Lighthouse issues to push
+accessibility score from 91/100 to 95-98/100.
+

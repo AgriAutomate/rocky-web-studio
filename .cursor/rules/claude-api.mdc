@@ -1,0 +1,179 @@
+---
+description: Claude API integration patterns
+tags:
+  - claude
+  - anthropic
+  - ai
+  - api
+---
+
+# Claude API Integration Standards
+
+## API Client Setup
+
+### Client Initialization
+```typescript
+import Anthropic from '@anthropic-ai/sdk'
+
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
+```
+
+### Environment Variables
+- `ANTHROPIC_API_KEY` - Server-side only (never expose to client)
+- Store in `.env.local` for development
+- Set in Vercel environment variables for production
+
+## Streaming Responses
+
+### Implementation Pattern
+```typescript
+export async function streamChatResponse(
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  onChunk?: (text: string) => void
+): Promise<string> {
+  const systemPrompt = `You are AI assistant for Rocky Web Studio...`
+  
+  const stream = await client.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: messages,
+    stream: true,
+  })
+  
+  let fullResponse = ''
+  for await (const chunk of stream) {
+    if (chunk.type === 'content_block_delta') {
+      const text = chunk.delta.text
+      fullResponse += text
+      onChunk?.(text)
+    }
+  }
+  
+  return fullResponse
+}
+```
+
+## Rate Limiting
+
+### Requirements
+- 10 requests/minute per IP address
+- Use in-memory store or Upstash Redis
+- Return 429 status with Retry-After header
+
+### Implementation
+```typescript
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '1 m'),
+})
+
+export async function checkRateLimit(identifier: string): Promise<boolean> {
+  const { success } = await ratelimit.limit(identifier)
+  return success
+}
+```
+
+## Error Handling
+
+### Required Patterns
+```typescript
+try {
+  const response = await streamChatResponse(messages, onChunk)
+  return response
+} catch (error) {
+  if (error instanceof Anthropic.APIError) {
+    // Handle API errors
+    console.error('Claude API error:', error.status, error.message)
+    throw new Error('AI service temporarily unavailable')
+  } else {
+    // Handle other errors
+    console.error('Unexpected error:', error)
+    throw new Error('An error occurred processing your request')
+  }
+}
+```
+
+## System Prompts
+
+### Best Practices
+- Keep system prompts concise and specific
+- Include context about services, pricing, FAQ
+- Always suggest consultation for complex inquiries
+- Set clear boundaries (what AI can/cannot do)
+
+### Example
+```typescript
+const systemPrompt = `You are AI assistant for Rocky Web Studio, a web development agency.
+
+Services:
+- Web development: $4K-$35K
+- Healthcare systems: $30K-$60K
+- Accessibility audits: $2K-$5K
+
+Guidelines:
+- Respond concisely and professionally
+- Always suggest consultation for custom projects
+- Redirect off-topic questions to services
+- Be helpful but set clear boundaries
+`
+```
+
+## Security
+
+### Critical Rules
+- Never expose `ANTHROPIC_API_KEY` to client
+- Always validate user input before sending to API
+- Sanitize responses before displaying
+- Log interactions for debugging (mask sensitive data)
+
+### Input Validation
+```typescript
+function validateMessage(message: string): boolean {
+  // Max length
+  if (message.length > 5000) return false
+  
+  // No empty messages
+  if (message.trim().length === 0) return false
+  
+  // Basic sanitization
+  // Add more validation as needed
+  
+  return true
+}
+```
+
+## Logging
+
+### Required Logging
+```typescript
+// Log interactions (mask sensitive data)
+console.log('AI Assistant request:', {
+  timestamp: new Date().toISOString(),
+  messageLength: message.length,
+  // Don't log full message content in production
+})
+
+// Log errors
+console.error('Claude API error:', {
+  error: error.message,
+  status: error.status,
+  timestamp: new Date().toISOString(),
+})
+```
+
+## Best Practices
+
+- **Streaming:** Always use streaming for real-time UX
+- **Error Handling:** Graceful degradation on API failures
+- **Rate Limiting:** Enforce limits to prevent abuse
+- **Security:** Never expose API keys, validate all input
+- **Logging:** Log for debugging but mask sensitive data
+- **Testing:** Test with various message types and edge cases
+
+Production-grade setup. No shortcuts.

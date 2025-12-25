@@ -1,142 +1,97 @@
-import { kv } from "@vercel/kv";
-import { getLogger } from "@/lib/logging";
-
-const rateLimitLogger = getLogger("rateLimit");
-
-export interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetAt: number; // Unix timestamp in seconds
-  retryAfter?: number; // Seconds until limit resets
-}
-
 /**
- * Global rate limiting utility using Vercel KV
+ * Rate Limiting for AI Assistant
  * 
- * @param identifier - Unique identifier (IP address, user ID, phone number, etc.)
- * @param limit - Maximum number of requests allowed in the window
- * @param windowSeconds - Time window in seconds
- * @param keyPrefix - Optional prefix for KV key (default: "rate-limit")
- * @returns RateLimitResult indicating if request is allowed and remaining count
+ * Simple in-memory rate limiting (10 requests per minute per IP)
+ * For production, consider using Upstash Redis
  */
-export async function rateLimit(
-  identifier: string,
-  limit: number,
-  windowSeconds: number,
-  keyPrefix: string = "rate-limit"
-): Promise<RateLimitResult> {
-  if (!identifier) {
-    rateLimitLogger.warn("Rate limit called with empty identifier");
-    return {
-      allowed: true,
-      remaining: limit,
-      resetAt: Math.floor(Date.now() / 1000) + windowSeconds,
-    };
-  }
 
-  const key = `${keyPrefix}:${identifier}`;
-  const now = Math.floor(Date.now() / 1000);
-  const resetAt = now + windowSeconds;
+interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
 
-  try {
-    // Increment counter and get current count
-    const count = await kv.incr(key);
+const rateLimitStore = new Map<string, RateLimitEntry>();
 
-    // Set expiration if this is the first request in the window
-    if (count === 1) {
-      await kv.expire(key, windowSeconds);
-    }
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
+const RATE_LIMIT_MAX = 10; // 10 requests per minute
 
-    const remaining = Math.max(0, limit - count);
-    const allowed = count <= limit;
+/**
+ * Check if request is within rate limit
+ * 
+ * @param identifier - IP address or user identifier
+ * @returns Rate limit result
+ */
+export function checkRateLimit(identifier: string): {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  reset: number;
+} {
+  const now = Date.now();
+  const entry = rateLimitStore.get(identifier);
 
-    // Calculate retry after if limit exceeded
-    const retryAfter = allowed ? undefined : windowSeconds;
+  // If no entry or window expired, create new entry
+  if (!entry || now > entry.resetAt) {
+    rateLimitStore.set(identifier, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW,
+    });
 
-    if (!allowed) {
-      rateLimitLogger.warn("Rate limit exceeded", {
-        identifier,
-        limit,
-        count,
-        windowSeconds,
-        keyPrefix,
-      });
+    // Clean up old entries periodically
+    if (rateLimitStore.size > 1000) {
+      for (const [key, value] of rateLimitStore.entries()) {
+        if (now > value.resetAt) {
+          rateLimitStore.delete(key);
+        }
+      }
     }
 
     return {
-      allowed,
-      remaining,
-      resetAt,
-      retryAfter,
+      success: true,
+      limit: RATE_LIMIT_MAX,
+      remaining: RATE_LIMIT_MAX - 1,
+      reset: now + RATE_LIMIT_WINDOW,
     };
-  } catch (error) {
-    // If KV fails, log error but allow request (fail open)
-    rateLimitLogger.error("Rate limit check failed, allowing request", {
-      identifier,
-      error: error instanceof Error ? error.message : String(error),
-    }, error);
+  }
 
+  // Check if limit exceeded
+  if (entry.count >= RATE_LIMIT_MAX) {
     return {
-      allowed: true,
-      remaining: limit,
-      resetAt: now + windowSeconds,
+      success: false,
+      limit: RATE_LIMIT_MAX,
+      remaining: 0,
+      reset: entry.resetAt,
     };
   }
+
+  // Increment count
+  entry.count += 1;
+  rateLimitStore.set(identifier, entry);
+
+  return {
+    success: true,
+    limit: RATE_LIMIT_MAX,
+    remaining: RATE_LIMIT_MAX - entry.count,
+    reset: entry.resetAt,
+  };
 }
 
 /**
- * Get client IP address from NextRequest
- * Handles x-forwarded-for header (Vercel provides this)
+ * Get client IP from request
  */
-export function getClientIp(request: { headers: Headers }): string {
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) {
-    // x-forwarded-for can contain multiple IPs, take the first one
-    const ip = xff.split(",")[0]?.trim();
-    if (ip) return ip;
+export function getClientIP(request: Request): string {
+  // Try various headers for IP address
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    const ips = forwarded.split(',');
+    return ips[0]?.trim() || 'unknown';
   }
 
-  // Fallback to other headers
-  const cfConnectingIp = request.headers.get("cf-connecting-ip");
-  if (cfConnectingIp) return cfConnectingIp;
+  const realIP = request.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
 
-  const xRealIp = request.headers.get("x-real-ip");
-  if (xRealIp) return xRealIp;
-
-  // Last resort: return a default identifier
-  return "unknown";
+  // Fallback to a default identifier
+  return 'unknown';
 }
-
-/**
- * Rate limit configuration for different endpoints
- */
-export const RATE_LIMITS = {
-  // Booking creation: 10 per minute per IP
-  BOOKING_CREATE: {
-    limit: 10,
-    windowSeconds: 60, // 1 minute
-    keyPrefix: "rate-limit:bookings",
-  },
-  
-  // SMS sending: 100 per day per phone number
-  SMS_SEND: {
-    limit: 100,
-    windowSeconds: 24 * 60 * 60, // 24 hours
-    keyPrefix: "rate-limit:sms",
-  },
-  
-  // Mobile Message credits check: 60 per hour per IP
-  CREDITS_CHECK: {
-    limit: 60,
-    windowSeconds: 60 * 60, // 1 hour
-    keyPrefix: "rate-limit:credits",
-  },
-  
-  // Auth signin: 5 per 15 minutes per IP (already implemented, but using this for consistency)
-  AUTH_SIGNIN: {
-    limit: 5,
-    windowSeconds: 15 * 60, // 15 minutes
-    keyPrefix: "rate-limit:auth",
-  },
-} as const;
-

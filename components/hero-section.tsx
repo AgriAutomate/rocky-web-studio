@@ -39,7 +39,7 @@ export function HeroSection() {
               </h1>
 
               {/* Subheadline */}
-              <p className="text-brand-foreground/85 text-lg leading-relaxed max-w-xl">
+              <p className="text-brand-foreground/95 text-lg leading-relaxed max-w-xl font-medium">
                 Strategy, design, and engineering in one team anchored in Rockhampton. Our
                 AI-assisted workflow and modern technology stacks keep launches thoughtful,
                 measurable, and resilient.

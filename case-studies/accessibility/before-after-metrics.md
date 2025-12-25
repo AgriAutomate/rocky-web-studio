@@ -8,7 +8,7 @@
 |--------|--------|-------|-------------|
 | **Axe Violations** | 6 | 0 | 100% reduction ✅ |
 | **Pa11y Violations** | 6 | 0 | 100% reduction ✅ |
-| **Lighthouse A11y Score** | 72/100 | 91/100 | +19 points ✅ |
+| **Lighthouse A11y Score** | 72/100 | 91/100 ✅ | +19 points ✅ |
 | **WCAG Compliance** | Non-compliant | WCAG 2.1 AA | ✅ Compliant |
 | **Color Contrast (avg)** | 2.4:1 | 6.8:1 | +183% improvement |
 
@@ -107,7 +107,7 @@
 ### Automated Tests
 - ✅ axe-core: 0 violations (requires Chrome for full test)
 - ✅ pa11y: 0 violations ✅ **CONFIRMED**
-- ✅ Lighthouse: 91/100 ✅ **CONFIRMED** (Desktop & Mobile)
+- ✅ Lighthouse: 91/100 ✅ **CONFIRMED** (Desktop & Mobile, Final Score)
 
 ### Manual Tests
 - ✅ NVDA screen reader: All content accessible

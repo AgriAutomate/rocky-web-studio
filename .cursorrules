@@ -1,0 +1,165 @@
+# Rocky Web Studio Development Standards
+# Version 1.0 - December 25, 2025
+
+## Core Philosophy
+You are assisting a solo founder building case studies for government contracts.
+Every line must be production-ready - no TODOs, no shortcuts.
+Accessibility is non-negotiable (WCAG 2.1 AA minimum).
+
+---
+
+## ACCESSIBILITY FIRST
+
+### WCAG 2.1 AA Compliance Mandatory
+- All interactive elements keyboard accessible (Tab, Enter, Escape)
+- Never remove focus indicators without replacement
+- Use semantic HTML (<nav>, <main>, <article>) not <div>
+- Every form input requires <label for="id">
+- Color contrast minimum: 4.5:1 normal text, 3:1 large
+- Alt text describes content, not "image of..."
+- Test with axe DevTools before committing
+
+### Testing Required
+- Run: npx axe rockywebstudio.com.au before commits
+- Lighthouse accessibility score must be 90+/100
+- Screen reader (NVDA) testing before final commit
+
+---
+
+## TYPESCRIPT STRICT
+
+- No `any` types - use proper interfaces
+- All functions have parameter and return types
+- Strict null checks enabled
+- Create interfaces over types when possible
+
+---
+
+## AI INTEGRATION
+
+### API Standards
+- All API routes in /app/api/[route]/route.ts
+- Every endpoint: error handling, TypeScript types, logging
+- Claude API: rate limiting, token counting, fallback
+- Streaming responses for real-time UX
+- Never expose ANTHROPIC_API_KEY in frontend
+
+### Rate Limiting
+- 10 requests/minute for public APIs
+- Use Upstash Redis or in-memory store
+- Return 429 status with Retry-After header
+
+---
+
+## SUPABASE INTEGRATION
+
+- All schemas in /supabase/migrations/ with SQL
+- All queries in /lib/supabase/ with TypeScript
+- Content must have: id (UUID), slug, status
+- Image optimization: Supabase Storage + Next.js Image component
+- Metadata: generateMetadata() for SEO
+- Always use RLS policies for security
+
+---
+
+## CODE ORGANIZATION
+
+/app # Next.js pages and API routes
+/components # Reusable React components
+/lib # Utility functions, API clients
+  /supabase # Supabase client and queries
+/types # TypeScript interfaces
+/scripts # Automation scripts
+/reports # Audit results
+/.cursor/rules # AI instruction files
+
+---
+
+## GIT & VERSION CONTROL
+
+### Commit Format
+- type(scope): description
+- type: feat|fix|docs|style|refactor|test|a11y
+- Example: `feat(a11y): add aria-label to submit button`
+
+### Always Review
+- Review all diffs before committing
+- Write helpful commit messages (what & why)
+- Experiment in feature branches
+
+---
+
+## PERFORMANCE & SECURITY
+
+- Images: Next.js Image component with optimization
+- Data: validate all inputs (frontend & backend)
+- Secrets: .env.local only, never commit
+- Rate limiting: 10 req/min public APIs
+- HTTPS only: all external API calls
+
+---
+
+## WHEN TO PROMPT CURSOR
+
+### ✅ GOOD: Specific Prompts
+- "Add TypeScript type for case study with nested testimonial"
+- "Fix accessibility: make button keyboard accessible with Enter support"
+- "Create Supabase query fetching featured case studies by date"
+
+### ❌ AVOID: Vague Prompts
+- "Make this better"
+- "Fix accessibility" (without specifying what)
+- "Add error handling" (where? what errors?)
+
+---
+
+## ACCESSIBILITY DETAIL
+
+### Common Fixes
+
+**Missing Form Labels:**
+```jsx
+// WRONG
+<input type="email" placeholder="Email" />
+
+// RIGHT
+<label htmlFor="email">Email</label>
+<input id="email" type="email" />
+```
+
+**Focus Indicators:**
+```css
+/* WRONG */
+button { outline: none; }
+
+/* RIGHT */
+button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+```
+
+**Screen Reader Hidden:**
+```jsx
+// Visual only (decorative)
+<span aria-hidden="true">→</span>
+
+// Screen reader only
+<span className="sr-only">Screen reader text</span>
+```
+
+**Alt Text:**
+```jsx
+// WRONG
+<img src="case.png" alt="image" />
+
+// RIGHT
+<img src="case.png" alt="Healthcare dashboard with patient portal" />
+```
+
+This .cursorrules file is your AI copilot's instruction manual.
+Commit to Git so you can reference previous versions.
+
+Last updated: January 23, 2025
+Author: Martin Carroll, Rocky Web Studio
+

@@ -1,0 +1,78 @@
+---
+description: WCAG 2.1 AA compliance standards
+tags:
+  - accessibility
+  - wcag
+  - a11y
+---
+
+# Accessibility Compliance Rules
+
+## Mandatory Semantic HTML
+
+### Document Structure
+- One `<h1>` per page only
+- Heading hierarchy: h1 → h2 → h3 (never skip)
+- Use `<nav>`, `<main>`, `<article>`, `<section>`, `<header>`, `<footer>`
+- Avoid `<div>` for semantic content
+
+### Forms
+- Every `<input>` has `<label for="id">`
+- Use `<fieldset>` and `<legend>` for grouped controls
+- Error messages: `aria-describedby="error-id"`
+
+## Color & Contrast
+
+### Ratios
+- Normal text: 4.5:1 minimum
+- Large text (18pt+): 3:1 minimum
+- UI components: 3:1 for focus indicators
+
+### Testing
+- WebAIM Contrast Checker
+- Lighthouse DevTools
+
+## Keyboard Navigation
+
+### Tab Order
+- Logical: top-to-bottom, left-to-right
+- Never use `tabindex` except special cases
+- No keyboard traps (can always Tab away)
+
+### Focus Indicators
+```css
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+```
+
+## Screen Reader Requirements
+
+### Alt Text
+- Decorative: `alt=""` (empty)
+- Content: Describe what's in image
+- Icons: `aria-label="Close dialog"`
+
+### ARIA Labels
+- `aria-label` when visual label insufficient
+- `aria-describedby="id"` to connect description
+- `aria-hidden="true"` for decorative elements
+
+## Testing Procedures
+
+### Automated (Before Every Commit)
+```bash
+npx axe rockywebstudio.com.au
+npx pa11y-ci https://rockywebstudio.com.au
+npx lighthouse https://rockywebstudio.com.au --view
+```
+
+### Manual (Weekly)
+- Keyboard: Tab through entire page
+- Screen reader: NVDA or VoiceOver
+- Color contrast: WebAIM checker
+- Zoom: Test at 200%
+
+Enforce this standard on every commit. No exceptions.

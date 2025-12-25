@@ -226,8 +226,8 @@ export function QuestionnaireForm() {
     try {
       // Map form data to API format
       const apiPayload = {
-        // Personal info - firstName is now collected in the form
-        firstName: formData.firstName || "Client",
+        // Personal info - use q1 (what should we call you) or fallback to "Client"
+        firstName: formData.q1 || formData.businessName || "Client",
         lastName: formData.lastName || "User",
         
         // Business info

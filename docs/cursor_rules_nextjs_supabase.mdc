@@ -1,0 +1,253 @@
+---
+description: Next.js 16 + Supabase patterns
+tags:
+  - nextjs
+  - supabase
+  - postgresql
+  - cms
+---
+
+# Next.js 16 + Supabase Standards
+
+## Project Structure
+
+```
+/app # Next.js App Router
+/components # React components
+/lib
+  /supabase # Supabase client and queries
+    /client.ts # Supabase client
+    /case-studies.ts # Case studies queries
+/types # TypeScript types
+/supabase
+  /migrations # Database migrations
+```
+
+## Supabase Configuration
+
+### Client Setup
+```typescript
+// lib/supabase/client.ts
+import { createClient } from '@supabase/supabase-js'
+
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+// For admin operations (server-side only)
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+```
+
+## Database Queries
+
+### Requirements
+- Use Supabase client for all queries
+- Always use TypeScript types
+- Handle errors properly
+- Use RLS policies for security
+- Optimize with indexes
+
+### Example: Case Studies
+```typescript
+import { supabase } from '@/lib/supabase/client'
+import type { CaseStudy } from '@/types/case-study'
+
+// Get published case studies
+export async function getPublishedCaseStudies(): Promise<CaseStudy[]> {
+  const { data, error } = await supabase
+    .from('case_studies')
+    .select('*')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false })
+  
+  if (error) throw error
+  return data as CaseStudy[]
+}
+
+// Get case study by slug
+export async function getCaseStudyBySlug(slug: string): Promise<CaseStudy | null> {
+  const { data, error } = await supabase
+    .from('case_studies')
+    .select('*')
+    .eq('slug', slug)
+    .eq('status', 'published')
+    .single()
+  
+  if (error) {
+    if (error.code === 'PGRST116') return null // Not found
+    throw error
+  }
+  
+  return data as CaseStudy
+}
+```
+
+## Row Level Security (RLS)
+
+### Best Practices
+- Always enable RLS on tables
+- Create policies for public read (published content)
+- Create policies for authenticated users (admin)
+- Use service role for server-side admin operations
+
+### Example Policy
+```sql
+-- Public can read published case studies
+CREATE POLICY "Public can read published case studies"
+  ON case_studies FOR SELECT
+  USING (status = 'published');
+
+-- Admins can manage all
+CREATE POLICY "Admins can manage case studies"
+  ON case_studies FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM auth.users
+      WHERE auth.users.id = auth.uid()
+      AND auth.users.raw_user_meta_data->>'role' = 'admin'
+    )
+  );
+```
+
+## Image Handling
+
+### Storage Bucket
+```typescript
+// Upload image to Supabase Storage
+const { data, error } = await supabase.storage
+  .from('case-studies')
+  .upload(`${slug}/${filename}`, file)
+
+// Get public URL
+const { data: { publicUrl } } = supabase.storage
+  .from('case-studies')
+  .getPublicUrl(`${slug}/${filename}`)
+
+// Use with Next.js Image
+<Image
+  src={publicUrl}
+  alt={alt}
+  width={800}
+  height={600}
+/>
+```
+
+## Migrations
+
+### Structure
+- All migrations in `/supabase/migrations/`
+- Use timestamp prefix: `YYYYMMDD_description.sql`
+- Always use transactions (BEGIN/COMMIT)
+- Test migrations before deploying
+
+### Example Migration
+```sql
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS case_studies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  -- ... other columns
+);
+
+CREATE INDEX IF NOT EXISTS idx_case_studies_slug ON case_studies(slug);
+
+ALTER TABLE case_studies ENABLE ROW LEVEL SECURITY;
+
+COMMIT;
+```
+
+## TypeScript Types
+
+### Always Define Types
+```typescript
+// types/case-study.ts
+export interface CaseStudy {
+  id: string
+  title: string
+  slug: string
+  status: 'draft' | 'published' | 'archived'
+  // ... other fields
+}
+```
+
+### Use Types in Queries
+```typescript
+const { data, error } = await supabase
+  .from('case_studies')
+  .select('*')
+  .eq('status', 'published')
+  .returns<CaseStudy[]>()
+```
+
+## Best Practices
+
+- **Query Efficiency:** Use `.select()` with specific fields, not `*`
+- **Caching:** Leverage Next.js cache with `revalidate` option
+- **Error Handling:** Always check for errors and handle gracefully
+- **RLS:** Never bypass RLS, use service role only server-side
+- **Types:** Generate types from database or define manually
+- **Indexes:** Create indexes for frequently queried columns
+- **Migrations:** Test locally before deploying to production
+
+## Common Patterns
+
+### Server Component (Next.js 16)
+```typescript
+// app/case-studies/[slug]/page.tsx
+import { getCaseStudyBySlug } from '@/lib/supabase/case-studies'
+
+export default async function CaseStudyPage({ params }: { params: { slug: string } }) {
+  const caseStudy = await getCaseStudyBySlug(params.slug)
+  
+  if (!caseStudy) {
+    notFound()
+  }
+  
+  return (
+    <article>
+      <h1>{caseStudy.title}</h1>
+      {/* ... */}
+    </article>
+  )
+}
+```
+
+### Client Component
+```typescript
+'use client'
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
+
+export function CaseStudiesList() {
+  const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([])
+  
+  useEffect(() => {
+    supabase
+      .from('case_studies')
+      .select('*')
+      .eq('status', 'published')
+      .then(({ data, error }) => {
+        if (error) console.error(error)
+        else setCaseStudies(data || [])
+      })
+  }, [])
+  
+  return (
+    <div>
+      {caseStudies.map(cs => (
+        <div key={cs.id}>{cs.title}</div>
+      ))}
+    </div>
+  )
+}
+```
+
+Production-grade setup. No shortcuts.

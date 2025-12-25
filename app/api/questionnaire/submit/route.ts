@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
       : null;
 
     const reportData = {
-      clientName: formData.firstName,
+      clientName: (rawBodyForExtraction.q1 as string) || formData.businessName || "Client",
       businessName: formData.businessName,
       sector: formatSectorName(formData.sector as any),
       topChallenges: challengeDetails, // All selected challenges
@@ -472,7 +472,7 @@ export async function POST(req: NextRequest) {
         to: formData.businessEmail,
         subject: `Your Custom Deep-Dive Report – ${formData.businessName}`,
         react: React.createElement(ClientAcknowledgementEmail, {
-          clientFirstName: formData.firstName,
+          clientFirstName: (rawBodyForExtraction.q1 as string) || formData.businessName || "Client",
           businessName: formData.businessName,
           sector: reportData.sector,
         }),

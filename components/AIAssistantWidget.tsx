@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Send, Loader2, MessageSquare, X, Minimize2 } from 'lucide-react';
 import type { AIMessage } from '@/types/ai-assistant';
@@ -236,6 +237,76 @@ export function AIAssistantWidget() {
     }
   };
 
+  /**
+   * Parse markdown links and convert to React elements
+   * Converts [text](url) to clickable links
+   */
+  const parseMarkdownLinks = (text: string): React.ReactNode => {
+    // Pattern to match markdown links: [text](url)
+    const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let key = 0;
+
+    while ((match = linkPattern.exec(text)) !== null) {
+      // Add text before the link
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+
+      // Add the link
+      const linkText = match[1];
+      const linkUrl = match[2];
+      
+      // Validate link URL exists
+      if (!linkUrl) {
+        // If no URL, just add the text
+        parts.push(`[${linkText}]`);
+        lastIndex = linkPattern.lastIndex;
+        continue;
+      }
+      
+      // Check if it's an external link (starts with http)
+      const isExternal = linkUrl.startsWith('http://') || linkUrl.startsWith('https://');
+      
+      if (isExternal) {
+        parts.push(
+          <a
+            key={key++}
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            {linkText}
+          </a>
+        );
+      } else {
+        // Internal link - use Next.js Link
+        parts.push(
+          <Link
+            key={key++}
+            href={linkUrl}
+            className="underline font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            {linkText}
+          </Link>
+        );
+      }
+
+      lastIndex = linkPattern.lastIndex;
+    }
+
+    // Add remaining text after last link
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+
+    // If no links found, return original text
+    return parts.length > 0 ? parts : text;
+  };
+
   return (
     <>
       {/* Floating Button */}
@@ -337,15 +408,19 @@ export function AIAssistantWidget() {
                     }`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                      className={`max-w-[80%] rounded-lg px-4 py-2 break-words ${
                         message.role === 'user'
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-foreground'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">
-                        {message.content}
-                      </p>
+                      <div className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">
+                        {message.role === 'assistant' ? (
+                          parseMarkdownLinks(message.content)
+                        ) : (
+                          message.content
+                        )}
+                      </div>
                       {message.timestamp && (
                         <p
                           className={`text-xs mt-1 ${

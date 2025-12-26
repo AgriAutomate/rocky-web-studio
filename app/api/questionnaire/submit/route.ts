@@ -12,6 +12,8 @@ import { buildCQAdvantageSection } from "@/backend-workflow/services/pdf-content
 import { getSector } from "@/backend-workflow/types/sectors";
 import { createServerSupabaseClient } from "@/lib/supabase/client";
 import { env } from "@/lib/env";
+import { auditWebsiteAsync } from "@/lib/services/audit-service";
+import { normalizeUrl, isValidUrl } from "@/lib/utils/audit-utils";
 import type { Sector } from "@/lib/types/questionnaire";
 
 // Lazy import for Supabase client (only when needed)
@@ -307,9 +309,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // STEP 3a: TRIGGER WEBSITE AUDIT (BEFORE PDF generation to ensure status exists)
-    // If website URL provided (q2), trigger audit BEFORE generating PDF
+    // STEP 3a: TRIGGER AND WAIT FOR WEBSITE AUDIT (BEFORE PDF generation)
+    // If website URL provided (q2), trigger audit and wait for completion before generating PDF
     const websiteUrl = rawBodyForExtraction.q2;
+    let auditDataForPDF: any = {
+      status: "not_requested",
+      websiteUrl: null,
+      results: null,
+      error: null,
+    };
+
     if (websiteUrl && typeof websiteUrl === "string" && websiteUrl.trim()) {
       try {
         // Store website URL in database
@@ -327,86 +336,100 @@ export async function POST(req: NextRequest) {
             }
           });
 
-        // Trigger audit BEFORE PDF generation to ensure audit_status exists
-        const baseUrl = process.env.NEXT_PUBLIC_URL || 
-                       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-        
-        await logger.info("Triggering audit before PDF generation", {
+        // Validate and normalize URL
+        const normalizedUrl = normalizeUrl(websiteUrl.trim());
+        if (!isValidUrl(normalizedUrl)) {
+          throw new Error(`Invalid URL format: ${websiteUrl.trim()}`);
+        }
+
+        await logger.info("Starting audit before PDF generation", {
           responseId,
-          websiteUrl: websiteUrl.trim(),
+          websiteUrl: normalizedUrl,
         });
 
-        // Fire-and-forget: trigger audit without awaiting completion
-        // But we await the initial POST to ensure status is set
-        void fetch(`${baseUrl}/api/audit-website`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            questionnaireResponseId: responseId,
-            websiteUrl: websiteUrl.trim(),
-          }),
-        }).then(async (res) => {
-          await logger.info("Audit trigger response", {
-            responseId,
-            status: res.status,
-            statusText: res.statusText,
-          });
-        }).catch((err) => {
-          console.error('[Questionnaire] Audit trigger failed (non-blocking)', err);
-          void logger.error("Audit trigger failed", {
-            responseId,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        });
+        // Call audit service directly and wait for completion
+        // This ensures the audit completes before PDF generation
+        try {
+          await auditWebsiteAsync(responseId, normalizedUrl);
+          
+          // Fetch completed audit results
+          const supabase = await getSupabaseClient();
+          const { data: auditResponse, error: auditQueryError } = await (supabase as any)
+            .from("questionnaire_responses")
+            .select("audit_results, audit_status, audit_error, audit_completed_at, website_url")
+            .eq("id", responseId)
+            .single();
+          
+          if (auditQueryError) {
+            throw new Error(`Failed to fetch audit results: ${auditQueryError.message}`);
+          }
 
-        // Small delay to allow audit_status to be set to "pending"
-        await new Promise(resolve => setTimeout(resolve, 100));
+          if (auditResponse) {
+            if (auditResponse.audit_status === "completed" && auditResponse.audit_results) {
+              auditDataForPDF = {
+                status: "completed",
+                websiteUrl: auditResponse.website_url || normalizedUrl,
+                results: auditResponse.audit_results,
+                error: null,
+              };
+              await logger.info("Audit completed successfully", {
+                responseId,
+                hasResults: !!auditResponse.audit_results,
+              });
+            } else if (auditResponse.audit_status === "failed") {
+              auditDataForPDF = {
+                status: "failed",
+                websiteUrl: auditResponse.website_url || normalizedUrl,
+                results: auditResponse.audit_results || null,
+                error: auditResponse.audit_error || "Audit failed",
+              };
+              await logger.info("Audit failed", {
+                responseId,
+                error: auditResponse.audit_error,
+              });
+            } else {
+              // Still pending/running (shouldn't happen if we awaited)
+              auditDataForPDF = {
+                status: auditResponse.audit_status || "running",
+                websiteUrl: auditResponse.website_url || normalizedUrl,
+                results: null,
+                error: null,
+              };
+              await logger.info("Audit still in progress", {
+                responseId,
+                status: auditResponse.audit_status,
+              });
+            }
+          }
+        } catch (auditError) {
+          // Audit failed - set error status but don't block PDF generation
+          await logger.error("Audit execution failed", {
+            responseId,
+            error: auditError instanceof Error ? auditError.message : String(auditError),
+          });
+          
+          auditDataForPDF = {
+            status: "failed",
+            websiteUrl: normalizedUrl,
+            results: null,
+            error: auditError instanceof Error ? auditError.message : "Audit failed",
+          };
+        }
       } catch (auditTriggerError) {
         // Don't fail PDF generation if audit trigger fails
-        await logger.error("Failed to trigger website audit", {
+        await logger.error("Failed to trigger or wait for website audit", {
           responseId,
           error: auditTriggerError instanceof Error ? auditTriggerError.message : String(auditTriggerError),
         });
-      }
-    }
-
-    // STEP 3b: FETCH AUDIT DATA FOR PDF (after trigger, so status should exist)
-    // Build auditDataForPDF defensively - always return an object with status
-    let auditDataForPDF: any = {
-      status: "pending",
-      websiteUrl: websiteUrl && typeof websiteUrl === "string" ? websiteUrl.trim() : null,
-      results: null,
-      error: null,
-    };
-
-    try {
-      const supabase = await getSupabaseClient();
-      const { data: auditResponse, error: auditQueryError } = await (supabase as any)
-        .from("questionnaire_responses")
-        .select("audit_results, audit_status, audit_error, website_url")
-        .eq("id", responseId)
-        .single();
-      
-      if (auditQueryError) {
-        await logger.info("Could not fetch audit data for PDF", {
-          responseId,
-          error: auditQueryError.message,
-        });
-      } else if (auditResponse) {
-        // Build auditData object defensively - always include status
+        
+        // Set audit data to indicate error
         auditDataForPDF = {
-          status: auditResponse.audit_status || "pending",
-          websiteUrl: auditResponse.website_url || websiteUrl || null,
-          results: auditResponse.audit_results || null,
-          error: auditResponse.audit_error || null,
+          status: "failed",
+          websiteUrl: websiteUrl.trim(),
+          results: null,
+          error: auditTriggerError instanceof Error ? auditTriggerError.message : "Failed to trigger audit",
         };
       }
-    } catch (auditFetchError) {
-      // Don't fail PDF generation if audit fetch fails
-      await logger.info("Could not fetch audit data for PDF (audit may still be running)", {
-        responseId,
-        error: auditFetchError instanceof Error ? auditFetchError.message : String(auditFetchError),
-      });
     }
 
     let pdfBuffer: Buffer | null = null;

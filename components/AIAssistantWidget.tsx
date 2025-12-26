@@ -11,7 +11,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, X, Minimize2 } from 'lucide-react';
+import { Send, Loader2, MessageSquare, X, Minimize2 } from 'lucide-react';
 import type { AIMessage } from '@/types/ai-assistant';
 
 export function AIAssistantWidget() {
@@ -321,14 +321,7 @@ export function AIAssistantWidget() {
           aria-label="Open AI Assistant chat"
           aria-expanded="false"
         >
-          <Image
-            src="/images/ai-chat-icon.jpg"
-            alt=""
-            width={24}
-            height={24}
-            className="mx-auto"
-            aria-hidden="true"
-          />
+          <MessageSquare className="h-6 w-6 mx-auto" aria-hidden="true" />
           <span className="sr-only">Open chat</span>
         </button>
       )}

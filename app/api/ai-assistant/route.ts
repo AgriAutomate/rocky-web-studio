@@ -163,6 +163,19 @@ export async function POST(request: NextRequest) {
           );
           controller.close();
         } catch (error) {
+          // Log detailed error information
+          const errorDetails = {
+            message: error instanceof Error ? error.message : String(error),
+            name: error instanceof Error ? error.name : 'Unknown',
+            stack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString(),
+            conversationId,
+            messageCount: messages.length,
+            clientIP,
+          };
+          
+          console.error('[AI Assistant] Stream error:', errorDetails);
+
           // Log error to Sentry
           Sentry.captureException(error, {
             tags: {
@@ -172,6 +185,7 @@ export async function POST(request: NextRequest) {
             extra: {
               conversationId,
               messageCount: messages.length,
+              errorDetails,
             },
           });
 

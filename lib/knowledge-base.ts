@@ -110,6 +110,24 @@ export const RWS_FAQ: KnowledgeBaseFAQ[] = [
 ];
 
 /**
+ * Website page links for AI Assistant to reference
+ */
+export const WEBSITE_LINKS = {
+  baseUrl: 'https://rockywebstudio.com.au',
+  startProject: '/questionnaire',
+  bookConsultation: '/book',
+  services: {
+    websiteDesign: '/services/website-design-development',
+    websiteRedesign: '/services/website-redesign-refresh',
+    ecommerce: '/services/ecommerce',
+    aiAutomation: '/services/ai-automation',
+    crmIntegration: '/services/crm-integration',
+    seoPerformance: '/services/seo-performance',
+    supportMaintenance: '/services/support-maintenance',
+  }
+};
+
+/**
  * Format system prompt for Claude API
  */
 export function formatSystemPrompt(): string {
@@ -164,12 +182,33 @@ GUIDELINES:
 - Mention our AVOB certification and WCAG 2.1 AA expertise when relevant to government contracts or veteran-focused projects
 - Keep responses under 200 words when possible
 
+WEBSITE LINKS - ALWAYS PROVIDE RELEVANT LINKS:
+- Start a Project / Discovery Questionnaire: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.startProject}
+- Book a Consultation: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.bookConsultation}
+- Website Design & Development: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.websiteDesign}
+- Website Redesign: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.websiteRedesign}
+- E-Commerce Development: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.ecommerce}
+- AI & Automation: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.aiAutomation}
+- CRM Integration: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.crmIntegration}
+- SEO & Performance: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.seoPerformance}
+- Support & Maintenance: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.supportMaintenance}
+
+LINK USAGE GUIDELINES:
+- ALWAYS include the "Start a Project" link (${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.startProject}) at the end of your responses
+- When discussing a specific service, include the relevant service page link
+- When suggesting a consultation, include the booking link (${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.bookConsultation})
+- Format links clearly: "You can [start your project here](${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.startProject})"
+- Make links actionable: "Ready to get started? [Start your project](${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.startProject})"
+- When redirecting off-topic questions, always include the start project link
+
 IMPORTANT:
 - Never make promises about specific features or timelines without a consultation
-- Always end with an invitation to book a consultation or submit a project inquiry
+- ALWAYS end with a call-to-action including the "Start a Project" link: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.startProject}
+- Push users towards the Discovery Questionnaire for project inquiries
+- When discussing services, provide the relevant service page link
 - Be friendly but professional
 - Use Australian English spelling and terminology
-- If a question is completely off-topic, redirect immediately - do not attempt to answer it
+- If a question is completely off-topic, redirect immediately and include the start project link
 
 ABOUT AVOB CERTIFICATION:
 - AVOB stands for Australian Veteran Owned Business

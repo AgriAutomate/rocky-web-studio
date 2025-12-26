@@ -113,24 +113,24 @@ export default function ValuePropositionPage() {
 
             <div className="bg-white p-8 rounded-lg shadow-sm">
               <div className="flex items-center gap-3 mb-4">
-                <div className="text-3xl">🎯</div>
-                <h3 className="text-2xl font-bold" style={{ color: '#208084' }}>71–92% Margins</h3>
+                <div className="text-3xl">💰</div>
+                <h3 className="text-2xl font-bold" style={{ color: '#208084' }}>One-Time Investment</h3>
               </div>
               <p className="text-gray-700 mb-4">
-                Our reusable AI template means we can deliver premium features at competitive prices. You get enterprise-quality AI without enterprise pricing.
+                Pay once, own forever. No monthly subscriptions, no platform fees, no lock-in. Your custom AI assistant is yours to keep and scale.
               </p>
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
-                  <span>DIY AI chatbot: A$300–A$500/month (generic)</span>
+                  <span>One-time cost: A$3,500–A$5,000 (vs. A$300–A$500/month elsewhere)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
-                  <span>RWS custom AI: A$3,500–A$5,000 one-time</span>
+                  <span>No recurring fees or subscriptions</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
-                  <span>Break-even in 7–10 months, then pure savings</span>
+                  <span>Custom-built for your brand (not generic templates)</span>
                 </div>
               </div>
             </div>

@@ -62,6 +62,14 @@ export function HeroSection() {
                 >
                   <Link href="#services">View capabilities</Link>
                 </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="ghost"
+                  className="text-brand-foreground hover:bg-brand-foreground/10 font-medium underline-offset-4 hover:underline"
+                >
+                  <Link href="/value-proposition">Why RWS?</Link>
+                </Button>
               </div>
             </div>
 

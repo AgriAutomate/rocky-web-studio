@@ -3,7 +3,7 @@
  * 
  * POST /api/ai-assistant
  * 
- * Provides AI-powered lead qualification chatbot using Claude 3.5 Sonnet API
+ * Provides AI-powered lead qualification chatbot using Claude 3 Haiku API
  * 
  * Features:
  * - Streaming responses for real-time UX

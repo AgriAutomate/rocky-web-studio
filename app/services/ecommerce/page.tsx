@@ -1,4 +1,5 @@
 import ServiceHero from "@/components/services/ServiceHero";
+import { getPricingTiers } from "@/lib/config/pricing";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
 import ServiceCtaBand from "@/components/services/ServiceCtaBand";
@@ -43,42 +44,8 @@ export default function EcommercePage() {
     },
   ];
 
-  const pricingTiers = [
-    {
-      name: "Basic Shop",
-      price: "$2,000",
-      description: "Perfect for small catalogs",
-      features: [
-        "Shopify theme customization",
-        "Up to 25 products",
-        "Payment + shipping setup",
-        "1 automation workflow",
-      ],
-    },
-    {
-      name: "Professional",
-      price: "$4,500",
-      description: "Growing stores with custom needs",
-      features: [
-        "Advanced merchandising",
-        "Custom sections & landing pages",
-        "Subscriptions or bundles",
-        "Analytics + reporting setup",
-      ],
-      highlighted: true,
-    },
-    {
-      name: "Custom Commerce",
-      price: "$8,000+",
-      description: "Headless or bespoke builds",
-      features: [
-        "Next.js storefront",
-        "ERP / fulfillment integrations",
-        "Complex catalogs & filters",
-        "Ongoing optimization support",
-      ],
-    },
-  ];
+  // Get pricing from centralized configuration
+  const pricingTiers = getPricingTiers('ecommerce');
 
   const process = [
     {

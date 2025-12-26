@@ -1,4 +1,5 @@
 import ServiceHero from "@/components/services/ServiceHero";
+import { getPricingTiers } from "@/lib/config/pricing";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
 import ServiceCtaBand from "@/components/services/ServiceCtaBand";
@@ -43,42 +44,8 @@ export default function SeoPerformancePage() {
     },
   ];
 
-  const pricingTiers = [
-    {
-      name: "SEO Audit",
-      price: "$800",
-      description: "Technical deep dive + prioritized roadmap",
-      features: [
-        "Full site crawl & Core Web Vitals report",
-        "SEO scorecard + competitor review",
-        "Prioritized backlog of fixes",
-        "Review workshop",
-      ],
-    },
-    {
-      name: "Full Optimization",
-      price: "$2,500",
-      description: "We implement the critical improvements",
-      features: [
-        "Core Web Vitals remediation",
-        "Structured data + metadata updates",
-        "Performance budget setup",
-        "Analytics + reporting configuration",
-      ],
-      highlighted: true,
-    },
-    {
-      name: "Ongoing",
-      price: "$5,000+",
-      description: "Monthly technical SEO & performance support",
-      features: [
-        "Continuous monitoring",
-        "Content collaboration",
-        "Quarterly strategy reviews",
-        "Dedicated Slack + support hours",
-      ],
-    },
-  ];
+  // Get pricing from centralized configuration
+  const pricingTiers = getPricingTiers('seo-performance');
 
   const process = [
     {

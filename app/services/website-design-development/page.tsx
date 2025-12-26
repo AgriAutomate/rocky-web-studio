@@ -2,6 +2,7 @@ import ServiceHero from "@/components/services/ServiceHero";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
 import ServiceCtaBand from "@/components/services/ServiceCtaBand";
+import { getPricingTiers } from "@/lib/config/pricing";
 
 export default function WebsiteDesignPage() {
   const features = [
@@ -41,50 +42,8 @@ export default function WebsiteDesignPage() {
     },
   ];
 
-  const pricingTiers = [
-    {
-      name: "Starter Site",
-      price: "$2,500",
-      description: "Perfect for new businesses",
-      features: [
-        "5 custom pages",
-        "Responsive design",
-        "Contact forms",
-        "Basic SEO setup",
-        "CMS integration",
-        "2 rounds of revisions",
-      ],
-    },
-    {
-      name: "Professional",
-      price: "$5,000",
-      description: "Most popular choice",
-      features: [
-        "10 custom pages",
-        "Advanced animations",
-        "Blog/news system",
-        "Advanced SEO",
-        "Analytics setup",
-        "3 rounds of revisions",
-        "30 days post-launch support",
-      ],
-      highlighted: true,
-    },
-    {
-      name: "Enterprise",
-      price: "$10,000+",
-      description: "For complex projects",
-      features: [
-        "15+ custom pages",
-        "Custom functionality",
-        "Multi-language support",
-        "Advanced integrations",
-        "Performance optimization",
-        "Unlimited revisions",
-        "90 days post-launch support",
-      ],
-    },
-  ];
+  // Get pricing from centralized configuration
+  const pricingTiers = getPricingTiers('website-design-development');
 
   return (
     <>

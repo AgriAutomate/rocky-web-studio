@@ -1,4 +1,5 @@
 import ServiceHero from "@/components/services/ServiceHero";
+import { getPricingTiers } from "@/lib/config/pricing";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
 import ServiceCtaBand from "@/components/services/ServiceCtaBand";
@@ -43,42 +44,8 @@ export default function AiAutomationPage() {
     },
   ];
 
-  const pricingTiers = [
-    {
-      name: "Chatbot Setup",
-      price: "$1,500",
-      description: "Launch a helpful assistant fast",
-      features: [
-        "Tool selection + configuration",
-        "Knowledge base mapping",
-        "Brand styling + embed",
-        "Team training session",
-      ],
-    },
-    {
-      name: "Automation Suite",
-      price: "$3,500",
-      description: "Multiple workflows & hand-offs",
-      features: [
-        "Process mapping workshop",
-        "3–5 automations implemented",
-        "Documentation + runbooks",
-        "30 days of support",
-      ],
-      highlighted: true,
-    },
-    {
-      name: "Bespoke AI",
-      price: "Custom",
-      description: "Advanced integrations or LLM projects",
-      features: [
-        "Stakeholder workshops",
-        "Solution architecture",
-        "Partner coordination",
-        "Measurement + iteration plan",
-      ],
-    },
-  ];
+  // Get pricing from centralized configuration
+  const pricingTiers = getPricingTiers('ai-automation');
 
   const process = [
     {

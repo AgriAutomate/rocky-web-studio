@@ -2,6 +2,7 @@ import ServiceHero from "@/components/services/ServiceHero";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
 import ServiceCtaBand from "@/components/services/ServiceCtaBand";
+import { getPricingTiers } from "@/lib/config/pricing";
 
 export default function CustomSongsPage() {
   const features = [
@@ -25,48 +26,8 @@ export default function CustomSongsPage() {
     },
   ];
 
-  const pricingTiers = [
-    {
-      name: "Standard Occasion",
-      price: "$29",
-      description: "Perfect for personal occasions (3-5 days)",
-      features: [
-        "Single custom song",
-        "MP3 + lyric sheet",
-        "2 revision rounds",
-        "Basic consultation",
-      ],
-      packageValue: "standard",
-      orderLink: "/services/custom-songs/order?package=standard",
-    },
-    {
-      name: "Express Personal",
-      price: "$49",
-      description: "Fast delivery for urgent needs (24-48 hours)",
-      features: [
-        "Single custom song",
-        "MP3 format",
-        "1 revision round",
-        "Priority processing",
-      ],
-      packageValue: "express",
-      orderLink: "/services/custom-songs/order?package=express",
-    },
-    {
-      name: "Wedding Trio",
-      price: "$149",
-      description: "Complete wedding package (5-7 days)",
-      features: [
-        "3 custom songs",
-        "MP3 + WAV formats",
-        "3 revision rounds",
-        "Extended consultation",
-      ],
-      highlighted: true,
-      packageValue: "wedding",
-      orderLink: "/services/custom-songs/order?package=wedding",
-    },
-  ];
+  // Get pricing from centralized configuration
+  const pricingTiers = getPricingTiers('custom-songs');
 
   const portfolio = [
     { title: "Wheel of Fortune (McFlys Vindication)", occasion: "Personal", genre: "Liquid DnB", videoUrl: "/wheel-of-fortune.mp4" },

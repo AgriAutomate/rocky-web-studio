@@ -1,4 +1,5 @@
 import ServiceHero from "@/components/services/ServiceHero";
+import { getPricingTiers } from "@/lib/config/pricing";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
 import ServiceCtaBand from "@/components/services/ServiceCtaBand";
@@ -43,42 +44,8 @@ export default function CrmIntegrationPage() {
     },
   ];
 
-  const pricingTiers = [
-    {
-      name: "Basic Integration",
-      price: "$1,200",
-      description: "Ideal for linking a new form to your CRM",
-      features: [
-        "Form + webhook configuration",
-        "Field mapping & validation",
-        "Lead notifications",
-        "Documentation handoff",
-      ],
-    },
-    {
-      name: "Advanced Routing",
-      price: "$2,500",
-      description: "Full lead workflows and automations",
-      features: [
-        "Multi-source lead capture",
-        "Routing + scoring logic",
-        "Slack/email alert setup",
-        "Analytics dashboard",
-      ],
-      highlighted: true,
-    },
-    {
-      name: "Enterprise RevOps",
-      price: "$5,000+",
-      description: "Complex pipelines or multi-team deployments",
-      features: [
-        "Custom API + middleware",
-        "Attribution + reporting suite",
-        "Sales enablement assets",
-        "Launch + training support",
-      ],
-    },
-  ];
+  // Get pricing from centralized configuration
+  const pricingTiers = getPricingTiers('crm-integration');
 
   const process = [
     {

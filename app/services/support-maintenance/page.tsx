@@ -1,4 +1,5 @@
 import ServiceHero from "@/components/services/ServiceHero";
+import { getPricingTiers } from "@/lib/config/pricing";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
 import ServiceCtaBand from "@/components/services/ServiceCtaBand";
@@ -43,42 +44,8 @@ export default function SupportMaintenancePage() {
     },
   ];
 
-  const pricingTiers = [
-    {
-      name: "Basic",
-      price: "$200/mo",
-      description: "Small sites needing essential care",
-      features: [
-        "Security & plugin updates",
-        "Monthly backups",
-        "Email support",
-        "2 hours of requests",
-      ],
-    },
-    {
-      name: "Professional",
-      price: "$500/mo",
-      description: "Most popular retainer",
-      features: [
-        "Weekly updates & monitoring",
-        "Content edits + landing pages",
-        "Shared Slack channel",
-        "6 hours of requests",
-      ],
-      highlighted: true,
-    },
-    {
-      name: "Enterprise",
-      price: "$1,000+/mo",
-      description: "High-touch support for complex stacks",
-      features: [
-        "Priority on-call support",
-        "Custom SLA & escalation",
-        "Dedicated engineer time",
-        "10+ hours of requests",
-      ],
-    },
-  ];
+  // Get pricing from centralized configuration
+  const pricingTiers = getPricingTiers('support-maintenance');
 
   const process = [
     {

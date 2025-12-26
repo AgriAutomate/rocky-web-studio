@@ -1,4 +1,5 @@
 import ServiceHero from "@/components/services/ServiceHero";
+import { getPricingTiers } from "@/lib/config/pricing";
 import ServiceFeatures from "@/components/services/ServiceFeatures";
 import ServicePricing from "@/components/services/ServicePricing";
 import ServiceCtaBand from "@/components/services/ServiceCtaBand";
@@ -43,42 +44,8 @@ export default function WebsiteRedesignPage() {
     },
   ];
 
-  const pricingTiers = [
-    {
-      name: "Starter Refresh",
-      price: "$1,500",
-      description: "Visual updates, mobile optimization",
-      features: [
-        "Homepage + key template refresh",
-        "Responsive tuning",
-        "Lightweight performance fixes",
-        "Style guide updates",
-      ],
-    },
-    {
-      name: "Professional Redesign",
-      price: "$3,500",
-      description: "Full redesign, code cleanup",
-      features: [
-        "Comprehensive design system",
-        "Component-level refactor",
-        "Accessibility + SEO improvements",
-        "Launch playbook & training",
-      ],
-      highlighted: true,
-    },
-    {
-      name: "Complete Rebuild",
-      price: "$6,000+",
-      description: "Modern tech stack migration",
-      features: [
-        "New Next.js or React build",
-        "API and CMS integrations",
-        "Content migration support",
-        "Post-launch monitoring",
-      ],
-    },
-  ];
+  // Get pricing from centralized configuration
+  const pricingTiers = getPricingTiers('website-redesign-refresh');
 
   const process = [
     {

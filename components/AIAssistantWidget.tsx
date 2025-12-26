@@ -9,8 +9,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, MessageSquare, X, Minimize2 } from 'lucide-react';
+import { Send, Loader2, X, Minimize2 } from 'lucide-react';
 import type { AIMessage } from '@/types/ai-assistant';
 
 export function AIAssistantWidget() {
@@ -320,7 +321,14 @@ export function AIAssistantWidget() {
           aria-label="Open AI Assistant chat"
           aria-expanded="false"
         >
-          <MessageSquare className="h-6 w-6 mx-auto" aria-hidden="true" />
+          <Image
+            src="/images/ai-chat-icon.jpg"
+            alt=""
+            width={24}
+            height={24}
+            className="mx-auto"
+            aria-hidden="true"
+          />
           <span className="sr-only">Open chat</span>
         </button>
       )}
@@ -340,7 +348,14 @@ export function AIAssistantWidget() {
         >
           {/* Header */}
           <div className="flex items-center gap-2 p-4 border-b border-border bg-muted/50 rounded-t-lg">
-            <MessageSquare className="h-5 w-5 text-primary" aria-hidden="true" />
+            <Image
+              src="/images/ai-chat-icon.jpg"
+              alt=""
+              width={20}
+              height={20}
+              className="flex-shrink-0"
+              aria-hidden="true"
+            />
             <h2 className="text-lg font-semibold text-foreground flex-1">
               AI Assistant
             </h2>
@@ -385,8 +400,12 @@ export function AIAssistantWidget() {
               >
                 {messages.length === 0 && (
                   <div className="text-center text-muted-foreground py-8">
-                    <MessageSquare
-                      className="h-12 w-12 mx-auto mb-4 opacity-50"
+                    <Image
+                      src="/images/ai-chat-icon.jpg"
+                      alt=""
+                      width={48}
+                      height={48}
+                      className="mx-auto mb-4 opacity-50"
                       aria-hidden="true"
                     />
                     <p className="text-sm">

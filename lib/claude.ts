@@ -1,7 +1,7 @@
 /**
  * Claude API Integration
  * 
- * Provides streaming chat responses using Claude 3.5 Sonnet API
+ * Provides streaming chat responses using Claude 3 Haiku API
  */
 
 import Anthropic from '@anthropic-ai/sdk';

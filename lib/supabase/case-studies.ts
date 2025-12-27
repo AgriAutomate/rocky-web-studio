@@ -109,11 +109,12 @@ export async function createCaseStudy(
 ): Promise<CaseStudy> {
   const supabase = createServerSupabaseClient(true); // Service role for admin
   
+  const { images, ...restCaseStudy } = caseStudy;
   const { data, error } = await supabase
     .from('case_studies')
     .insert({
-      ...caseStudy,
-      images: caseStudy.images ? (caseStudy.images as any) : undefined,
+      ...restCaseStudy,
+      images: images ? (images as any) : undefined,
       created_by: userId || undefined,
       updated_by: userId || undefined,
     })
@@ -135,13 +136,14 @@ export async function updateCaseStudy(
   const supabase = createServerSupabaseClient(true); // Service role for admin
   
   // Remove id from updates (it's in the function parameter)
-  const { id: _, ...updateData } = updates;
+  // Extract images separately to handle type casting
+  const { id: _, images, ...restUpdateData } = updates;
   
   const { data, error } = await supabase
     .from('case_studies')
     .update({
-      ...updateData,
-      images: updateData.images ? (updateData.images as any) : undefined,
+      ...restUpdateData,
+      images: images ? (images as any) : undefined,
       updated_at: new Date().toISOString(),
       updated_by: userId || undefined,
     })

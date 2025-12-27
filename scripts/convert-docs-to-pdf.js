@@ -66,8 +66,17 @@ async function convertDoc(inputFile, description) {
       return null;
     }
 
-    // Generate output filename
-    const outputPath = inputPath.replace(/\.md$/, '.pdf');
+    // Generate output filename - place PDFs in docs/README/ folder
+    const inputDir = path.dirname(inputPath);
+    const inputBasename = path.basename(inputPath, '.md');
+    const readmeDir = path.join(inputDir, 'README');
+    
+    // Create README directory if it doesn't exist
+    if (!fs.existsSync(readmeDir)) {
+      fs.mkdirSync(readmeDir, { recursive: true });
+    }
+    
+    const outputPath = path.join(readmeDir, `${inputBasename}.pdf`);
     
     // Check if PDF already exists and is newer
     if (fs.existsSync(outputPath)) {

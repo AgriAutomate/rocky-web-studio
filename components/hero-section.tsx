@@ -12,8 +12,9 @@ export function HeroSection() {
             <Image
               src="/images/rws-logo-transparent.png"
               alt=""
-              width={200}
-              height={200}
+              width={192}
+              height={192}
+              sizes="(max-width: 768px) 128px, (max-width: 1024px) 160px, 192px"
               className="w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 object-contain mix-blend-multiply opacity-95"
               priority
             />

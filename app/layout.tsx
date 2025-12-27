@@ -102,7 +102,12 @@ export default function RootLayout({
         <Navigation />
         <BackButton />
         {children}
-        {gaMeasurementId && <GoogleAnalytics gaId={gaMeasurementId} />}
+        {gaMeasurementId && (
+          <GoogleAnalytics 
+            gaId={gaMeasurementId}
+            strategy="afterInteractive"
+          />
+        )}
         <AIAssistantWidget />
       </body>
     </html>

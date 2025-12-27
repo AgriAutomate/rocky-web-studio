@@ -38,8 +38,9 @@ export function CustomSongsBanner() {
             <Link
               href="/services/custom-songs"
               className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-md transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              aria-label="Learn more about custom AI songs service"
             >
-              Learn More
+              Learn More About Custom Songs
               <ArrowRight className="size-4" />
             </Link>
             <Link

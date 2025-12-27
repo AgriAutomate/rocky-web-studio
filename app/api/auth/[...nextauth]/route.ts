@@ -18,6 +18,9 @@ const MAX_ATTEMPTS = 5;
 const ATTEMPT_WINDOW_SECONDS = 15 * 60; // 15 minutes
 const BLOCK_SECONDS = 30 * 60; // 30 minutes
 
+// Check if KV is configured
+const isKvConfigured = !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
+
 function getClientIp(request: NextRequest): string | null {
   const ip = getClientIpUtil(request);
   return ip === "unknown" ? null : ip;
@@ -39,59 +42,99 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse;
     }
 
-    // Legacy block check (keep for backward compatibility)
-    const now = Date.now();
-    const blockedUntil = await kv.get<number>(BLOCK_KEY(ip));
+    // Legacy block check (keep for backward compatibility) - only if KV is configured
+    if (isKvConfigured) {
+      try {
+        const now = Date.now();
+        const blockedUntil = await kv.get<number>(BLOCK_KEY(ip));
 
-    if (blockedUntil && blockedUntil > now) {
-      authLogger.warn("Blocked sign-in attempt due to legacy rate limit", {
-        ip,
-        blockedUntil,
-      });
-      return NextResponse.json(
-        { error: "Too many failed login attempts. Please try again later." },
-        { 
-          status: 429,
-          headers: {
-            "Retry-After": Math.ceil((blockedUntil - now) / 1000).toString(),
-          },
+        if (blockedUntil && blockedUntil > now) {
+          authLogger.warn("Blocked sign-in attempt due to legacy rate limit", {
+            ip,
+            blockedUntil,
+          });
+          return NextResponse.json(
+            { error: "Too many failed login attempts. Please try again later." },
+            { 
+              status: 429,
+              headers: {
+                "Retry-After": Math.ceil((blockedUntil - now) / 1000).toString(),
+              },
+            }
+          );
         }
-      );
+      } catch (error: any) {
+        // Log KV error but don't block the request
+        authLogger.warn("KV error in legacy block check, continuing", {
+          error: error?.message,
+          ip,
+        });
+      }
     }
   }
 
-  const response = await handlers.POST!(request);
+  let response: Response;
+  try {
+    if (!handlers.POST) {
+      authLogger.error("NextAuth POST handler is not available");
+      return NextResponse.json(
+        { error: "Authentication service not configured. Please contact support." },
+        { status: 500 }
+      );
+    }
+    response = await handlers.POST(request);
+  } catch (error: any) {
+    authLogger.error("Error in NextAuth handler", {
+      error: error?.message,
+      stack: error?.stack,
+      path: request.nextUrl.pathname,
+    });
+    // Return a proper error response instead of throwing
+    return NextResponse.json(
+      { error: "Authentication service error. Please try again." },
+      { status: 500 }
+    );
+  }
 
-  if (isSigninPath && ip) {
+  if (isSigninPath && ip && isKvConfigured) {
     const status = response.status;
     const success = status >= 200 && status < 300;
 
-    if (success) {
-      // Clear any previous attempts and blocks
-      await kv.del(ATTEMPTS_KEY(ip));
-      await kv.del(BLOCK_KEY(ip));
-      authLogger.info("Successful sign-in, cleared rate limit counters", {
-        ip,
-      });
-    } else {
-      const attempts = await kv.incr(ATTEMPTS_KEY(ip));
-      // Ensure TTL window is applied
-      await kv.expire(ATTEMPTS_KEY(ip), ATTEMPT_WINDOW_SECONDS);
-
-      authLogger.warn("Failed admin login attempt", {
-        ip,
-        attempts,
-        status,
-      });
-
-      if (attempts >= MAX_ATTEMPTS) {
-        const blockUntil = Date.now() + BLOCK_SECONDS * 1000;
-        await kv.set(BLOCK_KEY(ip), blockUntil, { ex: BLOCK_SECONDS });
-        authLogger.warn("IP temporarily blocked due to repeated failures", {
+    try {
+      if (success) {
+        // Clear any previous attempts and blocks
+        await kv.del(ATTEMPTS_KEY(ip));
+        await kv.del(BLOCK_KEY(ip));
+        authLogger.info("Successful sign-in, cleared rate limit counters", {
           ip,
-          blockUntil,
         });
+      } else {
+        const attempts = await kv.incr(ATTEMPTS_KEY(ip));
+        // Ensure TTL window is applied
+        await kv.expire(ATTEMPTS_KEY(ip), ATTEMPT_WINDOW_SECONDS);
+
+        authLogger.warn("Failed admin login attempt", {
+          ip,
+          attempts,
+          status,
+        });
+
+        if (attempts >= MAX_ATTEMPTS) {
+          const blockUntil = Date.now() + BLOCK_SECONDS * 1000;
+          await kv.set(BLOCK_KEY(ip), blockUntil, { ex: BLOCK_SECONDS });
+          authLogger.warn("IP temporarily blocked due to repeated failures", {
+            ip,
+            blockUntil,
+          });
+        }
       }
+    } catch (error: any) {
+      // Log KV error but don't affect the response
+      authLogger.warn("KV error in rate limit tracking, continuing", {
+        error: error?.message,
+        ip,
+        success,
+      });
     }
   }
 

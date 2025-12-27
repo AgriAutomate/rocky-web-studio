@@ -74,29 +74,44 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email = credentials?.email;
-        const password = credentials?.password;
+        try {
+          const email = credentials?.email;
+          const password = credentials?.password;
 
-        if (!email || !password) return null;
-        if (email !== ADMIN_EMAIL) return null;
+          if (!email || !password) {
+            authLogger.warn("Login attempt with missing credentials");
+            return null;
+          }
 
-        const adminPassword = process.env.ADMIN_PASSWORD;
-        if (!adminPassword) {
-          authLogger.error("ADMIN_PASSWORD environment variable is not set");
-          return null;
+          if (email !== ADMIN_EMAIL) {
+            authLogger.warn("Login attempt with incorrect email", { email });
+            return null;
+          }
+
+          const adminPassword = process.env.ADMIN_PASSWORD;
+          if (!adminPassword) {
+            authLogger.error("ADMIN_PASSWORD environment variable is not set");
+            // Don't return null here - throw error so it's visible
+            throw new Error("Server configuration error: ADMIN_PASSWORD not set");
+          }
+
+          if (password !== adminPassword) {
+            authLogger.warn("Login attempt with incorrect password");
+            return null;
+          }
+
+          authLogger.info("Successful admin login");
+          // Minimal admin user object
+          return {
+            id: "admin",
+            email: ADMIN_EMAIL,
+            name: "Rocky Web Studio Admin",
+            role: "admin",
+          };
+        } catch (error: any) {
+          authLogger.error("Error in authorize function", { error: error?.message });
+          throw error; // Re-throw to surface the error
         }
-
-        if (password !== adminPassword) {
-          return null;
-        }
-
-        // Minimal admin user object
-        return {
-          id: "admin",
-          email: ADMIN_EMAIL,
-          name: "Rocky Web Studio Admin",
-          role: "admin",
-        };
       },
     }),
   ],

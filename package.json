@@ -20,7 +20,8 @@
     "migrate:chat:verify": "node scripts/migrate-ai-chat.js verify",
     "pdf": "node scripts/generate-pdf.js",
     "pdf:ai-assistant": "node scripts/generate-pdf.js case-studies/ai-assistant/case-study.md",
-    "pdf:accessibility": "node scripts/generate-pdf.js case-studies/accessibility/case-study-complete.md"
+    "pdf:accessibility": "node scripts/generate-pdf.js case-studies/accessibility/case-study-complete.md",
+    "pdf:docs": "node scripts/convert-docs-to-pdf.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

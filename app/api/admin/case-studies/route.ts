@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CaseStudyCreate = await request.json();
-    const userId = session.user?.id || null;
+    const userId = session.user?.id || undefined;
 
     // Validate required fields
     if (!body.title || !body.slug) {

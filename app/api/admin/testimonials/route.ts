@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: TestimonialCreate = await request.json();
-    const userId = session.user?.id || null;
+    const userId = session.user?.id || undefined;
 
     // Validate required fields
     if (!body.client_name || !body.content) {

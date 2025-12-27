@@ -60,7 +60,7 @@ export async function PUT(
 
     const { id } = await params;
     const body: TestimonialUpdate = await request.json();
-    const userId = session.user?.id || null;
+    const userId = session.user?.id || undefined;
 
     // Validate rating if provided
     if (body.rating !== undefined && (body.rating < 1 || body.rating > 5)) {

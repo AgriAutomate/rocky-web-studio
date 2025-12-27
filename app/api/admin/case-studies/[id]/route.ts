@@ -60,7 +60,7 @@ export async function PUT(
 
     const { id } = await params;
     const body: CaseStudyUpdate = await request.json();
-    const userId = session.user?.id || null;
+    const userId = session.user?.id || undefined;
 
     // Set published_at if status is being changed to published
     if (body.status === "published" && !body.published_at) {

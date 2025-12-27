@@ -106,6 +106,102 @@ export type Database = {
           },
         ]
       }
+      case_studies: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          excerpt: string | null
+          content: Json | null
+          category: string | null
+          featured: boolean | null
+          status: string | null
+          published_at: string | null
+          before_metrics: Json | null
+          after_metrics: Json | null
+          hero_image_url: string | null
+          images: Json | null
+          testimonial_text: string | null
+          testimonial_author: string | null
+          testimonial_company: string | null
+          testimonial_author_role: string | null
+          meta_title: string | null
+          meta_description: string | null
+          meta_keywords: string[] | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          excerpt?: string | null
+          content?: Json | null
+          category?: string | null
+          featured?: boolean | null
+          status?: string | null
+          published_at?: string | null
+          before_metrics?: Json | null
+          after_metrics?: Json | null
+          hero_image_url?: string | null
+          images?: Json | null
+          testimonial_text?: string | null
+          testimonial_author?: string | null
+          testimonial_company?: string | null
+          testimonial_author_role?: string | null
+          meta_title?: string | null
+          meta_description?: string | null
+          meta_keywords?: string[] | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          excerpt?: string | null
+          content?: Json | null
+          category?: string | null
+          featured?: boolean | null
+          status?: string | null
+          published_at?: string | null
+          before_metrics?: Json | null
+          after_metrics?: Json | null
+          hero_image_url?: string | null
+          images?: Json | null
+          testimonial_text?: string | null
+          testimonial_author?: string | null
+          testimonial_company?: string | null
+          testimonial_author_role?: string | null
+          meta_title?: string | null
+          meta_description?: string | null
+          meta_keywords?: string[] | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_studies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_studies_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversations: {
         Row: {
           ai_responses_count: number | null
@@ -831,6 +927,82 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          id: string
+          client_name: string
+          client_title: string | null
+          client_company: string | null
+          client_image_url: string | null
+          content: string
+          rating: number | null
+          service_type: string | null
+          case_study_id: string | null
+          published: boolean | null
+          display_order: number | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          client_name: string
+          client_title?: string | null
+          client_company?: string | null
+          client_image_url?: string | null
+          content: string
+          rating?: number | null
+          service_type?: string | null
+          case_study_id?: string | null
+          published?: boolean | null
+          display_order?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          client_name?: string
+          client_title?: string | null
+          client_company?: string | null
+          client_image_url?: string | null
+          content?: string
+          rating?: number | null
+          service_type?: string | null
+          case_study_id?: string | null
+          published?: boolean | null
+          display_order?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonials_case_study_id_fkey"
+            columns: ["case_study_id"]
+            isOneToOne: false
+            referencedRelation: "case_studies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "testimonials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "testimonials_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1001,3 +1173,13 @@ export type AIAssistantConversationUpdate = Database['public']['Tables']['ai_ass
 export type AIAssistantMessage = Database['public']['Tables']['ai_assistant_messages']['Row'];
 export type AIAssistantMessageInsert = Database['public']['Tables']['ai_assistant_messages']['Insert'];
 export type AIAssistantMessageUpdate = Database['public']['Tables']['ai_assistant_messages']['Update'];
+
+// Type helpers for Testimonials
+export type TestimonialRow = Database['public']['Tables']['testimonials']['Row'];
+export type TestimonialInsert = Database['public']['Tables']['testimonials']['Insert'];
+export type TestimonialUpdate = Database['public']['Tables']['testimonials']['Update'];
+
+// Type helpers for Case Studies
+export type CaseStudyRow = Database['public']['Tables']['case_studies']['Row'];
+export type CaseStudyInsert = Database['public']['Tables']['case_studies']['Insert'];
+export type CaseStudyUpdate = Database['public']['Tables']['case_studies']['Update'];

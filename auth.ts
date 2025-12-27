@@ -38,6 +38,11 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         nextToken.sessionId = `${base}-${Date.now()}`;
       }
 
+      // Include user role in token (from authorize function)
+      if (user?.role) {
+        nextToken.role = user.role;
+      }
+
       return nextToken;
     },
     async session({ session, token, user }) {
@@ -52,6 +57,12 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
       }
 
       (nextSession as any).sessionId = (token as any).sessionId;
+      
+      // Include role in session from token
+      if (token.role) {
+        (nextSession.user as any).role = token.role;
+      }
+
       return nextSession;
     },
   },

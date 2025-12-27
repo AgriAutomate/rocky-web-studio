@@ -74,6 +74,41 @@ export function createServerSupabaseClient(useServiceRole = false) {
     );
   }
 
+  // Validate URL format - project URLs must use .supabase.co (not .supabase.com)
+  try {
+    const url = new URL(supabaseUrl);
+    
+    // Check if URL uses .supabase.com (incorrect for project URLs)
+    if (url.hostname.includes('.supabase.com')) {
+      throw new Error(
+        `Invalid Supabase URL: Project URLs must use .supabase.co, not .supabase.com. ` +
+        `Found: ${supabaseUrl}. ` +
+        `Correct format: https://[project-id].supabase.co`
+      );
+    }
+    
+    // Verify it's a valid Supabase project URL
+    if (!url.hostname.includes('.supabase.co')) {
+      throw new Error(
+        `Invalid Supabase URL format: ${supabaseUrl}. ` +
+        `Expected format: https://[project-id].supabase.co`
+      );
+    }
+    
+    // Verify it's HTTPS
+    if (url.protocol !== 'https:') {
+      throw new Error(
+        `Invalid Supabase URL: Must use HTTPS. Found: ${supabaseUrl}`
+      );
+    }
+  } catch (e) {
+    // Re-throw our validation errors, but wrap URL parsing errors
+    if (e instanceof Error && e.message.includes('Invalid Supabase URL')) {
+      throw e;
+    }
+    throw new Error(`Invalid Supabase URL format: ${supabaseUrl}`);
+  }
+
   return createClient<Database>(supabaseUrl, key, {
     auth: {
       persistSession: false,

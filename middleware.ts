@@ -25,7 +25,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if ((isAdmin || isConsciousnessPage) && !isLoggedIn) {
+  // Check admin role for admin routes
+  if (isAdmin) {
+    if (!isLoggedIn) {
+      const loginUrl = new URL("/login", nextUrl.origin);
+      loginUrl.searchParams.set("callbackUrl", nextUrl.toString());
+      return NextResponse.redirect(loginUrl);
+    }
+    
+    // Check if user has admin role
+    const userRole = (session?.user as any)?.role;
+    if (userRole !== "admin") {
+      const loginUrl = new URL("/login", nextUrl.origin);
+      loginUrl.searchParams.set("error", "unauthorized");
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  if (isConsciousnessPage && !isLoggedIn) {
     const loginUrl = new URL("/login", nextUrl.origin);
     loginUrl.searchParams.set("callbackUrl", nextUrl.toString());
     return NextResponse.redirect(loginUrl);

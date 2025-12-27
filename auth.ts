@@ -76,6 +76,14 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
       },
       async authorize(credentials) {
         try {
+          // Check for required environment variables first
+          const adminPassword = process.env.ADMIN_PASSWORD;
+          if (!adminPassword) {
+            authLogger.error("[SERVER] ADMIN_PASSWORD environment variable is not set");
+            // Don't throw - return null to show proper error to user
+            return null;
+          }
+
           const email = credentials?.email;
           const password = credentials?.password;
 
@@ -86,13 +94,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
           if (email !== ADMIN_EMAIL) {
             authLogger.warn("Login attempt with incorrect email", { email });
-            return null;
-          }
-
-          const adminPassword = process.env.ADMIN_PASSWORD;
-          if (!adminPassword) {
-            authLogger.error("ADMIN_PASSWORD environment variable is not set");
-            // Return null instead of throwing to show proper error message
             return null;
           }
 
@@ -110,8 +111,12 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             role: "admin",
           };
         } catch (error: any) {
-          authLogger.error("Error in authorize function", { error: error?.message });
-          throw error; // Re-throw to surface the error
+          authLogger.error("[SERVER] Error in authorize function", { 
+            error: error?.message,
+            stack: error?.stack,
+          });
+          // Don't throw - return null to prevent configuration errors
+          return null;
         }
       },
     }),

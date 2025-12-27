@@ -27,6 +27,25 @@ function getClientIp(request: NextRequest): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  // Check for required NextAuth environment variables
+  const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!authSecret) {
+    authLogger.error("[SERVER] AUTH_SECRET or NEXTAUTH_SECRET is not set - this will cause authentication failures");
+    return NextResponse.json(
+      { error: "Server configuration error: AUTH_SECRET is missing. Please contact support." },
+      { status: 500 }
+    );
+  }
+
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    authLogger.error("[SERVER] ADMIN_PASSWORD is not set - this will cause login failures");
+    return NextResponse.json(
+      { error: "Server configuration error: ADMIN_PASSWORD is missing. Please contact support." },
+      { status: 500 }
+    );
+  }
+
   const ip = getClientIp(request);
   const isSigninPath = request.nextUrl.pathname.endsWith("/signin");
 

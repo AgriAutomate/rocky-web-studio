@@ -65,6 +65,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to update updated_at
+DROP TRIGGER IF EXISTS update_leads_updated_at ON leads;
 CREATE TRIGGER update_leads_updated_at
   BEFORE UPDATE ON leads
   FOR EACH ROW

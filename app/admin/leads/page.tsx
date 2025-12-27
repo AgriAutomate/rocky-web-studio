@@ -18,7 +18,6 @@ import {
   Calendar,
   Trash2,
   CheckCircle2,
-  XCircle,
   Clock,
   TrendingUp,
   UserX,

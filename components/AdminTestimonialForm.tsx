@@ -41,9 +41,9 @@ export function AdminTestimonialForm({
     client_company: "",
     client_image_url: "",
     content: "",
-    rating: null,
-    service_type: null,
-    case_study_id: null,
+    rating: undefined,
+    service_type: undefined,
+    case_study_id: undefined,
     published: false,
     display_order: 0,
   });
@@ -56,9 +56,9 @@ export function AdminTestimonialForm({
         client_company: testimonial.client_company || "",
         client_image_url: testimonial.client_image_url || "",
         content: testimonial.content,
-        rating: testimonial.rating || null,
-        service_type: testimonial.service_type || null,
-        case_study_id: testimonial.case_study_id || null,
+        rating: testimonial.rating || undefined,
+        service_type: testimonial.service_type || undefined,
+        case_study_id: testimonial.case_study_id || undefined,
         published: testimonial.published,
         display_order: testimonial.display_order,
       });
@@ -198,7 +198,7 @@ export function AdminTestimonialForm({
                 onValueChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    rating: value ? parseInt(value) : null,
+                    rating: value ? parseInt(value) : undefined,
                   }))
                 }
               >

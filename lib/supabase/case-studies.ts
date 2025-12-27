@@ -113,8 +113,9 @@ export async function createCaseStudy(
     .from('case_studies')
     .insert({
       ...caseStudy,
-      created_by: userId || null,
-      updated_by: userId || null,
+      images: caseStudy.images ? (caseStudy.images as any) : undefined,
+      created_by: userId || undefined,
+      updated_by: userId || undefined,
     })
     .select()
     .single();
@@ -140,8 +141,9 @@ export async function updateCaseStudy(
     .from('case_studies')
     .update({
       ...updateData,
+      images: updateData.images ? (updateData.images as any) : undefined,
       updated_at: new Date().toISOString(),
-      updated_by: userId || null,
+      updated_by: userId || undefined,
     })
     .eq('id', id)
     .select()
@@ -193,11 +195,19 @@ export async function getCaseStudiesByCategory(
 ): Promise<CaseStudy[]> {
   const supabase = createServerSupabaseClient(false);
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('case_studies')
     .select('*')
-    .eq('status', 'published')
-    .eq('category', category)
+    .eq('status', 'published');
+  
+  // Handle null category (filter for null categories)
+  if (category === null) {
+    query = query.is('category', null);
+  } else if (category) {
+    query = query.eq('category', category);
+  }
+  
+  const { data, error } = await query
     .order('published_at', { ascending: false });
   
   if (error) throw error;

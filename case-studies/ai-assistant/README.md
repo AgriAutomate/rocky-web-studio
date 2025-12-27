@@ -43,7 +43,19 @@ The case study covers:
 
 ## PDF Generation
 
-To generate a PDF version of the case study:
+### Method 1: NPM Script (Recommended)
+
+```bash
+# Generate PDF for AI Assistant case study
+npm run pdf:ai-assistant
+
+# Or use the generic command
+npm run pdf case-studies/ai-assistant/case-study.md
+```
+
+The PDF will be saved as `case-study.pdf` in the same directory.
+
+### Method 2: VS Code Extension
 
 1. Install "Markdown PDF" extension in VS Code (by yzane)
 2. Right-click `case-study.md`

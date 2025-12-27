@@ -53,7 +53,7 @@ export function Navigation() {
             ))}
             <Link
               href="/questionnaire"
-              className="bg-brand-foreground text-background px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-foreground/90 focus:outline-none focus:ring-2 focus:ring-brand-foreground focus:ring-offset-2 transition-colors"
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
             >
               Start a Project
             </Link>
@@ -123,7 +123,7 @@ export function Navigation() {
             ))}
             <Link
               href="/questionnaire"
-              className="block px-3 py-2 rounded-md text-base font-medium bg-brand-foreground text-background hover:bg-brand-foreground/90 focus:outline-none focus:ring-2 focus:ring-brand-foreground focus:ring-offset-2"
+              className="block px-3 py-2 rounded-md text-base font-medium bg-primary text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               onClick={() => setIsMenuOpen(false)}
             >
               Start a Project

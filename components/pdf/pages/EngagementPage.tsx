@@ -14,7 +14,6 @@ const styles = StyleSheet.create({
   timeline: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 30,
   },
   timelineItem: {
     display: 'flex',
@@ -57,7 +56,7 @@ export const EngagementPage = () => (
             { week: 'Week 7', desc: 'Testing & QA' },
             { week: 'Week 8', desc: 'Launch & Handover' },
           ].map((item, i) => (
-            <View key={i} style={styles.timelineItem}>
+            <View key={i} style={[styles.timelineItem, { marginBottom: i < 5 ? 25 : 0 }]}>
               <View style={styles.timelineLine} />
               <View style={styles.timelineContent}>
                 <Text style={styles.timelineWeek}>{item.week}</Text>

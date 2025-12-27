@@ -14,8 +14,15 @@ const styles = StyleSheet.create({
   pricingCard: {
     width: '32%',
     marginBottom: 20,
+    marginRight: '2%',
     border: `2px solid ${colors.primary}`,
-    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  pricingCardLast: {
+    width: '32%',
+    marginBottom: 20,
+    marginRight: 0,
+    border: `2px solid ${colors.primary}`,
     overflow: 'hidden',
   },
   cardHeader: {
@@ -56,10 +63,11 @@ interface PricingCardProps {
   title: string;
   price: string;
   features: string[];
+  isLast?: boolean;
 }
 
-const PricingCard = ({ title, price, features }: PricingCardProps) => (
-  <View style={styles.pricingCard}>
+const PricingCard = ({ title, price, features, isLast }: PricingCardProps) => (
+  <View style={isLast ? styles.pricingCardLast : styles.pricingCard}>
     <View style={styles.cardHeader}>
       <Text style={styles.cardHeaderText}>{title}</Text>
     </View>
@@ -110,6 +118,7 @@ export const PricingPage = () => (
           'Content updates',
           'Technical support',
         ]}
+        isLast
       />
     </View>
     

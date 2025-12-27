@@ -3,7 +3,7 @@
  * Capability Statement PDF
  */
 
-import { Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import { Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
 import { layout } from '../styles/layout';
@@ -11,51 +11,53 @@ import { layout } from '../styles/layout';
 const styles = StyleSheet.create({
   ...layout,
   ...typography,
+  logoContainer: {
+    marginBottom: 30,
+  },
   logo: {
     width: 120,
     height: 120,
-    position: 'absolute',
-    top: 40,
-    left: 40,
   },
   titleContainer: {
-    marginTop: 200,
-    marginBottom: 40,
+    marginTop: 20,
+    marginBottom: 30,
   },
   subtitle: {
     fontSize: 16,
     color: colors.text,
     textAlign: 'center',
     marginBottom: 40,
-    maxWidth: 700,
-    alignSelf: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 1.6,
   },
   credentials: {
     display: 'flex',
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 40,
-    marginTop: 40,
-    marginBottom: 40,
+    marginTop: 30,
+    marginBottom: 30,
   },
   credential: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 8,
-    width: 'auto',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    width: 120,
   },
   credentialIcon: {
-    width: 32,
-    height: 32,
+    fontSize: 32,
+    color: colors.primary,
+    marginBottom: 8,
   },
   credentialText: {
     fontSize: 14,
     color: colors.text,
+    textAlign: 'center',
   },
   contact: {
-    marginTop: 60,
+    marginTop: 40,
     textAlign: 'center',
   },
   contactText: {
@@ -68,10 +70,11 @@ const styles = StyleSheet.create({
 export const CoverPage = () => (
   <Page size="A4" style={styles.page}>
     {/* Logo - Top Left */}
-    <Image 
-      src="/images/rws-logo-transparent.png" 
-      style={styles.logo} 
-    />
+    <View style={styles.logoContainer}>
+      <Text style={{ fontSize: 24, color: colors.primary, fontWeight: 'bold' }}>
+        Rocky Web Studio
+      </Text>
+    </View>
     
     {/* Main Headlines */}
     <View style={styles.titleContainer}>
@@ -95,23 +98,23 @@ export const CoverPage = () => (
     {/* Credentials Badges */}
     <View style={styles.credentials}>
       <View style={styles.credential}>
-        <Text style={{ fontSize: 32, color: colors.primary }}>✓</Text>
+        <Text style={styles.credentialIcon}>✓</Text>
         <Text style={styles.credentialText}>AVOB Certified</Text>
       </View>
       <View style={styles.credential}>
-        <Text style={{ fontSize: 32, color: colors.primary }}>✓</Text>
+        <Text style={styles.credentialIcon}>✓</Text>
         <Text style={styles.credentialText}>WCAG 2.1 AA Compliant</Text>
       </View>
       <View style={styles.credential}>
-        <Text style={{ fontSize: 32, color: colors.primary }}>✓</Text>
+        <Text style={styles.credentialIcon}>✓</Text>
         <Text style={styles.credentialText}>Enterprise Security</Text>
       </View>
       <View style={styles.credential}>
-        <Text style={{ fontSize: 32, color: colors.primary }}>✓</Text>
+        <Text style={styles.credentialIcon}>✓</Text>
         <Text style={styles.credentialText}>99.9% Uptime SLA</Text>
       </View>
       <View style={styles.credential}>
-        <Text style={{ fontSize: 32, color: colors.primary }}>✓</Text>
+        <Text style={styles.credentialIcon}>✓</Text>
         <Text style={styles.credentialText}>AI Integration Expertise</Text>
       </View>
     </View>

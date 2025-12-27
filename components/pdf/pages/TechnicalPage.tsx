@@ -12,10 +12,18 @@ const styles = StyleSheet.create({
   ...layout,
   ...typography,
   columnIcon: {
-    fontSize: 32,
+    fontSize: 20,
     color: colors.primary,
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  columnBullet: {
+    fontSize: 12,
+    color: colors.text,
+    lineHeight: 1.5,
+    marginBottom: 6,
+    paddingLeft: 15,
   },
 });
 
@@ -23,14 +31,15 @@ interface TechnicalColumnProps {
   icon: string;
   title: string;
   items: string[];
+  isLast?: boolean;
 }
 
-const TechnicalColumn = ({ icon, title, items }: TechnicalColumnProps) => (
-  <View style={styles.column}>
+const TechnicalColumn = ({ icon, title, items, isLast }: TechnicalColumnProps) => (
+  <View style={isLast ? styles.columnLast : styles.column}>
     <Text style={styles.columnIcon}>{icon}</Text>
     <Text style={styles.h3}>{title}</Text>
     {items.map((item, i) => (
-      <Text key={i} style={styles.bullet}>• {item}</Text>
+      <Text key={i} style={styles.columnBullet}>• {item}</Text>
     ))}
   </View>
 );
@@ -41,37 +50,38 @@ export const TechnicalPage = () => (
     
     <View style={styles.threeColumn}>
       <TechnicalColumn
-        icon="⚙️"
+        icon="[STACK]"
         title="Build Stack"
         items={[
           'Next.js 16 (Turbopack)',
           'React 19',
-          'TypeScript (strict mode)',
+          'TypeScript (strict)',
           'PostgreSQL (Supabase)',
           'Tailwind CSS',
         ]}
       />
       <TechnicalColumn
-        icon="🔒"
+        icon="[SEC]"
         title="Security"
         items={[
           'OWASP Top 10 aligned',
-          'Privacy Act 1988 (Cth) compliant',
+          'Privacy Act 1988 compliant',
           'GDPR-ready',
-          'Security headers (HSTS, CSP)',
-          'Encryption in transit and at rest',
+          'Security headers',
+          'Encryption enabled',
         ]}
       />
       <TechnicalColumn
-        icon="✅"
-        title="Accessibility Testing"
+        icon="[TEST]"
+        title="Accessibility"
         items={[
           'Lighthouse (target: 91+)',
-          'axe-core automated testing',
-          'Manual keyboard navigation',
-          'Screen reader testing (NVDA)',
-          'Color contrast verification',
+          'axe-core testing',
+          'Keyboard navigation',
+          'Screen reader (NVDA)',
+          'Color contrast',
         ]}
+        isLast
       />
     </View>
     

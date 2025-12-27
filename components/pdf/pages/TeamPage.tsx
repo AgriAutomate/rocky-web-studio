@@ -80,7 +80,7 @@ export const TeamPage = () => (
           <Text style={styles.bodySmall}>• 10+ years web development</Text>
           <Text style={styles.bodySmall}>• TypeScript & React expert</Text>
           <Text style={styles.bodySmall}>• Australian Veteran</Text>
-          <Text style={styles.avobBadge}>🇦🇺</Text>
+          <Text style={styles.avobBadge}>[AVOB]</Text>
           <Text style={styles.bodySmall}>AVOB Certified</Text>
         </View>
       </View>

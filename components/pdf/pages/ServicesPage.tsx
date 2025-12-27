@@ -13,23 +13,40 @@ const styles = StyleSheet.create({
   ...typography,
   gridItem: {
     width: '48%',
-    marginBottom: 40,
-    padding: 20,
+    marginBottom: 30,
+    marginRight: '4%',
+    padding: 15,
+    backgroundColor: colors.white,
+    border: `1px solid ${colors.accentGray}`,
+  },
+  gridItemLast: {
+    width: '48%',
+    marginBottom: 30,
+    marginRight: 0,
+    padding: 15,
     backgroundColor: colors.white,
     border: `1px solid ${colors.accentGray}`,
   },
   gridIcon: {
-    fontSize: 40,
+    fontSize: 24,
     color: colors.primary,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  gridTitle: {
-    fontSize: 20,
-    fontWeight: 600,
-    color: colors.text,
     marginBottom: 12,
     textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  gridTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: colors.text,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  bulletText: {
+    fontSize: 12,
+    color: colors.text,
+    lineHeight: 1.5,
+    marginBottom: 6,
+    paddingLeft: 15,
   },
 });
 
@@ -37,14 +54,15 @@ interface ServiceCardProps {
   icon: string;
   title: string;
   bullets: string[];
+  isLast?: boolean;
 }
 
-const ServiceCard = ({ icon, title, bullets }: ServiceCardProps) => (
-  <View style={styles.gridItem}>
+const ServiceCard = ({ icon, title, bullets, isLast }: ServiceCardProps) => (
+  <View style={isLast ? styles.gridItemLast : styles.gridItem}>
     <Text style={styles.gridIcon}>{icon}</Text>
     <Text style={styles.gridTitle}>{title}</Text>
     {bullets.map((bullet, i) => (
-      <Text key={i} style={styles.bullet}>• {bullet}</Text>
+      <Text key={i} style={styles.bulletText}>• {bullet}</Text>
     ))}
   </View>
 );
@@ -55,44 +73,46 @@ export const ServicesPage = () => (
     
     <View style={styles.grid}>
       <ServiceCard
-        icon="🌐"
+        icon="[WEB]"
         title="Web Design & Development"
         bullets={[
-          'Responsive, content-managed websites (5–100+ pages)',
-          'Modern CMS with role-based access controls',
-          'Mobile-first responsive design (iOS, Android, tablet)',
-          'SEO optimisation and metadata management',
+          'Responsive, content-managed websites',
+          'Modern CMS with role-based access',
+          'Mobile-first responsive design',
+          'SEO optimisation and metadata',
         ]}
       />
       <ServiceCard
-        icon="🛡️"
-        title="Accessibility & Compliance Services"
+        icon="[SEC]"
+        title="Accessibility & Compliance"
         bullets={[
-          'WCAG 2.1 AA compliance audits and remediation',
-          'Automated testing (axe-core, WAVE, Lighthouse)',
-          'Manual testing (NVDA, JAWS, keyboard navigation)',
-          'Accessibility statements and compliance documentation',
+          'WCAG 2.1 AA compliance audits',
+          'Automated testing (axe-core, WAVE)',
+          'Manual testing (NVDA, keyboard)',
+          'Accessibility documentation',
         ]}
+        isLast
       />
       <ServiceCard
-        icon="🤖"
-        title="AI-Powered Solutions & Automation"
+        icon="[AI]"
+        title="AI-Powered Solutions"
         bullets={[
-          'AI chatbot development and deployment (Claude API integration)',
-          'Lead qualification and customer support automation',
-          'Content generation and management tools',
+          'AI chatbot development (Claude API)',
+          'Lead qualification automation',
+          'Content generation tools',
           'Real-time streaming responses',
         ]}
       />
       <ServiceCard
-        icon="📊"
-        title="Lead Capture & CRM Integration"
+        icon="[CRM]"
+        title="Lead Capture & CRM"
         bullets={[
-          'Secure contact forms with honeypot protection',
-          'Admin dashboards with role-based access',
-          'CRM integration capabilities (API-ready)',
-          'Automated notifications and workflows',
+          'Secure contact forms',
+          'Admin dashboards',
+          'CRM integration (API-ready)',
+          'Automated workflows',
         ]}
+        isLast
       />
     </View>
     

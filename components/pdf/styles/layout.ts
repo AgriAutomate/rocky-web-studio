@@ -23,23 +23,28 @@ export const layout = StyleSheet.create({
   twoColumn: {
     display: 'flex',
     flexDirection: 'row',
-    gap: 40,
   },
   leftColumn: {
     width: '50%',
+    marginRight: 20,
   },
   rightColumn: {
     width: '50%',
+    marginLeft: 20,
   },
   
   // Three-column layout
   threeColumn: {
     display: 'flex',
     flexDirection: 'row',
-    gap: 30,
   },
   column: {
     flex: 1, // Equal width
+    marginRight: 15,
+  },
+  columnLast: {
+    flex: 1,
+    marginRight: 0,
   },
   
   // 2x2 Grid
@@ -47,11 +52,16 @@ export const layout = StyleSheet.create({
     display: 'flex',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 40,
   },
   gridItem: {
     width: '48%', // 2 columns with gap
     marginBottom: 40,
+    marginRight: '4%',
+  },
+  gridItemLast: {
+    width: '48%',
+    marginBottom: 40,
+    marginRight: 0,
   },
   
   // Cards

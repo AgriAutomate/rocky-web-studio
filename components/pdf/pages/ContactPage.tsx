@@ -14,7 +14,6 @@ const styles = StyleSheet.create({
   step: {
     display: 'flex',
     flexDirection: 'row',
-    gap: 12,
     marginBottom: 30,
     alignItems: 'flex-start',
   },
@@ -29,7 +28,6 @@ const styles = StyleSheet.create({
   contactItem: {
     display: 'flex',
     flexDirection: 'row',
-    gap: 12,
     marginBottom: 20,
     alignItems: 'center',
   },
@@ -55,7 +53,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 30,
     marginTop: 20,
     marginBottom: 20,
   },
@@ -63,8 +60,9 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 8,
-    width: 'auto',
+    marginHorizontal: 15,
+    marginBottom: 15,
+    width: 100,
   },
   credentialIcon: {
     fontSize: 32,
@@ -84,7 +82,7 @@ export const ContactPage = () => (
       <Text style={styles.h2}>What Happens Next?</Text>
       
       <View style={styles.step}>
-        <Text style={styles.stepIcon}>📧</Text>
+        <Text style={styles.stepIcon}>[1]</Text>
         <View style={styles.stepContent}>
           <Text style={styles.h4}>Step 1: Initial Consultation</Text>
           <Text style={styles.body}>Contact us to discuss your project requirements and timeline.</Text>
@@ -92,7 +90,7 @@ export const ContactPage = () => (
       </View>
       
       <View style={styles.step}>
-        <Text style={styles.stepIcon}>📄</Text>
+        <Text style={styles.stepIcon}>[2]</Text>
         <View style={styles.stepContent}>
           <Text style={styles.h4}>Step 2: Proposal & Agreement</Text>
           <Text style={styles.body}>Receive detailed proposal with timeline, deliverables, and pricing.</Text>
@@ -100,7 +98,7 @@ export const ContactPage = () => (
       </View>
       
       <View style={styles.step}>
-        <Text style={styles.stepIcon}>🚀</Text>
+        <Text style={styles.stepIcon}>[3]</Text>
         <View style={styles.stepContent}>
           <Text style={styles.h4}>Step 3: Project Kickoff</Text>
           <Text style={styles.body}>Begin 8-week development cycle with regular check-ins and updates.</Text>
@@ -110,17 +108,17 @@ export const ContactPage = () => (
       <Text style={styles.h3}>Contact Information</Text>
       
       <View style={styles.contactItem}>
-        <Text style={styles.contactIcon}>✉️</Text>
+        <Text style={styles.contactIcon}>Email:</Text>
         <Text style={styles.body}>hello@rockywebstudio.com.au</Text>
       </View>
       
       <View style={styles.contactItem}>
-        <Text style={styles.contactIcon}>🌐</Text>
+        <Text style={styles.contactIcon}>Web:</Text>
         <Text style={styles.body}>rockywebstudio.com.au</Text>
       </View>
       
       <View style={styles.contactItem}>
-        <Text style={styles.contactIcon}>📍</Text>
+        <Text style={styles.contactIcon}>Location:</Text>
         <Text style={styles.body}>Rockhampton, Queensland, Australia</Text>
       </View>
       

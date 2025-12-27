@@ -57,13 +57,36 @@ export function ContactForm() {
 
   const onSubmit = async (values: ContactFormValues) => {
     setStatus('idle');
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    if (values) {
+    
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: values.name,
+          email: values.email,
+          company: values.company,
+          budget: values.budget,
+          message: values.message,
+          // Honeypot field (hidden from users, bots will fill it)
+          website: '', // Empty = human, filled = bot
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
+      
       setStatus('success');
       reset();
-      return;
+    } catch (error) {
+      console.error('Contact form error:', error);
+      setStatus('error');
     }
-    setStatus('error');
   };
 
   return (
@@ -95,6 +118,22 @@ export function ContactForm() {
         onSubmit={handleSubmit(onSubmit)}
         className="space-y-6 rounded-3xl border border-border bg-muted p-6 shadow-sm md:p-8"
       >
+        {/* Honeypot field - hidden from users, bots will fill it */}
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: '-9999px',
+            width: '1px',
+            height: '1px',
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="name">Full name</Label>
@@ -198,8 +237,8 @@ export function ContactForm() {
           </p>
         ) : null}
         {status === 'error' ? (
-          <p className="text-sm text-destructive">
-            Something went wrong. Please email martin@rockywebstudio.com.au.
+          <p className="text-sm text-destructive" role="alert">
+            Something went wrong. Please try again or email martin@rockywebstudio.com.au.
           </p>
         ) : null}
       </form>

@@ -22,6 +22,7 @@ export function AIAssistantWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [leadCaptured, setLeadCaptured] = useState(false); // Track if lead has been captured for this conversation
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
@@ -63,6 +64,75 @@ export function AIAssistantWidget() {
       };
     }
   }, [isOpen, isMinimized]);
+
+  /**
+   * Extract email address from text using regex
+   * Week 6.3: Lead capture from chat widget
+   */
+  const extractEmail = (text: string): string | null => {
+    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+    const match = text.match(emailRegex);
+    return match ? match[0].toLowerCase() : null;
+  };
+
+  /**
+   * Extract name from messages (look for "my name is" or "I'm" patterns)
+   * Week 6.3: Lead capture from chat widget
+   */
+  const extractName = (messages: AIMessage[]): string | null => {
+    for (const msg of messages) {
+      if (msg.role === 'user') {
+        const content = msg.content.toLowerCase();
+        // Look for common name patterns
+        const namePatterns = [
+          /(?:my name is|i'm|i am|call me|this is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+          /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+here/i,
+        ];
+        
+        for (const pattern of namePatterns) {
+          const match = content.match(pattern);
+          if (match && match[1]) {
+            return match[1].trim();
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  /**
+   * Capture lead from chat conversation (async, non-blocking)
+   * Week 6.3: Integration with AI Chat Widget
+   */
+  const captureLead = async (email: string, name?: string) => {
+    // Don't capture if already captured for this conversation
+    if (leadCaptured) return;
+    
+    try {
+      // Non-blocking: fire and forget
+      fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name || 'Chat User',
+          email: email,
+          message: `Lead captured from chat widget. Conversation ID: ${conversationId || 'unknown'}`,
+          source: 'chat widget',
+          website: '', // Honeypot
+        }),
+      }).catch((err) => {
+        // Silently fail - don't interrupt chat experience
+        console.error('[LEAD_CAPTURE] Failed to capture lead:', err);
+      });
+      
+      setLeadCaptured(true);
+    } catch (err) {
+      // Silently fail - don't interrupt chat experience
+      console.error('[LEAD_CAPTURE] Error capturing lead:', err);
+    }
+  };
 
   /**
    * Send message to AI Assistant API
@@ -189,6 +259,20 @@ export function AIAssistantWidget() {
                 // Update conversation ID if provided
                 if (parsed.conversationId) {
                   setConversationId(parsed.conversationId);
+                }
+                
+                // Week 6.3: Capture lead if email found in conversation
+                if (!leadCaptured) {
+                  // Check all messages for email (including the new user message and assistant response)
+                  const allMessages = [...messages, userMessage, assistantMessage];
+                  for (const msg of allMessages) {
+                    const email = extractEmail(msg.content);
+                    if (email) {
+                      const name = extractName(allMessages);
+                      captureLead(email, name || undefined);
+                      break; // Only capture once per conversation
+                    }
+                  }
                 }
               }
 

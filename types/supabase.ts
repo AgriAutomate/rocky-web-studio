@@ -1003,6 +1003,48 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          phone: string | null
+          company: string | null
+          project_type: string | null
+          message: string | null
+          source: string
+          status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          phone?: string | null
+          company?: string | null
+          project_type?: string | null
+          message?: string | null
+          source?: string
+          status?: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          phone?: string | null
+          company?: string | null
+          project_type?: string | null
+          message?: string | null
+          source?: string
+          status?: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1183,3 +1225,8 @@ export type TestimonialUpdate = Database['public']['Tables']['testimonials']['Up
 export type CaseStudyRow = Database['public']['Tables']['case_studies']['Row'];
 export type CaseStudyInsert = Database['public']['Tables']['case_studies']['Insert'];
 export type CaseStudyUpdate = Database['public']['Tables']['case_studies']['Update'];
+
+// Type helpers for Leads
+export type LeadRow = Database['public']['Tables']['leads']['Row'];
+export type LeadInsert = Database['public']['Tables']['leads']['Insert'];
+export type LeadUpdate = Database['public']['Tables']['leads']['Update'];

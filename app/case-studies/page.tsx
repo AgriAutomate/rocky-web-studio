@@ -7,16 +7,6 @@
 
 import { Metadata } from "next";
 import { getPublishedCaseStudies } from "@/lib/supabase/case-studies";
-import { CaseStudyGrid } from "@/components/CaseStudyGrid";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { CaseStudiesClient } from "./CaseStudiesClient";
 
 export const metadata: Metadata = {

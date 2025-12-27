@@ -8,6 +8,7 @@
 import { Metadata } from "next";
 import { getPublishedTestimonials } from "@/lib/supabase/testimonials";
 import { TestimonialCard } from "@/components/TestimonialCard";
+import type { Testimonial } from "@/types/testimonial";
 
 export const metadata: Metadata = {
   title: "Testimonials | Rocky Web Studio",
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TestimonialsPage() {
-  let testimonials = [];
+  let testimonials: Testimonial[] = [];
   
   try {
     testimonials = await getPublishedTestimonials();

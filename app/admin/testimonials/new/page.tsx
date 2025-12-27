@@ -9,18 +9,20 @@
 
 import { useRouter } from "next/navigation";
 import { AdminTestimonialForm } from "@/components/AdminTestimonialForm";
-import type { TestimonialCreate } from "@/types/testimonial";
+import type { TestimonialCreate, TestimonialUpdate } from "@/types/testimonial";
 
 export default function NewTestimonialPage() {
   const router = useRouter();
 
-  const handleSubmit = async (data: TestimonialCreate) => {
+  const handleSubmit = async (data: TestimonialCreate | TestimonialUpdate) => {
+    // For new page, we always create, so cast to TestimonialCreate
+    const createData = data as TestimonialCreate;
     const response = await fetch("/api/admin/testimonials", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(createData),
     });
 
     if (!response.ok) {

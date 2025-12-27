@@ -9,18 +9,20 @@
 
 import { useRouter } from "next/navigation";
 import { AdminCaseStudyForm } from "@/components/AdminCaseStudyForm";
-import type { CaseStudyCreate } from "@/types/case-study";
+import type { CaseStudyCreate, CaseStudyUpdate } from "@/types/case-study";
 
 export default function NewCaseStudyPage() {
   const router = useRouter();
 
-  const handleSubmit = async (data: CaseStudyCreate) => {
+  const handleSubmit = async (data: CaseStudyCreate | CaseStudyUpdate) => {
+    // For new page, we always create, so cast to CaseStudyCreate
+    const createData = data as CaseStudyCreate;
     const response = await fetch("/api/admin/case-studies", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(createData),
     });
 
     if (!response.ok) {

@@ -20,6 +20,14 @@ import Link from 'next/link';
 export default function AccessibilityPage() {
   return (
     <main className="min-h-screen bg-[#fcfcf9] text-[#1f2121]">
+      {/* Skip to main content link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[#218092] focus:text-white focus:rounded-lg focus:ring-2 focus:ring-white focus:ring-offset-2"
+      >
+        Skip to main content
+      </a>
+      
       {/* Hero Section */}
       <section className="bg-[#218092] text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -33,7 +41,7 @@ export default function AccessibilityPage() {
       </section>
 
       {/* Section 1: WCAG 2.1 AA Compliance */}
-      <section className="py-20 px-4" aria-labelledby="wcag-heading">
+      <section id="main-content" className="py-20 px-4" aria-labelledby="wcag-heading">
         <div className="max-w-4xl mx-auto">
           <h2 id="wcag-heading" className="text-3xl md:text-4xl font-bold mb-6 text-[#218092]">
             WCAG 2.1 AA Compliance
@@ -351,25 +359,25 @@ export default function AccessibilityPage() {
               </caption>
               <thead>
                 <tr className="bg-[#218092] text-white">
-                  <th className="border border-gray-300 px-4 py-3 text-left font-semibold">
+                  <th scope="col" className="border border-gray-300 px-4 py-3 text-left font-semibold">
                     Severity
                   </th>
-                  <th className="border border-gray-300 px-4 py-3 text-left font-semibold">
+                  <th scope="col" className="border border-gray-300 px-4 py-3 text-left font-semibold">
                     Definition
                   </th>
-                  <th className="border border-gray-300 px-4 py-3 text-left font-semibold">
+                  <th scope="col" className="border border-gray-300 px-4 py-3 text-left font-semibold">
                     Response Time
                   </th>
-                  <th className="border border-gray-300 px-4 py-3 text-left font-semibold">
+                  <th scope="col" className="border border-gray-300 px-4 py-3 text-left font-semibold">
                     Resolution Time
                   </th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="bg-red-50">
-                  <td className="border border-gray-300 px-4 py-3 font-semibold">
+                  <th scope="row" className="border border-gray-300 px-4 py-3 font-semibold">
                     Critical
-                  </td>
+                  </th>
                   <td className="border border-gray-300 px-4 py-3">
                     Site completely down, security breach, data loss
                   </td>
@@ -381,9 +389,9 @@ export default function AccessibilityPage() {
                   </td>
                 </tr>
                 <tr className="bg-orange-50">
-                  <td className="border border-gray-300 px-4 py-3 font-semibold">
+                  <th scope="row" className="border border-gray-300 px-4 py-3 font-semibold">
                     High
-                  </td>
+                  </th>
                   <td className="border border-gray-300 px-4 py-3">
                     Major feature broken, significant performance degradation
                   </td>
@@ -395,9 +403,9 @@ export default function AccessibilityPage() {
                   </td>
                 </tr>
                 <tr className="bg-yellow-50">
-                  <td className="border border-gray-300 px-4 py-3 font-semibold">
+                  <th scope="row" className="border border-gray-300 px-4 py-3 font-semibold">
                     Medium
-                  </td>
+                  </th>
                   <td className="border border-gray-300 px-4 py-3">
                     Minor feature issue, cosmetic problem, non-critical bug
                   </td>
@@ -409,9 +417,9 @@ export default function AccessibilityPage() {
                   </td>
                 </tr>
                 <tr className="bg-green-50">
-                  <td className="border border-gray-300 px-4 py-3 font-semibold">
+                  <th scope="row" className="border border-gray-300 px-4 py-3 font-semibold">
                     Low
-                  </td>
+                  </th>
                   <td className="border border-gray-300 px-4 py-3">
                     Enhancement request, documentation update, minor improvement
                   </td>

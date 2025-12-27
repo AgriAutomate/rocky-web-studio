@@ -96,8 +96,15 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
+      {/* Skip to main content link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-foreground focus:text-background focus:rounded-lg focus:ring-2 focus:ring-brand-foreground focus:ring-offset-2"
+      >
+        Skip to main content
+      </a>
       <div className="min-h-screen bg-background">
-        <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-12 sm:px-6 md:gap-20 md:py-16 lg:px-12">
+        <main id="main-content" className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-12 sm:px-6 md:gap-20 md:py-16 lg:px-12">
           <HeroSection />
           <VeteranOwnedCallout />
           <CustomSongsBanner />

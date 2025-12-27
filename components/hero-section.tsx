@@ -8,10 +8,10 @@ export function HeroSection() {
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="bg-brand-from rounded-3xl px-8 py-12 lg:px-16 lg:py-20 relative overflow-hidden">
           {/* Transparent Logo - Top Right */}
-          <div className="absolute top-8 right-8 lg:top-12 lg:right-12 pointer-events-none select-none">
+          <div className="absolute top-8 right-8 lg:top-12 lg:right-12 pointer-events-none select-none" aria-hidden="true">
             <Image
               src="/images/rws-logo-transparent.png"
-              alt="Rocky Web Studio"
+              alt=""
               width={200}
               height={200}
               className="w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 object-contain mix-blend-multiply opacity-95"

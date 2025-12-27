@@ -141,10 +141,13 @@ export function ContactForm() {
               id="name"
               placeholder="Alex Rocky"
               aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "name-error" : undefined}
               {...register('name')}
             />
             {errors.name ? (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
+              <p id="name-error" className="text-xs text-destructive" role="alert">
+                {errors.name.message}
+              </p>
             ) : null}
           </div>
           <div className="space-y-2">
@@ -154,10 +157,13 @@ export function ContactForm() {
               type="email"
               placeholder="martin@rockywebstudio.com.au"
               aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
               {...register('email')}
             />
             {errors.email ? (
-              <p className="text-xs text-destructive">{errors.email.message}</p>
+              <p id="email-error" className="text-xs text-destructive" role="alert">
+                {errors.email.message}
+              </p>
             ) : null}
           </div>
         </div>
@@ -167,21 +173,26 @@ export function ContactForm() {
             id="company"
             placeholder="Northwind Labs"
             aria-invalid={!!errors.company}
+            aria-describedby={errors.company ? "company-error" : undefined}
             {...register('company')}
           />
           {errors.company ? (
-            <p className="text-xs text-destructive">{errors.company.message}</p>
+            <p id="company-error" className="text-xs text-destructive" role="alert">
+              {errors.company.message}
+            </p>
           ) : null}
         </div>
-        <div className="space-y-2">
-          <Label>Budget</Label>
+          <div className="space-y-2">
+          <Label htmlFor="budget">Budget</Label>
           <Controller
             name="budget"
             control={control}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger
+                  id="budget"
                   aria-invalid={!!errors.budget}
+                  aria-describedby={errors.budget ? "budget-error" : undefined}
                   className="w-full"
                 >
                   <SelectValue placeholder="Select an investment range" />
@@ -197,7 +208,9 @@ export function ContactForm() {
             )}
           />
           {errors.budget ? (
-            <p className="text-xs text-destructive">{errors.budget.message}</p>
+            <p id="budget-error" className="text-xs text-destructive" role="alert">
+              {errors.budget.message}
+            </p>
           ) : null}
         </div>
         <div className="space-y-2">
@@ -207,10 +220,13 @@ export function ContactForm() {
             placeholder="Timeline, success metrics, integrations..."
             rows={6}
             aria-invalid={!!errors.message}
+            aria-describedby={errors.message ? "message-error" : undefined}
             {...register('message')}
           />
           {errors.message ? (
-            <p className="text-xs text-destructive">{errors.message.message}</p>
+            <p id="message-error" className="text-xs text-destructive" role="alert">
+              {errors.message.message}
+            </p>
           ) : null}
         </div>
         <Button

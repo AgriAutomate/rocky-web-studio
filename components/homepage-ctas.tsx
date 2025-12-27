@@ -40,7 +40,7 @@ export function FooterCTA() {
         </h2>
         
         {/* Subtext */}
-        <p className="text-white text-lg mb-8 max-w-2xl mx-auto opacity-95">
+        <p className="text-white text-lg mb-8 max-w-2xl mx-auto">
           AVOB certified. WCAG 2.1 AA compliant. Production-ready.
         </p>
         
@@ -67,7 +67,7 @@ export function FooterCTA() {
         </div>
         
         {/* Closing Text */}
-        <p className="text-white text-sm max-w-2xl mx-auto opacity-95">
+        <p className="text-white text-sm max-w-2xl mx-auto">
           Ready for government tenders and enterprise procurement. 
           Our capability statement includes compliance certifications, 
           security practices, and service level agreements.

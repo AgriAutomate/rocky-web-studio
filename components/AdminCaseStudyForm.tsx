@@ -8,7 +8,6 @@
  */
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +34,6 @@ export function AdminCaseStudyForm({
   onSubmit,
   onCancel,
 }: AdminCaseStudyFormProps) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CaseStudyCreate>({
     title: "",

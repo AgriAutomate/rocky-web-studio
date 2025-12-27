@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth';
+import { auth } from '@/auth';
 import { getLeadById, updateLead, deleteLead } from '@/lib/supabase/leads';
 import type { LeadUpdate } from '@/types/lead';
 
@@ -20,9 +19,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+    const userRole = (session?.user as any)?.role;
     
-    if (!session?.user || (session.user as any).role !== 'admin') {
+    if (!session || userRole !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -54,9 +54,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+    const userRole = (session?.user as any)?.role;
     
-    if (!session?.user || (session.user as any).role !== 'admin') {
+    if (!session || userRole !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -88,9 +89,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+    const userRole = (session?.user as any)?.role;
     
-    if (!session?.user || (session.user as any).role !== 'admin') {
+    if (!session || userRole !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

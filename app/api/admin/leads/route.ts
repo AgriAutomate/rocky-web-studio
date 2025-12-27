@@ -7,17 +7,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth';
+import { auth } from '@/auth';
 import { getAllLeads, searchLeads, getLeadsByStatus } from '@/lib/supabase/leads';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+    const userRole = (session?.user as any)?.role;
     
-    if (!session?.user || (session.user as any).role !== 'admin') {
+    if (!session || userRole !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

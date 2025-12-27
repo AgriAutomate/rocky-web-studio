@@ -8,7 +8,6 @@
  */
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Plus,
@@ -36,7 +35,6 @@ import {
 import type { Testimonial } from "@/types/testimonial";
 
 export default function AdminTestimonialsPage() {
-  const router = useRouter();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");

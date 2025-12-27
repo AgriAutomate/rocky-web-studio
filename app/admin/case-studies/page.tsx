@@ -8,7 +8,6 @@
  */
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Plus,
@@ -35,7 +34,6 @@ import {
 import type { CaseStudy } from "@/types/case-study";
 
 export default function AdminCaseStudiesPage() {
-  const router = useRouter();
   const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");

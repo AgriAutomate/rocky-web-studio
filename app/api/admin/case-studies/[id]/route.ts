@@ -17,7 +17,7 @@ import type { CaseStudyUpdate } from "@/types/case-study";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -27,7 +27,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const caseStudy = await getCaseStudyById(params.id);
+    const { id } = await params;
+    const caseStudy = await getCaseStudyById(id);
     if (!caseStudy) {
       return NextResponse.json(
         { error: "Case study not found" },
@@ -47,7 +48,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -57,6 +58,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const body: CaseStudyUpdate = await request.json();
     const userId = session.user?.id || null;
 
@@ -65,7 +67,7 @@ export async function PUT(
       body.published_at = new Date().toISOString();
     }
 
-    const caseStudy = await updateCaseStudy(params.id, body, userId);
+    const caseStudy = await updateCaseStudy(id, body, userId);
     return NextResponse.json(caseStudy);
   } catch (error) {
     console.error("Error updating case study:", error);
@@ -78,7 +80,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -88,7 +90,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await deleteCaseStudy(params.id);
+    const { id } = await params;
+    await deleteCaseStudy(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting case study:", error);

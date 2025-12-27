@@ -17,7 +17,7 @@ import type { TestimonialUpdate } from "@/types/testimonial";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -27,7 +27,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const testimonial = await getTestimonialById(params.id);
+    const { id } = await params;
+    const testimonial = await getTestimonialById(id);
     if (!testimonial) {
       return NextResponse.json(
         { error: "Testimonial not found" },
@@ -47,7 +48,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -57,6 +58,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const body: TestimonialUpdate = await request.json();
     const userId = session.user?.id || null;
 
@@ -68,7 +70,7 @@ export async function PUT(
       );
     }
 
-    const testimonial = await updateTestimonial(params.id, body, userId);
+    const testimonial = await updateTestimonial(id, body, userId);
     return NextResponse.json(testimonial);
   } catch (error) {
     console.error("Error updating testimonial:", error);
@@ -81,7 +83,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -91,7 +93,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await deleteTestimonial(params.id);
+    const { id } = await params;
+    await deleteTestimonial(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting testimonial:", error);

@@ -29,9 +29,7 @@ const aiAssistantCaseStudy = {
   title: 'AI-Powered Lead Qualification Chatbot',
   slug: 'ai-powered-lead-qualification-chatbot',
   excerpt: 'Rocky Web Studio developed and deployed a production-ready AI-powered lead qualification chatbot to replace third-party chat widgets. Built with Claude 3 Haiku API, Next.js, and Supabase, the solution delivers real-time streaming responses, persistent conversation history, and full WCAG 2.1 AA accessibility compliance.',
-  content: {
-    type: 'markdown',
-    content: `# AI-Powered Lead Qualification Chatbot for Rocky Web Studio
+  content: `# AI-Powered Lead Qualification Chatbot for Rocky Web Studio
 **Client:** Rocky Web Studio (Internal Project)  
 **Date:** January 2025  
 **Project Type:** AI Chatbot Development & Deployment  
@@ -115,8 +113,7 @@ Rocky Web Studio needed a customer support solution that could:
 
 ## Conclusion
 
-The AI-powered lead qualification chatbot successfully replaced third-party SaaS solutions, providing 24/7 automated customer support at dramatically lower cost. The 7-hour development sprint and 48-hour deployment timeline demonstrate the power of reusable template architecture and modern AI APIs.`
-  },
+The AI-powered lead qualification chatbot successfully replaced third-party SaaS solutions, providing 24/7 automated customer support at dramatically lower cost. The 7-hour development sprint and 48-hour deployment timeline demonstrate the power of reusable template architecture and modern AI APIs.`,
   category: 'ai' as const,
   featured: true,
   status: 'published' as const,
@@ -146,9 +143,7 @@ const accessibilityCaseStudy = {
   title: 'Achieving WCAG 2.1 AA Compliance',
   slug: 'achieving-wcag-2-1-aa-compliance',
   excerpt: 'Rocky Web Studio conducted a comprehensive accessibility audit and remediation project to achieve WCAG 2.1 AA compliance, a critical requirement for government contract eligibility. Through systematic testing, prioritization, and remediation, we eliminated all critical accessibility violations and improved the site\'s accessibility score from 72/100 to 91/100.',
-  content: {
-    type: 'markdown',
-    content: `# Achieving WCAG 2.1 AA Compliance for Rocky Web Studio
+  content: `# Achieving WCAG 2.1 AA Compliance for Rocky Web Studio
 **Client:** Rocky Web Studio (Internal Project)  
 **Date:** January 2025  
 **Project Type:** Accessibility Audit & Remediation  
@@ -262,8 +257,7 @@ Rocky Web Studio's website had accessibility barriers that prevented government 
 
 This accessibility remediation project successfully achieved WCAG 2.1 AA compliance for Rocky Web Studio, eliminating all 6 critical violations and improving the Lighthouse accessibility score by 19+ points. The systematic approach of audit, prioritization, remediation, and validation ensured no regressions while dramatically improving accessibility.
 
-**Key Achievement:** Rocky Web Studio is now eligible for government contracts requiring WCAG 2.1 AA compliance, opening access to $20K-$80K contract opportunities.`
-  },
+**Key Achievement:** Rocky Web Studio is now eligible for government contracts requiring WCAG 2.1 AA compliance, opening access to $20K-$80K contract opportunities.`,
   category: 'accessibility' as const,
   featured: true,
   status: 'published' as const,
@@ -293,45 +287,78 @@ async function seedCaseStudies() {
   console.log('🌱 Seeding case studies...\n');
 
   try {
-    // Check if case studies already exist
-    const { data: existing } = await supabase
+    // Upsert AI Assistant case study
+    console.log('📝 Upserting AI Assistant case study...');
+    const { data: aiExisting } = await supabase
       .from('case_studies')
-      .select('slug')
-      .in('slug', [aiAssistantCaseStudy.slug, accessibilityCaseStudy.slug]);
-
-    if (existing && existing.length > 0) {
-      console.log('⚠️  Some case studies already exist:');
-      existing.forEach((cs) => console.log(`   - ${cs.slug}`));
-      console.log('\n💡 To update, delete them first or update via admin panel.\n');
-      return;
-    }
-
-    // Insert AI Assistant case study
-    console.log('📝 Inserting AI Assistant case study...');
-    const { data: aiData, error: aiError } = await supabase
-      .from('case_studies')
-      .insert(aiAssistantCaseStudy)
-      .select()
+      .select('id')
+      .eq('slug', aiAssistantCaseStudy.slug)
       .single();
 
-    if (aiError) {
-      console.error('❌ Error inserting AI Assistant case study:', aiError);
+    if (aiExisting) {
+      // Update existing
+      const { data, error } = await supabase
+        .from('case_studies')
+        .update(aiAssistantCaseStudy)
+        .eq('id', aiExisting.id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error updating AI Assistant case study:', error);
+      } else {
+        console.log('✅ AI Assistant case study updated:', data.id);
+      }
     } else {
-      console.log('✅ AI Assistant case study created:', aiData.id);
+      // Insert new
+      const { data, error } = await supabase
+        .from('case_studies')
+        .insert(aiAssistantCaseStudy)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error inserting AI Assistant case study:', error);
+      } else {
+        console.log('✅ AI Assistant case study created:', data.id);
+      }
     }
 
-    // Insert Accessibility case study
-    console.log('📝 Inserting WCAG Accessibility case study...');
-    const { data: accData, error: accError } = await supabase
+    // Upsert Accessibility case study
+    console.log('📝 Upserting WCAG Accessibility case study...');
+    const { data: accExisting } = await supabase
       .from('case_studies')
-      .insert(accessibilityCaseStudy)
-      .select()
+      .select('id')
+      .eq('slug', accessibilityCaseStudy.slug)
       .single();
 
-    if (accError) {
-      console.error('❌ Error inserting Accessibility case study:', accError);
+    if (accExisting) {
+      // Update existing
+      const { data, error } = await supabase
+        .from('case_studies')
+        .update(accessibilityCaseStudy)
+        .eq('id', accExisting.id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Error updating Accessibility case study:', error);
+      } else {
+        console.log('✅ WCAG Accessibility case study updated:', data.id);
+      }
     } else {
-      console.log('✅ WCAG Accessibility case study created:', accData.id);
+      // Insert new
+      const { data, error } = await supabase
+        .from('case_studies')
+        .insert(accessibilityCaseStudy)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error inserting Accessibility case study:', error);
+      } else {
+        console.log('✅ WCAG Accessibility case study created:', data.id);
+      }
     }
 
     console.log('\n✨ Case studies seeded successfully!');

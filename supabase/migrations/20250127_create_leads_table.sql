@@ -25,6 +25,11 @@ CREATE INDEX IF NOT EXISTS idx_leads_source ON leads(source);
 ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+-- Drop existing policies if they exist (for idempotency)
+DROP POLICY IF EXISTS "Public can insert leads" ON leads;
+DROP POLICY IF EXISTS "Admins can manage leads" ON leads;
+DROP POLICY IF EXISTS "Service role full access" ON leads;
+
 -- Public can insert (for contact form submissions)
 CREATE POLICY "Public can insert leads"
   ON leads FOR INSERT

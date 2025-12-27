@@ -14,7 +14,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminCaseStudyForm } from "@/components/AdminCaseStudyForm";
-import type { CaseStudy, CaseStudyUpdate } from "@/types/case-study";
+import type { CaseStudy, CaseStudyCreate, CaseStudyUpdate } from "@/types/case-study";
 
 export default function EditCaseStudyPage() {
   const router = useRouter();
@@ -54,13 +54,15 @@ export default function EditCaseStudyPage() {
     }
   };
 
-  const handleSubmit = async (data: CaseStudyUpdate) => {
+  const handleSubmit = async (data: CaseStudyCreate | CaseStudyUpdate) => {
+    // For edit page, we always have an id, so cast to CaseStudyUpdate
+    const updateData = data as CaseStudyUpdate;
     const response = await fetch(`/api/admin/case-studies/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(updateData),
     });
 
     if (!response.ok) {

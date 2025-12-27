@@ -14,7 +14,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminTestimonialForm } from "@/components/AdminTestimonialForm";
-import type { Testimonial, TestimonialUpdate } from "@/types/testimonial";
+import type { Testimonial, TestimonialCreate, TestimonialUpdate } from "@/types/testimonial";
 
 export default function EditTestimonialPage() {
   const router = useRouter();
@@ -54,13 +54,15 @@ export default function EditTestimonialPage() {
     }
   };
 
-  const handleSubmit = async (data: TestimonialUpdate) => {
+  const handleSubmit = async (data: TestimonialCreate | TestimonialUpdate) => {
+    // For edit page, we always have an id, so cast to TestimonialUpdate
+    const updateData = data as TestimonialUpdate;
     const response = await fetch(`/api/admin/testimonials/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(updateData),
     });
 
     if (!response.ok) {

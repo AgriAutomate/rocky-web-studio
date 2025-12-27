@@ -39,8 +39,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
       }
 
       // Include user role in token (from authorize function)
-      if (user?.role) {
-        nextToken.role = user.role;
+      // Type assertion needed because role is added in authorize function
+      if ((user as any)?.role) {
+        nextToken.role = (user as any).role;
       }
 
       return nextToken;

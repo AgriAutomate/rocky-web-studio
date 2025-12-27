@@ -31,6 +31,8 @@ function LoginForm() {
         // Show more specific error messages
         if (result?.error === "CredentialsSignin") {
           setError("Invalid email or password.");
+        } else if (result?.error === "Configuration") {
+          setError("Server configuration error. Please contact support.");
         } else if (result?.error) {
           setError(`Authentication error: ${result.error}`);
         } else {

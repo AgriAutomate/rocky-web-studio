@@ -92,8 +92,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           const adminPassword = process.env.ADMIN_PASSWORD;
           if (!adminPassword) {
             authLogger.error("ADMIN_PASSWORD environment variable is not set");
-            // Don't return null here - throw error so it's visible
-            throw new Error("Server configuration error: ADMIN_PASSWORD not set");
+            // Return null instead of throwing to show proper error message
+            return null;
           }
 
           if (password !== adminPassword) {

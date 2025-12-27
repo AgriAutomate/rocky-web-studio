@@ -155,7 +155,7 @@ export function ContactForm() {
             <Input
               id="email"
               type="email"
-              placeholder="martin@rockywebstudio.com.au"
+              placeholder="example@youremail.com"
               aria-invalid={!!errors.email}
               aria-describedby={errors.email ? "email-error" : undefined}
               {...register('email')}

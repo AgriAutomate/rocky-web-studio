@@ -22,7 +22,23 @@ export async function getPublishedCaseStudies(): Promise<CaseStudy[]> {
     .eq('status', 'published')
     .order('published_at', { ascending: false });
   
-  if (error) throw error;
+  if (error) {
+    console.error('[SERVER] Error fetching published case studies:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    // Return empty array instead of throwing to prevent page crashes
+    return [];
+  }
+  
+  if (!data) {
+    console.warn('[SERVER] No data returned from case_studies query');
+    return [];
+  }
+  
+  console.log(`[SERVER] Found ${data.length} published case studies`);
   return (data as CaseStudyRow[]) as CaseStudy[];
 }
 

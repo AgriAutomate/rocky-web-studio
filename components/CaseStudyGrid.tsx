@@ -19,8 +19,13 @@ export function CaseStudyGrid({
 }: CaseStudyGridProps) {
   if (caseStudies.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">{emptyMessage}</p>
+      <div className="text-center py-12 px-4">
+        <div className="max-w-md mx-auto">
+          <p className="text-lg text-muted-foreground mb-4">{emptyMessage}</p>
+          <p className="text-sm text-muted-foreground">
+            Check back soon for our latest projects and case studies.
+          </p>
+        </div>
       </div>
     );
   }

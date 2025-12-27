@@ -93,7 +93,9 @@ export function CaseStudiesClient({
           emptyMessage={
             searchQuery || categoryFilter !== "all"
               ? "No case studies match your filters. Try adjusting your search."
-              : "No case studies available at this time."
+              : initialCaseStudies.length === 0
+              ? "No published case studies available at this time. Check back soon for our latest projects."
+              : "No case studies match your filters. Try adjusting your search."
           }
         />
       )}

@@ -30,7 +30,14 @@ export const metadata: Metadata = {
 };
 
 export default async function CaseStudiesPage() {
-  const caseStudies = await getPublishedCaseStudies();
+  let caseStudies: Awaited<ReturnType<typeof getPublishedCaseStudies>> = [];
+  
+  try {
+    caseStudies = await getPublishedCaseStudies();
+  } catch (error) {
+    console.error('[SERVER] Error loading case studies:', error);
+    // Continue with empty array to show empty state
+  }
 
   return (
     <div className="min-h-screen bg-background">

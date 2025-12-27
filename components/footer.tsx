@@ -1,11 +1,33 @@
+import Link from "next/link";
 import { AVOBBadge } from "@/components/ui";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
+  const footerLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/case-studies', label: 'Case Studies' },
+    { href: '/testimonials', label: 'Testimonials' },
+    { href: '/accessibility', label: 'Accessibility & Compliance' },
+    { href: '/questionnaire', label: 'Start a Project' },
+  ];
+
   return (
     <footer className="mt-16 bg-foreground py-8 text-background/80">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 lg:px-12">
+        {/* Footer Navigation Links */}
+        <div className="flex flex-wrap gap-4 text-sm">
+          {footerLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-background/80 hover:text-brand-soft focus:outline-none focus:ring-2 focus:ring-brand-soft focus:ring-offset-2 focus:ring-offset-foreground rounded transition-colors"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
         {/* Main footer content */}
         <div className="flex flex-col gap-4">
           <p className="text-sm uppercase tracking-[0.2em] text-brand-soft">
@@ -18,7 +40,7 @@ export function Footer() {
             <span className="hidden h-4 w-px bg-background/20 sm:block" />
             <a
               href="mailto:martin@rockywebstudio.com.au"
-              className="text-background hover:text-brand-soft"
+              className="text-background hover:text-brand-soft focus:outline-none focus:ring-2 focus:ring-brand-soft focus:ring-offset-2 focus:ring-offset-foreground rounded"
             >
               martin@rockywebstudio.com.au
             </a>

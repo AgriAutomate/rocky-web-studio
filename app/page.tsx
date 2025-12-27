@@ -6,6 +6,7 @@ import { TestimonialsCarousel } from "@/components/testimonials-carousel";
 import { VeteranOwnedCallout } from "@/components/veteran-owned-callout";
 import { CustomSongsBanner } from "@/components/custom-songs-banner";
 import { Footer } from "@/components/footer";
+import { FooterCTA, HeroSectionCTA } from "@/components/homepage-ctas";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -101,10 +102,12 @@ export default function Home() {
           <VeteranOwnedCallout />
           <CustomSongsBanner />
           <ServicesGrid />
+          <HeroSectionCTA />
           <TestimonialsCarousel />
           <PricingTable />
           <ContactForm />
         </main>
+        <FooterCTA />
         <Footer />
       </div>
     </>

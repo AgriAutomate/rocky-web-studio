@@ -139,6 +139,9 @@ export function QuestionnaireForm() {
         }
       } catch (e) {
         console.error('Failed to load saved form data:', e);
+        // Clear corrupted localStorage data
+        localStorage.removeItem('questionnaire_form_data');
+        localStorage.removeItem('questionnaire_form_step');
       }
     }
 
@@ -423,8 +426,34 @@ export function QuestionnaireForm() {
       if (!response.ok || !result.success) {
         // Include validation details in error message if available
         const errorMsg = result.error || "Failed to submit questionnaire";
-        const details = result.details ? ` (${result.details})` : "";
-        throw new Error(`${errorMsg}${details}`);
+        const details = result.details || "";
+        
+        // If we have detailed validation errors, show them prominently
+        if (details && details.length > 0) {
+          // Format validation details for display (replace field paths with readable names)
+          const formattedDetails = details
+            .split('; ')
+            .map((detail: string) => {
+              // Convert field paths to readable labels
+              let readable = detail
+                .replace(/businessEmail/g, 'Email')
+                .replace(/businessPhone/g, 'Phone')
+                .replace(/businessName/g, 'Business Name')
+                .replace(/firstName/g, 'First Name')
+                .replace(/lastName/g, 'Last Name')
+                .replace(/selectedPainPoints/g, 'Pain Points')
+                .replace(/primaryGoal/g, 'Primary Goal')
+                .replace(/budget/g, 'Budget')
+                .replace(/timelineToImplement/g, 'Timeline')
+                .replace(/sector/g, 'Sector');
+              return readable;
+            })
+            .join('. ');
+          
+          throw new Error(`${errorMsg}: ${formattedDetails}`);
+        }
+        
+        throw new Error(errorMsg);
       }
 
       // Track form completion
@@ -749,10 +778,24 @@ export function QuestionnaireForm() {
 
       {/* Resume Banner */}
       {hasSavedData && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
           <p className="text-sm text-blue-800">
             ✓ We found your saved progress. You can continue where you left off.
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('questionnaire_form_data');
+              localStorage.removeItem('questionnaire_form_step');
+              setFormData({});
+              setCurrentStep(0);
+              setHasSavedData(false);
+              setErrors({});
+            }}
+            className="text-xs text-blue-600 hover:text-blue-800 underline ml-2"
+          >
+            Start Fresh
+          </button>
         </div>
       )}
 

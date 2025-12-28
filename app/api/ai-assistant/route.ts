@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { streamChatResponse, validateMessage } from '@/lib/claude';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { createServerSupabaseClient } from '@/lib/supabase/client';
+import { getPublishedCaseStudies } from '@/lib/supabase/case-studies';
 import type { AIMessage, AIAssistantRequest } from '@/types/ai-assistant';
 import * as Sentry from '@sentry/nextjs';
 
@@ -123,6 +124,16 @@ export async function POST(request: NextRequest) {
     // Generate conversation ID if not provided
     const conversationId = body.conversationId || crypto.randomUUID();
 
+    // Fetch published case studies for context
+    let caseStudies: Awaited<ReturnType<typeof getPublishedCaseStudies>> = [];
+    try {
+      caseStudies = await getPublishedCaseStudies();
+      console.log('[AI Assistant] Loaded case studies for context:', caseStudies.length);
+    } catch (error) {
+      console.error('[AI Assistant] Error loading case studies (continuing without them):', error);
+      // Continue without case studies if fetch fails
+    }
+
     // Create streaming response
     const stream = new ReadableStream({
       async start(controller) {
@@ -132,15 +143,16 @@ export async function POST(request: NextRequest) {
           console.log('[AI Assistant] Starting Claude API call', {
             messageCount: messages.length,
             conversationId,
+            caseStudiesCount: caseStudies.length,
             timestamp: new Date().toISOString(),
           });
 
-          // Stream response from Claude
+          // Stream response from Claude (with case studies context)
           await streamChatResponse(messages, (chunk) => {
             fullResponse += chunk;
             // Send chunk to client
             controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ chunk })}\n\n`));
-          });
+          }, caseStudies);
 
           console.log('[AI Assistant] Claude API call completed', {
             responseLength: fullResponse.length,

@@ -5,6 +5,7 @@
  */
 
 import type { KnowledgeBaseService, KnowledgeBaseFAQ } from '@/types/ai-assistant';
+import type { CaseStudy } from '@/types/case-study';
 import { SERVICE_PRICING } from '@/lib/config/pricing';
 
 /**
@@ -119,6 +120,7 @@ export const WEBSITE_LINKS = {
   baseUrl: 'https://rockywebstudio.com.au',
   startProject: '/questionnaire',
   bookConsultation: '/book',
+  caseStudies: '/case-studies',
   services: {
     websiteDesign: '/services/website-design-development',
     websiteRedesign: '/services/website-redesign-refresh',
@@ -132,8 +134,10 @@ export const WEBSITE_LINKS = {
 
 /**
  * Format system prompt for Claude API
+ * 
+ * @param caseStudies - Optional array of published case studies to include in the prompt
  */
-export function formatSystemPrompt(): string {
+export function formatSystemPrompt(caseStudies?: CaseStudy[]): string {
   const servicesList = RWS_SERVICES.map(service => 
     `- ${service.name}: ${service.description} (${service.pricing}, ${service.timeline})`
   ).join('\n');
@@ -141,6 +145,25 @@ export function formatSystemPrompt(): string {
   const faqList = RWS_FAQ.map(faq => 
     `Q: ${faq.question}\nA: ${faq.answer}`
   ).join('\n\n');
+
+  // Format case studies information
+  let caseStudiesSection = '';
+  if (caseStudies && caseStudies.length > 0) {
+    const caseStudiesList = caseStudies.map(cs => {
+      const excerpt = cs.excerpt || 'A successful web development project by Rocky Web Studio';
+      const category = cs.category ? ` (${cs.category})` : '';
+      const link = `${WEBSITE_LINKS.baseUrl}/case-studies/${cs.slug}`;
+      return `- ${cs.title}${category}: ${excerpt} - View case study: ${link}`;
+    }).join('\n');
+    
+    caseStudiesSection = `
+
+CASE STUDIES - REAL PROJECTS WE'VE COMPLETED:
+${caseStudiesList}
+
+Case Studies Page: ${WEBSITE_LINKS.baseUrl}/case-studies
+`;
+  }
 
   return `You are an AI assistant for Rocky Web Studio, a web development agency based in Rockhampton, Queensland, Australia.
 
@@ -150,13 +173,14 @@ SERVICES:
 ${servicesList}
 
 FREQUENTLY ASKED QUESTIONS:
-${faqList}
+${faqList}${caseStudiesSection}
 
 YOUR SCOPE - ONLY ANSWER QUESTIONS ABOUT:
 - Rocky Web Studio services (web development, design, e-commerce, AI automation, etc.)
 - Our pricing, timelines, and processes
 - Our certifications (AVOB, WCAG 2.1 AA)
 - Our technology stack and expertise
+- Our case studies and past projects
 - How to contact us or book a consultation
 - Project inquiries and lead qualification
 
@@ -183,11 +207,14 @@ GUIDELINES:
 - For complex projects (healthcare, large e-commerce), always recommend a consultation
 - When mentioning AVOB, always clarify: "AVOB stands for Australian Veteran Owned Business" and include the link: https://www.avob.org.au/
 - Mention our AVOB certification and WCAG 2.1 AA expertise when relevant to government contracts or veteran-focused projects
+- When relevant, mention specific case studies that match the client's needs or industry
+- Encourage clients to view case studies to see examples of our work
 - Keep responses under 200 words when possible
 
 WEBSITE LINKS - ALWAYS PROVIDE RELEVANT LINKS:
 - Start a Project / Discovery Questionnaire: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.startProject}
 - Book a Consultation: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.bookConsultation}
+- Case Studies: ${WEBSITE_LINKS.baseUrl}/case-studies
 - Website Design & Development: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.websiteDesign}
 - Website Redesign: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.websiteRedesign}
 - E-Commerce Development: ${WEBSITE_LINKS.baseUrl}${WEBSITE_LINKS.services.ecommerce}

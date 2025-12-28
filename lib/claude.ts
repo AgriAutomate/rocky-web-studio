@@ -7,6 +7,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { formatSystemPrompt } from './knowledge-base';
 import type { AIMessage } from '@/types/ai-assistant';
+import type { CaseStudy } from '@/types/case-study';
 
 // Initialize Claude client
 const client = new Anthropic({
@@ -35,11 +36,13 @@ export function validateMessage(message: string): { valid: boolean; error?: stri
  * 
  * @param messages - Array of conversation messages
  * @param onChunk - Optional callback for each text chunk
+ * @param caseStudies - Optional array of published case studies to include in context
  * @returns Full response text
  */
 export async function streamChatResponse(
   messages: AIMessage[],
-  onChunk?: (text: string) => void
+  onChunk?: (text: string) => void,
+  caseStudies?: CaseStudy[]
 ): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY environment variable is not set');
@@ -53,7 +56,7 @@ export async function streamChatResponse(
     }
   }
 
-  const systemPrompt = formatSystemPrompt();
+  const systemPrompt = formatSystemPrompt(caseStudies);
 
   try {
     const stream = await client.messages.create({
@@ -126,15 +129,19 @@ export async function streamChatResponse(
 
 /**
  * Create a non-streaming chat response (for testing)
+ * 
+ * @param messages - Array of conversation messages
+ * @param caseStudies - Optional array of published case studies to include in context
  */
 export async function createChatResponse(
-  messages: AIMessage[]
+  messages: AIMessage[],
+  caseStudies?: CaseStudy[]
 ): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY environment variable is not set');
   }
 
-  const systemPrompt = formatSystemPrompt();
+  const systemPrompt = formatSystemPrompt(caseStudies);
 
   try {
     const response = await client.messages.create({

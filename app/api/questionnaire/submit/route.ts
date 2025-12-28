@@ -142,15 +142,22 @@ export async function POST(req: NextRequest) {
     
     const challengeDetails = getChallengeDetails(allChallengeIds);
 
-    // Extract goals and primary offers from raw body (q3 and q5)
+    // Build complete form responses object - use formResponses from body if provided, otherwise fall back to rawBodyForExtraction
+    // The formResponses field contains the raw formData with all question IDs (q1, q2, q3, q23, q24, q21, q22, sector, etc.)
+    // This is sent from the frontend specifically for PDF generation
+    // MUST be declared before it's used for goals/offers extraction
+    const allFormResponses: Record<string, any> = body.formResponses || rawBodyForExtraction;
+
+    // Extract goals and primary offers from allFormResponses (q3 and q5)
+    // Use allFormResponses which contains body.formResponses with raw question IDs
     // These are checkbox arrays in the form but not in the validated formData type
-    const selectedGoals = Array.isArray(rawBodyForExtraction.q3) 
-      ? rawBodyForExtraction.q3 
-      : (rawBodyForExtraction.q3 ? [rawBodyForExtraction.q3] : []);
+    const selectedGoals = Array.isArray(allFormResponses.q3) 
+      ? allFormResponses.q3 
+      : (allFormResponses.q3 ? [allFormResponses.q3] : []);
     
-    const selectedPrimaryOffers = Array.isArray(rawBodyForExtraction.q5) 
-      ? rawBodyForExtraction.q5 
-      : (rawBodyForExtraction.q5 ? [rawBodyForExtraction.q5] : []);
+    const selectedPrimaryOffers = Array.isArray(allFormResponses.q5) 
+      ? allFormResponses.q5 
+      : (allFormResponses.q5 ? [allFormResponses.q5] : []);
 
     // Map form sector to backend-workflow sector slug
     // Form uses simple slugs (e.g., "healthcare", "hospitality")
@@ -182,11 +189,6 @@ export async function POST(req: NextRequest) {
       ? buildCQAdvantageSection(sectorDefinition)
       : null;
 
-    // Build complete form responses object - use formResponses from body if provided, otherwise fall back to rawBodyForExtraction
-    // The formResponses field contains the raw formData with all question IDs (q1, q2, q3, q23, q24, q21, q22, sector, etc.)
-    // This is sent from the frontend specifically for PDF generation
-    const allFormResponses: Record<string, any> = body.formResponses || rawBodyForExtraction;
-
     // Log allFormResponses for debugging
     await logger.info("All form responses for PDF generation", {
       responseId: "pending", // Will be set later, but log early
@@ -208,7 +210,7 @@ export async function POST(req: NextRequest) {
     });
 
     const reportData = {
-      clientName: (rawBodyForExtraction.q1 as string) || formData.businessName || "Client",
+      clientName: (allFormResponses.q1 as string) || formData.businessName || "Client",
       businessName: formData.businessName,
       sector: formatSectorName(formData.sector as any),
       topChallenges: challengeDetails, // All selected challenges
@@ -261,16 +263,28 @@ export async function POST(req: NextRequest) {
     // STEP 2: SAVE TO SUPABASE
     let responseId: string | null = null;
     try {
-      // Extract sector-specific data, goals, and primary offers from raw body
+      // Extract sector-specific data, goals, and primary offers from allFormResponses
+      // Use allFormResponses (which contains body.formResponses with raw question IDs) instead of rawBodyForExtraction
       // These are collected in the form but not in the validated formData type
       const sectorSpecificData: Record<string, any> = {};
       const sectorKeys = ['h6', 'h7', 'h8', 'h9', 'h10', 't6', 't7', 't8', 't9', 't10', 
-                          'r6', 'r7', 'r8', 'r9', 'r10', 'p6', 'p7', 'p8', 'p9', 'p10'];
+                          'r6', 'r7', 'r8', 'r9', 'r10', 'p6', 'p7', 'p8', 'p9', 'p10',
+                          'e6', 'e7', 'e8', 'e8b', 'e9', 'e10', 'e11', 'e12',
+                          'hc6', 'hc7', 'hc8', 'hc9', 'hc10',
+                          're6', 're7', 're8', 're9', 're10'];
       
       sectorKeys.forEach(key => {
-        if (rawBodyForExtraction[key] !== undefined) {
-          sectorSpecificData[key] = rawBodyForExtraction[key];
+        if (allFormResponses[key] !== undefined) {
+          sectorSpecificData[key] = allFormResponses[key];
         }
+      });
+      
+      // Log sector-specific data extraction for debugging
+      await logger.info("Extracting sector-specific data for database storage", {
+        totalSectorKeys: sectorKeys.length,
+        foundKeys: Object.keys(sectorSpecificData),
+        foundCount: Object.keys(sectorSpecificData).length,
+        allFormResponsesHasKeys: sectorKeys.some(key => allFormResponses[key] !== undefined),
       });
 
       // Attach extracted data to formData for storage
@@ -337,7 +351,8 @@ export async function POST(req: NextRequest) {
 
     // STEP 3a: TRIGGER AND WAIT FOR WEBSITE AUDIT (BEFORE PDF generation)
     // If website URL provided (q2), trigger audit and wait for completion before generating PDF
-    const websiteUrl = rawBodyForExtraction.q2;
+    // Use allFormResponses which contains body.formResponses with raw question IDs
+    const websiteUrl = allFormResponses.q2;
     let auditDataForPDF: any = {
       status: "not_requested",
       websiteUrl: null,
@@ -540,7 +555,7 @@ export async function POST(req: NextRequest) {
         to: formData.businessEmail,
         subject: `Your Custom Deep-Dive Report – ${formData.businessName}`,
         react: React.createElement(ClientAcknowledgementEmail, {
-          clientFirstName: (rawBodyForExtraction.q1 as string) || formData.businessName || "Client",
+          clientFirstName: (allFormResponses.q1 as string) || formData.businessName || "Client",
           businessName: formData.businessName,
           sector: reportData.sector,
         }),

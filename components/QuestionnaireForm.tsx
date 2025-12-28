@@ -287,10 +287,12 @@ export function QuestionnaireForm() {
           });
         }
         setSelectedSector(branchSector);
-        // Reset current step if sector changes to ensure proper question flow
-        if (selectedSector !== branchSector) {
+        // Reset current step ONLY if sector is CHANGING (not when first selecting)
+        // This prevents skipping q1, q2, q3 when user first selects a sector
+        if (selectedSector && selectedSector !== branchSector) {
           setCurrentStep(trunkQuestions.length); // Start at first sector question
         }
+        // If this is the first sector selection, continue with normal flow (don't skip questions)
       } else {
         setSelectedSector(null);
       }

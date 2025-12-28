@@ -51,7 +51,12 @@ export function QuestionnaireForm() {
   // Check if equipment questions should be shown (conditional logic)
   const shouldShowEquipmentQuestions = useMemo(() => {
     const businessModel = formData.e6;
-    if (!Array.isArray(businessModel)) return true;
+    
+    // If e6 hasn't been answered yet, default to showing equipment questions
+    // (user hasn't made a choice, so show all questions)
+    if (!businessModel || !Array.isArray(businessModel) || businessModel.length === 0) {
+      return true;
+    }
     
     // If only "services-only" or "event-planning" selected, skip equipment questions
     if (businessModel.length === 1) {
@@ -59,6 +64,9 @@ export function QuestionnaireForm() {
         return false;
       }
     }
+    
+    // If any selection includes equipment-related options, show equipment questions
+    // This handles cases where user selects multiple options including equipment-hire
     return true;
   }, [formData.e6]);
 
@@ -272,9 +280,22 @@ export function QuestionnaireForm() {
     if (!currentQuestion) return true;
 
     // Skip validation if question should be hidden due to conditional logic
-    if (selectedSector === 'events-entertainment' && !shouldShowEquipmentQuestions) {
-      if (['e7', 'e8', 'e8b', 'e11', 'e12'].includes(currentQuestion.id)) {
-        return true; // Skip validation for hidden equipment questions
+    // Since getCurrentQuestion() uses filteredSectorQuestions, if a question is returned,
+    // it should be validated. However, we double-check for equipment questions to be safe.
+    if (selectedSector === 'events-entertainment') {
+      const isEquipmentQuestion = ['e7', 'e8', 'e8b', 'e11', 'e12'].includes(currentQuestion.id);
+      
+      // Check if this equipment question should actually be shown
+      if (isEquipmentQuestion) {
+        const isInFilteredList = filteredSectorQuestions.some(q => q.id === currentQuestion.id);
+        
+        // If equipment question is NOT in filtered list, it shouldn't be shown/validated
+        if (!isInFilteredList) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Validation] Skipping validation for hidden equipment question: ${currentQuestion.id}`);
+          }
+          return true; // Skip validation for hidden equipment questions
+        }
       }
     }
 

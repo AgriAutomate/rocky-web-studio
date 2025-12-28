@@ -405,8 +405,8 @@ export function QuestionnaireForm() {
         firstName: formData.q1 || formData.businessName || "Client",
         lastName: formData.lastName || "User",
         
-        // Business info
-        businessName: formData.q1 || "",
+        // Business info - use q1 (what should we call you) or fallback to "Client" (q1 is optional)
+        businessName: formData.q1 || "Client",
         businessEmail: formData.q23 || "",
         businessPhone: formData.q24 || "0000000000", // Default phone if not provided
         

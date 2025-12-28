@@ -131,9 +131,24 @@ export function QuestionnaireForm() {
     // Initialize start time when component mounts
     startTimeRef.current = Date.now();
 
-    // Load saved form data from localStorage
+    // Load saved form data from localStorage with expiry check
     const savedData = localStorage.getItem('questionnaire_form_data');
     const savedStep = localStorage.getItem('questionnaire_form_step');
+    const savedTimestamp = localStorage.getItem('questionnaire_form_timestamp');
+    
+    // Check if saved data has expired (7 days)
+    if (savedTimestamp) {
+      const age = Date.now() - parseInt(savedTimestamp, 10);
+      const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+      
+      if (age > sevenDays) {
+        // Data is older than 7 days, clear it automatically
+        localStorage.removeItem('questionnaire_form_data');
+        localStorage.removeItem('questionnaire_form_step');
+        localStorage.removeItem('questionnaire_form_timestamp');
+        return; // Don't load expired data
+      }
+    }
     
     if (savedData && savedStep) {
       try {
@@ -150,6 +165,7 @@ export function QuestionnaireForm() {
         // Clear corrupted localStorage data
         localStorage.removeItem('questionnaire_form_data');
         localStorage.removeItem('questionnaire_form_step');
+        localStorage.removeItem('questionnaire_form_timestamp');
       }
     }
 
@@ -168,6 +184,7 @@ export function QuestionnaireForm() {
     if (Object.keys(formData).length > 0) {
       localStorage.setItem('questionnaire_form_data', JSON.stringify(formData));
       localStorage.setItem('questionnaire_form_step', currentStep.toString());
+      localStorage.setItem('questionnaire_form_timestamp', Date.now().toString());
     }
   }, [formData, currentStep]);
 
@@ -230,6 +247,9 @@ export function QuestionnaireForm() {
 
   // Handle answers (including sector selection from first question)
   const handleAnswer = (questionId: string, value: any) => {
+    // Clear submit error when user makes changes
+    setSubmitError(null);
+    
     const updatedData = { ...formData, [questionId]: value };
 
     // Handle sector selection from the first question
@@ -301,48 +321,88 @@ export function QuestionnaireForm() {
 
     const value = formData[currentQuestion.id];
 
-    // Check required fields
-    if (currentQuestion.required && (!value || (Array.isArray(value) && value.length === 0))) {
-      const errorMessage = `${currentQuestion.label} is required`;
-      setErrors({ ...errors, [currentQuestion.id]: errorMessage });
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`[Validation] Required field missing: ${currentQuestion.id} (${currentQuestion.label})`);
+    // For optional fields, skip validation if empty
+    if (!currentQuestion.required) {
+      // If value is undefined, null, empty string, or empty array, it's valid (optional field)
+      if (!value || 
+          (typeof value === 'string' && value.trim().length === 0) || 
+          (Array.isArray(value) && value.length === 0)) {
+        // Clear any existing error for this optional field
+        if (errors[currentQuestion.id]) {
+          setErrors({ ...errors, [currentQuestion.id]: "" });
+        }
+        return true;
       }
-      return false;
-    }
-
-    // Skip validation if field is optional and empty
-    if (!currentQuestion.required && (!value || (typeof value === 'string' && value.trim().length === 0))) {
-      return true;
-    }
-
-    // Run custom validation if provided and value exists
-    if (currentQuestion.validation && value) {
-      try {
-        const isValid = currentQuestion.validation(value);
-        if (!isValid) {
-          // Provide field-specific error messages based on question type
-          let errorMessage = "Invalid value";
-          if (currentQuestion.id === "q23") {
-            errorMessage = "Please enter a valid email address";
-          } else if (currentQuestion.id === "q24") {
-            errorMessage = "Please enter a valid phone number (optional field)";
-          } else if (currentQuestion.type === "checkbox" && Array.isArray(value) && value.length === 0) {
-            errorMessage = "Please select at least one option";
-          } else {
-            errorMessage = `Please enter a valid ${currentQuestion.label.toLowerCase()}`;
+      
+      // If optional field has a value, run validation if provided
+      if (currentQuestion.validation && value) {
+        try {
+          const isValid = currentQuestion.validation(value);
+          if (!isValid) {
+            let errorMessage = `Please enter a valid ${currentQuestion.label.toLowerCase()}`;
+            if (currentQuestion.id === "q24") {
+              errorMessage = "Please enter a valid phone number (optional field)";
+            }
+            setErrors({ ...errors, [currentQuestion.id]: errorMessage });
+            if (process.env.NODE_ENV === 'development') {
+              console.error(`[Validation] Optional field validation failed: ${currentQuestion.id} (${currentQuestion.label})`, { value });
+            }
+            return false;
           }
-          setErrors({ ...errors, [currentQuestion.id]: errorMessage });
-          if (process.env.NODE_ENV === 'development') {
-            console.error(`[Validation] Validation failed: ${currentQuestion.id} (${currentQuestion.label})`, { value });
-          }
+        } catch (error) {
+          console.error(`[Validation] Validation error for optional question ${currentQuestion.id}:`, error);
+          setErrors({ ...errors, [currentQuestion.id]: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}` });
           return false;
         }
-      } catch (error) {
-        console.error(`[Validation] Validation error for question ${currentQuestion.id}:`, error);
-        setErrors({ ...errors, [currentQuestion.id]: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}` });
+      }
+      return true; // Optional field with value passed validation
+    }
+
+    // For required fields, check if value exists
+    if (currentQuestion.required) {
+      // Check if value is missing or empty
+      const isEmpty = !value || 
+                     (typeof value === 'string' && value.trim().length === 0) || 
+                     (Array.isArray(value) && value.length === 0);
+      
+      if (isEmpty) {
+        const errorMessage = `${currentQuestion.label} is required`;
+        setErrors({ ...errors, [currentQuestion.id]: errorMessage });
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Validation] Required field missing: ${currentQuestion.id} (${currentQuestion.label})`, { value, type: typeof value });
+        }
         return false;
       }
+
+      // Run custom validation if provided and value exists
+      if (currentQuestion.validation) {
+        try {
+          const isValid = currentQuestion.validation(value);
+          if (!isValid) {
+            // Provide field-specific error messages based on question type
+            let errorMessage = `Please enter a valid ${currentQuestion.label.toLowerCase()}`;
+            if (currentQuestion.id === "q23") {
+              errorMessage = "Please enter a valid email address";
+            } else if (currentQuestion.type === "checkbox" && Array.isArray(value) && value.length === 0) {
+              errorMessage = "Please select at least one option";
+            }
+            setErrors({ ...errors, [currentQuestion.id]: errorMessage });
+            if (process.env.NODE_ENV === 'development') {
+              console.error(`[Validation] Required field validation failed: ${currentQuestion.id} (${currentQuestion.label})`, { value, type: typeof value });
+            }
+            return false;
+          }
+        } catch (error) {
+          console.error(`[Validation] Validation error for question ${currentQuestion.id}:`, error);
+          setErrors({ ...errors, [currentQuestion.id]: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}` });
+          return false;
+        }
+      }
+    }
+
+    // Clear any existing error if validation passes
+    if (errors[currentQuestion.id]) {
+      setErrors({ ...errors, [currentQuestion.id]: "" });
     }
 
     return true;
@@ -353,6 +413,9 @@ export function QuestionnaireForm() {
       return;
     }
 
+    // Clear submit error when navigating to next step
+    setSubmitError(null);
+
     // Move to next step or submit if on last step
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
@@ -362,6 +425,9 @@ export function QuestionnaireForm() {
   };
 
   const handlePrevious = () => {
+    // Clear submit error when navigating to previous step
+    setSubmitError(null);
+    
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
@@ -497,6 +563,7 @@ export function QuestionnaireForm() {
       // Clear saved form data after successful submission
       localStorage.removeItem('questionnaire_form_data');
       localStorage.removeItem('questionnaire_form_step');
+      localStorage.removeItem('questionnaire_form_timestamp');
 
       // Redirect to confirmation page with response ID
       if (result.responseId) {
@@ -808,6 +875,7 @@ export function QuestionnaireForm() {
             onClick={() => {
               localStorage.removeItem('questionnaire_form_data');
               localStorage.removeItem('questionnaire_form_step');
+              localStorage.removeItem('questionnaire_form_timestamp');
               setFormData({});
               setCurrentStep(0);
               setHasSavedData(false);

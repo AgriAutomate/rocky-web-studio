@@ -31,6 +31,7 @@ interface ReportData {
     websiteUrl?: string | null;
     error?: string | null;
   } | null;
+  allFormResponses?: Record<string, any>; // All form responses for PDF display
 }
 
 // Note: HTML formatting functions removed - using React PDF components instead
@@ -86,6 +87,7 @@ export async function generatePDFFromComponents(
       selectedPrimaryOffers: reportData.selectedPrimaryOffers || [],
       cqAdvantage: reportData.cqAdvantage || null,
       auditData: reportData.auditData || { status: "pending", websiteUrl: null, results: null, error: null },
+      allFormResponses: reportData.allFormResponses || {},
     });
     
     // Render to PDF buffer

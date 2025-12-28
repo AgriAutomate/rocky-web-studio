@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { getQuestionLabel, formatResponseValue, getAllQuestions, getSectorQuestions } from './questionnaireDataMapper';
 
 // Define styles
 const styles = StyleSheet.create({
@@ -197,6 +198,7 @@ interface PDFDocumentProps {
     websiteUrl?: string | null;
     error?: string | null;
   } | null;
+  allFormResponses?: Record<string, any>; // All form responses for PDF display
 }
 
 // Goal labels mapping
@@ -237,6 +239,7 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
   selectedPrimaryOffers = [],
   cqAdvantage = null,
   auditData = { status: "pending", websiteUrl: null, results: null, error: null },
+  allFormResponses = {},
 }) => {
   return (
     <Document>
@@ -387,6 +390,65 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
             )}
           </View>
         </View>
+
+        {/* All Questions & Responses Section */}
+        {Object.keys(allFormResponses).length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Questionnaire Responses</Text>
+            <Text style={styles.challengeText}>
+              Below is a complete summary of all the information you provided:
+            </Text>
+            
+            {(() => {
+              // Get all questions in order
+              const allQuestions = getAllQuestions();
+              const sectorValue = allFormResponses.sector;
+              
+              // Get sector-specific questions if sector is provided
+              let sectorQuestions: typeof allQuestions = [];
+              if (sectorValue) {
+                // Map form sector value to config sector (form uses full names like "professional-services", 
+                // but config uses short names like "professional")
+                const sectorMap: Record<string, string> = {
+                  "professional-services": "professional",
+                  "healthcare-allied": "healthcare",
+                  "hospitality": "hospitality",
+                  "retail": "retail",
+                  "trades-construction": "trades",
+                  "events-entertainment": "events-entertainment",
+                  "real-estate-property": "real-estate",
+                };
+                const configSector = sectorMap[String(sectorValue)] || String(sectorValue);
+                sectorQuestions = getSectorQuestions(configSector);
+              }
+              
+              // Combine all questions
+              const questionsToDisplay = [...allQuestions, ...sectorQuestions];
+              
+              // Filter to only questions that have responses
+              const questionsWithResponses = questionsToDisplay.filter(q => {
+                const value = allFormResponses[q.id];
+                return value !== undefined && value !== null && value !== '';
+              });
+              
+              return questionsWithResponses.map((question, index) => {
+                const value = allFormResponses[question.id];
+                const formattedValue = formatResponseValue(question.id, value);
+                
+                return (
+                  <View key={question.id || index} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: '0.5 solid #e0d9d0' }}>
+                    <Text style={[styles.challengeLabel, { marginBottom: 4 }]}>
+                      {getQuestionLabel(question.id)}:
+                    </Text>
+                    <Text style={styles.challengeText}>
+                      {formattedValue}
+                    </Text>
+                  </View>
+                );
+              });
+            })()}
+          </View>
+        )}
 
         {/* Challenges Section */}
         <View style={styles.section}>

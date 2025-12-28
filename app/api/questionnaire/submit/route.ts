@@ -191,6 +191,7 @@ export async function POST(req: NextRequest) {
       selectedPrimaryOffers: selectedPrimaryOffers, // All selected primary offers
       generatedDate: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
       cqAdvantage, // CQ Advantage section data
+      allFormResponses: rawBodyForExtraction, // Include ALL form responses for PDF
     };
 
     // Validate sector exists

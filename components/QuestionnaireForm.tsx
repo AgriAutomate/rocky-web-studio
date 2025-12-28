@@ -188,6 +188,11 @@ export function QuestionnaireForm() {
     }
   }, [formData, currentStep]);
 
+  // Clear submit error when step changes (ensures it's cleared on navigation)
+  useEffect(() => {
+    setSubmitError(null);
+  }, [currentStep]);
+
   // Track step progression and abandonment
   useEffect(() => {
     // Reset start time when step changes

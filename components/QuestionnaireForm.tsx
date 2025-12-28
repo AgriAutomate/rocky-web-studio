@@ -703,6 +703,7 @@ export function QuestionnaireForm() {
         return (
           <div className="space-y-2">
             <Input
+              id={currentQuestion.id}
               type={currentQuestion.type}
               value={value}
               onChange={(e) => handleAnswer(currentQuestion.id, e.target.value)}
@@ -720,6 +721,7 @@ export function QuestionnaireForm() {
         return (
           <div className="space-y-2">
             <Textarea
+              id={currentQuestion.id}
               value={value}
               onChange={(e) => handleAnswer(currentQuestion.id, e.target.value)}
               aria-invalid={!!error}
@@ -739,23 +741,28 @@ export function QuestionnaireForm() {
       case "radio":
         return (
           <div className="space-y-2">
-            <div className="space-y-3">
-              {currentQuestion.options?.map((option) => (
-                <label
-                  key={option.value}
-                  className="flex items-center space-x-3 rounded-md border p-3 hover:bg-accent cursor-pointer"
-                >
-                  <input
-                    type="radio"
-                    name={currentQuestion.id}
-                    value={option.value}
-                    checked={value === option.value}
-                    onChange={() => handleAnswer(currentQuestion.id, option.value)}
-                    className="size-4"
-                  />
-                  <span className="text-sm">{option.label}</span>
-                </label>
-              ))}
+            <div className="space-y-3" role="radiogroup" aria-labelledby={`${currentQuestion.id}-label`}>
+              {currentQuestion.options?.map((option) => {
+                const optionId = `${currentQuestion.id}-${option.value}`;
+                return (
+                  <label
+                    key={option.value}
+                    htmlFor={optionId}
+                    className="flex items-center space-x-3 rounded-md border p-3 hover:bg-accent cursor-pointer"
+                  >
+                    <input
+                      id={optionId}
+                      type="radio"
+                      name={currentQuestion.id}
+                      value={option.value}
+                      checked={value === option.value}
+                      onChange={() => handleAnswer(currentQuestion.id, option.value)}
+                      className="size-4"
+                    />
+                    <span className="text-sm">{option.label}</span>
+                  </label>
+                );
+              })}
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
@@ -764,28 +771,33 @@ export function QuestionnaireForm() {
       case "checkbox":
         return (
           <div className="space-y-2">
-            <div className="space-y-3">
-              {currentQuestion.options?.map((option) => (
-                <label
-                  key={option.value}
-                  className="flex items-center space-x-3 rounded-md border p-3 hover:bg-accent cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    value={option.value}
-                    checked={Array.isArray(value) && value.includes(option.value)}
-                    onChange={(e) => {
-                      const currentValues = Array.isArray(value) ? value : [];
-                      const newValues = e.target.checked
-                        ? [...currentValues, option.value]
-                        : currentValues.filter((v) => v !== option.value);
-                      handleAnswer(currentQuestion.id, newValues);
-                    }}
-                    className="size-4"
-                  />
-                  <span className="text-sm">{option.label}</span>
-                </label>
-              ))}
+            <div className="space-y-3" role="group" aria-labelledby={`${currentQuestion.id}-label`}>
+              {currentQuestion.options?.map((option) => {
+                const optionId = `${currentQuestion.id}-${option.value}`;
+                return (
+                  <label
+                    key={option.value}
+                    htmlFor={optionId}
+                    className="flex items-center space-x-3 rounded-md border p-3 hover:bg-accent cursor-pointer"
+                  >
+                    <input
+                      id={optionId}
+                      type="checkbox"
+                      value={option.value}
+                      checked={Array.isArray(value) && value.includes(option.value)}
+                      onChange={(e) => {
+                        const currentValues = Array.isArray(value) ? value : [];
+                        const newValues = e.target.checked
+                          ? [...currentValues, option.value]
+                          : currentValues.filter((v) => v !== option.value);
+                        handleAnswer(currentQuestion.id, newValues);
+                      }}
+                      className="size-4"
+                    />
+                    <span className="text-sm">{option.label}</span>
+                  </label>
+                );
+              })}
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
@@ -816,7 +828,11 @@ export function QuestionnaireForm() {
 
       {/* Question */}
       <div className="space-y-4">
-        <Label htmlFor={currentQuestion.id} className="text-lg font-semibold">
+        <Label 
+          id={`${currentQuestion.id}-label`}
+          htmlFor={currentQuestion.type === "radio" || currentQuestion.type === "checkbox" ? undefined : currentQuestion.id} 
+          className="text-lg font-semibold"
+        >
           {currentStep + 1}. {currentQuestion.label}
           {currentQuestion.required && <span className="text-destructive ml-1">*</span>}
         </Label>

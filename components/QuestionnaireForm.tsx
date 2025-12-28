@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,7 @@ export function QuestionnaireForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [hasSavedData, setHasSavedData] = useState(false);
+  const [showExamples, setShowExamples] = useState<Record<string, boolean>>({});
   const startTimeRef = useRef<number>(Date.now());
 
   // Get trunk questions (universal first questions)
@@ -47,6 +48,34 @@ export function QuestionnaireForm() {
   const leavesSet = QUESTION_SETS.find((set) => set.id === "leaves");
   const leavesQuestions = leavesSet?.questions || [];
 
+  // Check if equipment questions should be shown (conditional logic)
+  const shouldShowEquipmentQuestions = useMemo(() => {
+    const businessModel = formData.e6;
+    if (!Array.isArray(businessModel)) return true;
+    
+    // If only "services-only" or "event-planning" selected, skip equipment questions
+    if (businessModel.length === 1) {
+      if (businessModel[0] === 'services-only' || businessModel[0] === 'event-planning') {
+        return false;
+      }
+    }
+    return true;
+  }, [formData.e6]);
+
+  // Get filtered sector questions (skip equipment questions if needed)
+  const filteredSectorQuestions = useMemo(() => {
+    if (!selectedSector || selectedSector !== 'events-entertainment') {
+      return sectorQuestions;
+    }
+    
+    if (!shouldShowEquipmentQuestions) {
+      // Skip equipment-related questions (e7, e8, e8b, e11, e12)
+      return sectorQuestions.filter(q => !['e7', 'e8', 'e8b', 'e11', 'e12'].includes(q.id));
+    }
+    
+    return sectorQuestions;
+  }, [selectedSector, sectorQuestions, shouldShowEquipmentQuestions]);
+
   // Determine current question based on step
   const getCurrentQuestion = (): QuestionConfig | null => {
     // Show trunk questions first
@@ -54,16 +83,16 @@ export function QuestionnaireForm() {
       return trunkQuestions[currentStep] || null;
     }
     
-    // Show sector-specific questions after sector is selected
+    // Show sector-specific questions after sector is selected (using filtered list)
     if (selectedSector) {
       const sectorStep = currentStep - trunkQuestions.length;
-      if (sectorStep >= 0 && sectorStep < sectorQuestions.length) {
-        return sectorQuestions[sectorStep] || null;
+      if (sectorStep >= 0 && sectorStep < filteredSectorQuestions.length) {
+        return filteredSectorQuestions[sectorStep] || null;
       }
     }
     
     // Show leaves questions last
-    const stepsBeforeLeaves = trunkQuestions.length + (selectedSector ? sectorQuestions.length : 0);
+    const stepsBeforeLeaves = trunkQuestions.length + (selectedSector ? filteredSectorQuestions.length : 0);
     const leavesStep = currentStep - stepsBeforeLeaves;
     if (leavesStep >= 0 && leavesStep < leavesQuestions.length) {
       return leavesQuestions[leavesStep] || null;
@@ -72,9 +101,22 @@ export function QuestionnaireForm() {
   };
 
   const currentQuestion = getCurrentQuestion();
-  // Calculate total steps: trunk + sector questions (if selected) + leaves
-  const totalSteps = trunkQuestions.length + (selectedSector ? sectorQuestions.length : 0) + leavesQuestions.length;
+  // Calculate total steps: trunk + filtered sector questions (if selected) + leaves
+  const totalSteps = trunkQuestions.length + (selectedSector ? filteredSectorQuestions.length : 0) + leavesQuestions.length;
   const isLastStep = currentStep === totalSteps - 1;
+
+  // Get current section name
+  const getCurrentSection = (): string => {
+    if (currentStep < trunkQuestions.length) return "General";
+    if (selectedSector) {
+      const sectorStep = currentStep - trunkQuestions.length;
+      if (sectorStep >= 0 && sectorStep < filteredSectorQuestions.length) {
+        if (selectedSector === "events-entertainment") return "Equipment Hire";
+        return "Sector Specific";
+      }
+    }
+    return "Final Details";
+  };
 
   // Load saved form data from localStorage on mount
   useEffect(() => {
@@ -145,25 +187,73 @@ export function QuestionnaireForm() {
     };
   }, [currentStep, isSubmitted, selectedSector, totalSteps, formData]);
 
+  // Adjust current step if equipment questions are skipped and user is on a skipped question
+  useEffect(() => {
+    if (!selectedSector || selectedSector !== 'events-entertainment') return;
+    if (!shouldShowEquipmentQuestions && currentQuestion) {
+      // If user is on a skipped equipment question, move to next valid question
+      if (['e7', 'e8', 'e8b', 'e11', 'e12'].includes(currentQuestion.id)) {
+        // Find next valid question index
+        const sectorStep = currentStep - trunkQuestions.length;
+        const nextValidIndex = filteredSectorQuestions.findIndex(q => !['e7', 'e8', 'e8b', 'e11', 'e12'].includes(q.id));
+        if (nextValidIndex >= 0 && nextValidIndex !== sectorStep) {
+          setCurrentStep(trunkQuestions.length + nextValidIndex);
+        }
+      }
+    }
+  }, [shouldShowEquipmentQuestions, selectedSector, currentQuestion, currentStep, trunkQuestions.length, filteredSectorQuestions]);
+
+  // Map form sector values to branch Sector types
+  const mapFormSectorToBranchSector = (formSector: string): Sector | null => {
+    const sectorMap: Record<string, Sector> = {
+      "hospitality": "hospitality",
+      "trades-construction": "trades",
+      "retail": "retail",
+      "professional-services": "professional",
+      "events-entertainment": "events-entertainment",
+      "healthcare-allied": "healthcare",
+      "real-estate-property": "real-estate",
+    };
+    return sectorMap[formSector] || null;
+  };
+
   // Handle answers (including sector selection from first question)
   const handleAnswer = (questionId: string, value: any) => {
     const updatedData = { ...formData, [questionId]: value };
 
     // Handle sector selection from the first question
     if (questionId === "sector") {
-      const sector = value as Sector;
-      if (sector !== "universal") {
+      const branchSector = mapFormSectorToBranchSector(value);
+      if (branchSector && branchSector !== "universal") {
         // If sector is changing, clear answers from the previous sector's questions
-        if (selectedSector && selectedSector !== sector) {
+        if (selectedSector && selectedSector !== branchSector) {
           const previousSectorSet = QUESTION_SETS.find((set) => set.sector === selectedSector);
           const previousSectorQuestionIds = previousSectorSet?.questions.map((q) => q.id) || [];
           previousSectorQuestionIds.forEach((qId) => {
             delete updatedData[qId];
           });
         }
-        setSelectedSector(sector);
+        setSelectedSector(branchSector);
+        // Reset current step if sector changes to ensure proper question flow
+        if (selectedSector !== branchSector) {
+          setCurrentStep(trunkQuestions.length); // Start at first sector question
+        }
       } else {
         setSelectedSector(null);
+      }
+    }
+
+    // Handle e6 (business model) change - clear equipment questions if switching to services-only
+    if (questionId === "e6") {
+      const businessModel = Array.isArray(value) ? value : [value];
+      const isServicesOnly = businessModel.length === 1 && 
+                            (businessModel[0] === 'services-only' || businessModel[0] === 'event-planning');
+      
+      if (isServicesOnly) {
+        // Clear equipment-related questions
+        ['e7', 'e8', 'e8b', 'e11', 'e12'].forEach((qId) => {
+          delete updatedData[qId];
+        });
       }
     }
     
@@ -352,7 +442,7 @@ export function QuestionnaireForm() {
       "fitness-wellness": "other",
       "real-estate-property": "other",
       "transport-logistics": "other",
-      "events-entertainment": "other",
+      "events-entertainment": "other", // Maps to "other" for API, but uses events-entertainment branch questions
     };
     return sectorMap[sector] || "other";
   };
@@ -499,13 +589,16 @@ export function QuestionnaireForm() {
               value={value}
               onChange={(e) => handleAnswer(currentQuestion.id, e.target.value)}
               aria-invalid={!!error}
-              placeholder={`Enter ${currentQuestion.label.toLowerCase()}`}
+              placeholder={currentQuestion.placeholder || `Enter ${currentQuestion.label.toLowerCase()}`}
+              maxLength={currentQuestion.maxLength}
             />
             {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
         );
 
       case "textarea":
+        const maxLength = currentQuestion.maxLength || 5000;
+        const charCount = typeof value === 'string' ? value.length : 0;
         return (
           <div className="space-y-2">
             <Textarea
@@ -513,9 +606,15 @@ export function QuestionnaireForm() {
               onChange={(e) => handleAnswer(currentQuestion.id, e.target.value)}
               aria-invalid={!!error}
               rows={4}
-              placeholder={`Enter ${currentQuestion.label.toLowerCase()}`}
+              placeholder={currentQuestion.placeholder || `Enter ${currentQuestion.label.toLowerCase()}`}
+              maxLength={maxLength}
             />
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            <div className="flex justify-between items-center">
+              {error && <p className="text-xs text-destructive">{error}</p>}
+              <p className="text-xs text-muted-foreground ml-auto">
+                {charCount} / {maxLength} characters
+              </p>
+            </div>
           </div>
         );
 
@@ -584,10 +683,12 @@ export function QuestionnaireForm() {
       {/* Enhanced Progress Bar */}
       <div className="mb-6">
         <div className="flex justify-between text-sm text-muted-foreground mb-2">
-          <span>Step {currentStep + 1} of {totalSteps}</span>
+          <span>
+            {getCurrentSection()} • Question {currentStep + 1} of {totalSteps}
+          </span>
           <span>{Math.round(((currentStep + 1) / totalSteps) * 100)}% Complete</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={totalSteps}>
           <div 
             className="bg-primary h-2 rounded-full transition-all duration-300"
             style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
@@ -607,7 +708,7 @@ export function QuestionnaireForm() {
       {/* Question */}
       <div className="space-y-4">
         <Label htmlFor={currentQuestion.id} className="text-lg font-semibold">
-          {currentQuestion.label}
+          {currentStep + 1}. {currentQuestion.label}
           {currentQuestion.required && <span className="text-destructive ml-1">*</span>}
         </Label>
         {"introText" in currentQuestion && currentQuestion.introText ? (
@@ -615,7 +716,32 @@ export function QuestionnaireForm() {
         ) : null}
         {renderQuestionInput()}
         {"outroText" in currentQuestion && currentQuestion.outroText ? (
-          <p className="text-sm text-muted-foreground whitespace-pre-line">{currentQuestion.outroText}</p>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowExamples(prev => ({
+                ...prev,
+                [currentQuestion.id]: !prev[currentQuestion.id]
+              }))}
+              className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
+              aria-expanded={showExamples[currentQuestion.id] || false}
+            >
+              {showExamples[currentQuestion.id] ? (
+                <>
+                  Hide example <ChevronUp className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  Show example <ChevronDown className="w-4 h-4" />
+                </>
+              )}
+            </button>
+            {showExamples[currentQuestion.id] && (
+              <div className="mt-2 p-3 bg-muted rounded-md text-sm whitespace-pre-line">
+                {currentQuestion.outroText}
+              </div>
+            )}
+          </div>
         ) : null}
       </div>
 

@@ -5,6 +5,9 @@ export type Sector =
   | "trades"
   | "retail"
   | "professional"
+  | "events-entertainment"
+  | "healthcare"
+  | "real-estate"
   | "universal";
 
 export interface QuestionOption {
@@ -23,6 +26,8 @@ export interface QuestionConfig {
   required?: boolean;
   introText?: string;
   outroText?: string;
+  placeholder?: string;
+  maxLength?: number;
 }
 
 export interface QuestionSet {
@@ -176,9 +181,30 @@ export const QUESTION_SETS: QuestionSet[] = [
           { value: "ota", label: "OTA (Airbnb/Booking.com)" },
         ],
       },
-      { id: "h8", type: "textarea", label: "Service flow / table turns?", required: true, validation: required },
-      { id: "h9", type: "textarea", label: "POS / PMS stack today?", required: true, validation: required },
-      { id: "h10", type: "textarea", label: "Menu or inventory complexity?", required: true, validation: required },
+      { 
+        id: "h8", 
+        type: "textarea", 
+        label: "Service flow / table turns?", 
+        required: true, 
+        validation: required,
+        outroText: "Describe how customers flow through your venue/service (e.g., walk-in, reservation, table duration, etc.)",
+      },
+      { 
+        id: "h9", 
+        type: "textarea", 
+        label: "Current POS / PMS / booking systems?", 
+        required: true, 
+        validation: required,
+        outroText: "List any point-of-sale, property management, or booking systems you currently use (e.g., Square, OpenTable, Xero, etc.)",
+      },
+      { 
+        id: "h10", 
+        type: "textarea", 
+        label: "Menu or inventory complexity?", 
+        required: true, 
+        validation: required,
+        outroText: "Describe your menu items, pricing structure, inventory management needs, or product variations",
+      },
     ],
   },
   {
@@ -209,9 +235,30 @@ export const QUESTION_SETS: QuestionSet[] = [
           { value: "template", label: "Template-based" },
         ],
       },
-      { id: "t8", type: "textarea", label: "Dispatch / routing tools in use?", required: true, validation: required },
-      { id: "t9", type: "textarea", label: "Job tracking or compliance needs?", required: true, validation: required },
-      { id: "t10", type: "textarea", label: "Billing and payments process?", required: true, validation: required },
+      { 
+        id: "t8", 
+        type: "textarea", 
+        label: "Dispatch / routing tools in use?", 
+        required: true, 
+        validation: required,
+        outroText: "What tools do you currently use for scheduling, dispatch, or route optimization?",
+      },
+      { 
+        id: "t9", 
+        type: "textarea", 
+        label: "Job tracking or compliance needs?", 
+        required: true, 
+        validation: required,
+        outroText: "What job tracking, reporting, or compliance requirements do you have? (e.g., certifications, safety records, progress photos)",
+      },
+      { 
+        id: "t10", 
+        type: "textarea", 
+        label: "Billing and payments process?", 
+        required: true, 
+        validation: required,
+        outroText: "How do you currently handle invoicing, payments, deposits, or payment plans?",
+      },
     ],
   },
   {
@@ -243,9 +290,30 @@ export const QUESTION_SETS: QuestionSet[] = [
           { value: "social", label: "Social commerce" },
         ],
       },
-      { id: "r8", type: "textarea", label: "Inventory complexity (SKUs, variants)?", required: true, validation: required },
-      { id: "r9", type: "textarea", label: "Fulfillment ops (3PL, in-house)?", required: true, validation: required },
-      { id: "r10", type: "textarea", label: "Loyalty / CRM setup?", required: true, validation: required },
+      { 
+        id: "r8", 
+        type: "textarea", 
+        label: "Inventory complexity (SKUs, variants, sizes, colors)?", 
+        required: true, 
+        validation: required,
+        outroText: "Describe your product catalog complexity: number of SKUs, product variants (sizes, colors, styles), categories, etc.",
+      },
+      { 
+        id: "r9", 
+        type: "textarea", 
+        label: "Fulfillment operations (3PL, in-house, dropshipping)?", 
+        required: true, 
+        validation: required,
+        outroText: "How do you handle order fulfillment? In-house shipping, third-party logistics (3PL), dropshipping, local delivery, etc.",
+      },
+      { 
+        id: "r10", 
+        type: "textarea", 
+        label: "Loyalty programs or CRM needs?", 
+        required: true, 
+        validation: required,
+        outroText: "Do you have or need customer loyalty programs, email marketing, customer relationship management (CRM), or customer retention tools?",
+      },
     ],
   },
   {
@@ -276,9 +344,282 @@ export const QUESTION_SETS: QuestionSet[] = [
           { value: "referrals", label: "Referrals/partners" },
         ],
       },
-      { id: "p8", type: "textarea", label: "Proposal / SOW process?", required: true, validation: required },
-      { id: "p9", type: "textarea", label: "Delivery tooling (PM/QA)?", required: true, validation: required },
-      { id: "p10", type: "textarea", label: "Reporting / client portals?", required: true, validation: required },
+      { 
+        id: "p8", 
+        type: "textarea", 
+        label: "Proposal / SOW process?", 
+        required: true, 
+        validation: required,
+        outroText: "How do you currently create proposals, statements of work (SOW), or project scopes?",
+      },
+      { 
+        id: "p9", 
+        type: "textarea", 
+        label: "Delivery tooling (PM/QA)?", 
+        required: true, 
+        validation: required,
+        outroText: "What project management, quality assurance, or delivery tools do you use?",
+      },
+      { 
+        id: "p10", 
+        type: "textarea", 
+        label: "Reporting / client portals?", 
+        required: true, 
+        validation: required,
+        outroText: "Do you need client portals, automated reporting, or client collaboration tools?",
+      },
+    ],
+  },
+  {
+    id: "events-entertainment",
+    sector: "events-entertainment",
+    questions: [
+      {
+        id: "e6",
+        type: "checkbox",
+        label: "Primary business model",
+        required: true,
+        validation: (v) => Array.isArray(v) && v.length > 0,
+        introText: "Select all that apply to your business:",
+        options: [
+          { value: "equipment-hire", label: "Equipment hire (wet/dry hire)" },
+          { value: "services-only", label: "Services only (DJ, MC, event management)" },
+          { value: "packages", label: "Service + equipment packages" },
+          { value: "venue-hire", label: "Venue hire" },
+          { value: "event-planning", label: "Event planning and coordination" },
+        ],
+      },
+      {
+        id: "e7",
+        type: "textarea",
+        label: "Equipment catalog summary",
+        required: true,
+        validation: required,
+        maxLength: 2000,
+        placeholder: "Example: PA System x2: $400/day (wet), $200/day (dry)...",
+        introText: "Please provide an overview of your equipment inventory. Include main categories, quantities, and key items. Use the recommended format below:",
+        outroText: `RECOMMENDED FORMAT:
+
+## Audio Equipment
+- PA System x2: $400/day (wet), $200/day (dry)
+- Wireless Microphones x4: $50/day each (wet), $25/day (dry)
+- Mixer Console x1: $150/day (wet), $75/day (dry)
+
+## Lighting
+- LED Panels x10: $300/day (wet), $150/day (dry)
+- Moving Head Lights x4: $200/day (wet), $100/day (dry)
+- Laser Lights x2: $100/day (wet), $50/day (dry)
+
+## DJ Equipment
+- Full DJ Setup x2: $500/day (wet), $250/day (dry)
+- Turntables x2: $100/day (wet), $50/day (dry)
+
+TIPS:
+• List each category separately
+• Include quantity available (e.g., x2, x4)
+• Specify wet hire (with operator) and dry hire (equipment only) pricing
+• Add any special notes about equipment (power requirements, compatibility, etc.)`,
+      },
+      {
+        id: "e8",
+        type: "textarea",
+        label: "Pricing structure",
+        required: true,
+        validation: required,
+        maxLength: 2000,
+        placeholder: "Example: Wet hire: $500-800/day, Dry hire: $200-400/day. Payment: 50% deposit, balance 7 days before event...",
+        introText: "Describe your pricing model. Include wet hire (with operator) vs dry hire (equipment only) rates, package pricing, typical pricing ranges, rental duration options (hourly, daily, weekly, event-based), and payment terms:",
+        outroText: "Example: Wet hire (with operator): $500-800/day or $150/hour minimum 4 hours. Dry hire (equipment only): $200-400/day or $75/hour. DJ services: $800-1500/event. Full packages (equipment + DJ): $1200-2000/event. Payment terms: 50% deposit required to secure booking, balance due 7 days before event. Refund policy: Full refund if cancelled 14+ days before, 50% refund 7-13 days before. Damage deposit: $200-500 depending on equipment value. Accepted payment methods: Credit card, bank transfer, cash on delivery.",
+      },
+      {
+        id: "e8b",
+        type: "checkbox",
+        label: "Rental duration options",
+        required: true,
+        validation: (v) => Array.isArray(v) && v.length > 0,
+        introText: "What rental duration options do you offer? Select all that apply:",
+        options: [
+          { value: "hourly", label: "Hourly rentals" },
+          { value: "daily", label: "Daily rentals (24-hour periods)" },
+          { value: "weekly", label: "Weekly rentals (7-day periods)" },
+          { value: "multi-day", label: "Multi-day rentals (2-6 days)" },
+          { value: "event-based", label: "Event-based (full event duration, pickup/delivery included)" },
+          { value: "minimum-hours", label: "Minimum rental period (e.g., 4 hours minimum)" },
+          { value: "peak-pricing", label: "Peak/off-peak pricing (weekends, holidays, seasons)" },
+        ],
+        outroText: "These options help determine how customers can book equipment and what pricing structure to implement.",
+      },
+      {
+        id: "e9",
+        type: "checkbox",
+        label: "Required booking features",
+        required: true,
+        validation: (v) => Array.isArray(v) && v.length > 0,
+        introText: "Select the features you need for your booking system:",
+        options: [
+          { value: "online-booking", label: "Online booking calendar" },
+          { value: "availability-check", label: "Real-time availability checking per equipment item" },
+          { value: "payment-processing", label: "Online payment processing (deposits, full payment)" },
+          { value: "deposits", label: "Deposit/booking fee system with configurable amounts" },
+          { value: "invoices", label: "Automated invoice generation" },
+          { value: "contracts", label: "Digital contracts/terms acceptance" },
+          { value: "inventory-management", label: "Equipment inventory tracking with quantity management" },
+          { value: "quantity-tracking", label: "Quantity tracking per item (e.g., 3 of 5 available)" },
+          { value: "reservations", label: "Hold/reservation system (temporary holds before booking)" },
+          { value: "condition-tracking", label: "Equipment condition/maintenance tracking" },
+          { value: "quote-system", label: "Quote/estimate system with custom pricing" },
+        ],
+      },
+      {
+        id: "e10",
+        type: "textarea",
+        label: "Special requirements or workflows",
+        required: false,
+        maxLength: 1000,
+        placeholder: "Example: Delivery within 50km radius, $50 delivery fee, setup included...",
+        introText: "Any specific requirements for your booking process, equipment delivery, setup, insurance, or other workflows:",
+        outroText: "Example: Equipment delivery and setup services (delivery radius, delivery fees, setup time requirements), insurance requirements, damage deposits, custom packages, seasonal pricing variations, pickup/delivery scheduling, equipment compatibility information...",
+      },
+      {
+        id: "e11",
+        type: "textarea",
+        label: "Service area and delivery coverage",
+        required: false,
+        maxLength: 500,
+        placeholder: "Example: Rockhampton, Yeppoon, Gladstone. Delivery within 100km radius. Additional fees apply beyond 50km...",
+        introText: "Where do you provide equipment hire services? Include your service area, delivery coverage radius, and any delivery fees or restrictions:",
+        outroText: "Example: Service areas: Rockhampton, Yeppoon, Gladstone, Emerald. Free delivery within 50km of Rockhampton CBD. Delivery fees: $50 (50-75km), $100 (75-100km). No delivery beyond 100km. Pickup available from our warehouse...",
+      },
+      {
+        id: "e12",
+        type: "checkbox",
+        label: "Insurance and liability requirements",
+        required: false,
+        introText: "Select any insurance or liability requirements for your equipment hire:",
+        options: [
+          { value: "customer-insurance", label: "Require customers to have public liability insurance" },
+          { value: "damage-waiver", label: "Offer damage waiver/insurance (optional or mandatory)" },
+          { value: "liability-coverage", label: "Provide liability coverage as part of service" },
+          { value: "security-deposit", label: "Security deposit required (specify amount in special requirements)" },
+          { value: "bond-required", label: "Bond/damage deposit required" },
+          { value: "none", label: "No specific insurance requirements" },
+        ],
+        outroText: "Insurance requirements affect your booking system setup and customer terms. Include specific amounts or details in the special requirements section above.",
+      },
+    ],
+  },
+  {
+    id: "healthcare",
+    sector: "healthcare",
+    questions: [
+      {
+        id: "hc6",
+        type: "radio",
+        label: "Service type",
+        required: true,
+        validation: required,
+        options: [
+          { value: "clinic", label: "Medical clinic/GP practice" },
+          { value: "allied-health", label: "Allied health (physio, chiro, etc.)" },
+          { value: "dental", label: "Dental practice" },
+          { value: "specialist", label: "Specialist practice" },
+          { value: "other", label: "Other healthcare service" },
+        ],
+      },
+      {
+        id: "hc7",
+        type: "checkbox",
+        label: "Booking requirements",
+        required: true,
+        validation: (v) => Array.isArray(v) && v.length > 0,
+        options: [
+          { value: "appointment-booking", label: "Patient appointment booking" },
+          { value: "online-forms", label: "Patient intake forms" },
+          { value: "reminders", label: "SMS/Email reminders" },
+          { value: "waitlist", label: "Waitlist management" },
+          { value: "recurring", label: "Recurring appointments" },
+          { value: "telehealth", label: "Telehealth/online consultations" },
+        ],
+      },
+      {
+        id: "hc8",
+        type: "textarea",
+        label: "Current booking system or processes?",
+        required: true,
+        validation: required,
+      },
+      {
+        id: "hc9",
+        type: "checkbox",
+        label: "Compliance and privacy requirements",
+        required: true,
+        validation: (v) => Array.isArray(v) && v.length > 0,
+        options: [
+          { value: "hipaa", label: "HIPAA compliance (or Australian Privacy Act)" },
+          { value: "secure-forms", label: "Secure patient data forms" },
+          { value: "consent-forms", label: "Digital consent forms" },
+          { value: "records-access", label: "Patient portal/records access" },
+        ],
+      },
+      {
+        id: "hc10",
+        type: "textarea",
+        label: "Integration needs (practice management, payments, etc.)?",
+        required: false,
+      },
+    ],
+  },
+  {
+    id: "real-estate",
+    sector: "real-estate",
+    questions: [
+      {
+        id: "re6",
+        type: "checkbox",
+        label: "Service type",
+        required: true,
+        validation: (v) => Array.isArray(v) && v.length > 0,
+        options: [
+          { value: "sales", label: "Property sales" },
+          { value: "rentals", label: "Rental management" },
+          { value: "commercial", label: "Commercial properties" },
+          { value: "appraisals", label: "Property appraisals" },
+        ],
+      },
+      {
+        id: "re7",
+        type: "checkbox",
+        label: "Required features",
+        required: true,
+        validation: (v) => Array.isArray(v) && v.length > 0,
+        options: [
+          { value: "listings", label: "Property listings/search" },
+          { value: "lead-capture", label: "Lead capture forms" },
+          { value: "inspection-booking", label: "Inspection booking system" },
+          { value: "applications", label: "Rental application forms" },
+          { value: "client-portal", label: "Client portal (tenants/owners)" },
+          { value: "maintenance", label: "Maintenance request system" },
+        ],
+      },
+      {
+        id: "re8",
+        type: "textarea",
+        label: "Current property management or CRM system?",
+        required: false,
+      },
+      {
+        id: "re9",
+        type: "textarea",
+        label: "Listing volume and update frequency?",
+        required: true,
+        validation: required,
+      },
+      {
+        id: "re10",
+        type: "textarea",
+        label: "Payment processing needs (rent collection, deposits, etc.)?",
+        required: false,
+      },
     ],
   },
   {
@@ -322,6 +663,9 @@ export const branchMap: Record<Exclude<Sector, "universal">, string[]> = {
   trades: ["t6", "t7", "t8", "t9", "t10"],
   retail: ["r6", "r7", "r8", "r9", "r10"],
   professional: ["p6", "p7", "p8", "p9", "p10"],
+  "events-entertainment": ["e6", "e7", "e8", "e8b", "e9", "e10", "e11", "e12"],
+  healthcare: ["hc6", "hc7", "hc8", "hc9", "hc10"],
+  "real-estate": ["re6", "re7", "re8", "re9", "re10"],
 };
 
 const trunkIds = ["q1", "q2", "q3", "q4", "q5"];
@@ -332,6 +676,9 @@ export const totalQuestionsPerSector: Record<Exclude<Sector, "universal">, numbe
   trades: trunkIds.length + branchMap.trades.length + leavesIds.length,
   retail: trunkIds.length + branchMap.retail.length + leavesIds.length,
   professional: trunkIds.length + branchMap.professional.length + leavesIds.length,
+  "events-entertainment": trunkIds.length + branchMap["events-entertainment"].length + leavesIds.length,
+  healthcare: trunkIds.length + branchMap.healthcare.length + leavesIds.length,
+  "real-estate": trunkIds.length + branchMap["real-estate"].length + leavesIds.length,
 };
 
 export const questionOrderForSector = (sector: Exclude<Sector, "universal">) => [

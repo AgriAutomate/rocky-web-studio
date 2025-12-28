@@ -186,6 +186,26 @@ export async function POST(req: NextRequest) {
     // The rawBodyForExtraction preserves the exact data structure sent from the form (q1, q2, q3, q23, q24, q21, q22, sector, etc.)
     const allFormResponses: Record<string, any> = { ...rawBodyForExtraction };
 
+    // Log allFormResponses for debugging
+    await logger.info("All form responses for PDF generation", {
+      responseId: "pending", // Will be set later, but log early
+      totalKeys: Object.keys(allFormResponses).length,
+      keys: Object.keys(allFormResponses),
+      preview: Object.keys(allFormResponses).reduce((acc, key) => {
+        const value = allFormResponses[key];
+        if (Array.isArray(value)) {
+          acc[key] = `[Array: ${value.length} items]`;
+        } else if (typeof value === 'string' && value.length > 50) {
+          acc[key] = value.substring(0, 50) + '...';
+        } else {
+          acc[key] = String(value);
+        }
+        return acc;
+      }, {} as Record<string, string>),
+      rawBodyKeys: Object.keys(rawBodyForExtraction),
+      rawBodyKeyCount: Object.keys(rawBodyForExtraction).length,
+    });
+
     const reportData = {
       clientName: (rawBodyForExtraction.q1 as string) || formData.businessName || "Client",
       businessName: formData.businessName,
@@ -440,6 +460,25 @@ export async function POST(req: NextRequest) {
     let pdfBuffer: Buffer | null = null;
     let pdfUrl: string | null = null;
     try {
+      // Log reportData before PDF generation
+      await logger.info("Generating PDF with report data", {
+        responseId,
+        reportDataKeys: Object.keys(reportData),
+        allFormResponsesKeys: reportData.allFormResponses ? Object.keys(reportData.allFormResponses) : [],
+        allFormResponsesCount: reportData.allFormResponses ? Object.keys(reportData.allFormResponses).length : 0,
+        allFormResponsesPreview: reportData.allFormResponses ? Object.keys(reportData.allFormResponses).reduce((acc, key) => {
+          const value = reportData.allFormResponses[key];
+          if (Array.isArray(value)) {
+            acc[key] = `[Array: ${value.length} items]`;
+          } else if (typeof value === 'string' && value.length > 100) {
+            acc[key] = value.substring(0, 100) + '...';
+          } else {
+            acc[key] = String(value);
+          }
+          return acc;
+        }, {} as Record<string, string>) : {},
+      });
+
       pdfBuffer = await generatePDFFromComponents('questionnaire-report', {
         ...reportData,
         auditData: auditDataForPDF || { status: "pending", websiteUrl: websiteUrl || null, results: null, error: null }, // Always include audit data

@@ -30,7 +30,6 @@ export function QuestionnaireForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [hasSavedData, setHasSavedData] = useState(false);
   const [showExamples, setShowExamples] = useState<Record<string, boolean>>({});
   const startTimeRef = useRef<number>(Date.now());
 
@@ -126,48 +125,9 @@ export function QuestionnaireForm() {
     return "Final Details";
   };
 
-  // Load saved form data from localStorage on mount
+  // Initialize start time when component mounts
   useEffect(() => {
-    // Initialize start time when component mounts
     startTimeRef.current = Date.now();
-
-    // Load saved form data from localStorage with expiry check
-    const savedData = localStorage.getItem('questionnaire_form_data');
-    const savedStep = localStorage.getItem('questionnaire_form_step');
-    const savedTimestamp = localStorage.getItem('questionnaire_form_timestamp');
-    
-    // Check if saved data has expired (7 days)
-    if (savedTimestamp) {
-      const age = Date.now() - parseInt(savedTimestamp, 10);
-      const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-      
-      if (age > sevenDays) {
-        // Data is older than 7 days, clear it automatically
-        localStorage.removeItem('questionnaire_form_data');
-        localStorage.removeItem('questionnaire_form_step');
-        localStorage.removeItem('questionnaire_form_timestamp');
-        return; // Don't load expired data
-      }
-    }
-    
-    if (savedData && savedStep) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        const parsedStep = parseInt(savedStep, 10);
-        
-        if (parsedData && parsedStep >= 0) {
-          setFormData(parsedData);
-          setCurrentStep(parsedStep);
-          setHasSavedData(true);
-        }
-      } catch (e) {
-        console.error('Failed to load saved form data:', e);
-        // Clear corrupted localStorage data
-        localStorage.removeItem('questionnaire_form_data');
-        localStorage.removeItem('questionnaire_form_step');
-        localStorage.removeItem('questionnaire_form_timestamp');
-      }
-    }
 
     // Track initial form view
     const initialTotalSteps = trunkQuestions.length + leavesQuestions.length;
@@ -177,16 +137,6 @@ export function QuestionnaireForm() {
       sector: 'none',
     });
   }, []);
-
-  // Save form data to localStorage whenever it changes
-  useEffect(() => {
-    // Save form data to localStorage whenever it changes
-    if (Object.keys(formData).length > 0) {
-      localStorage.setItem('questionnaire_form_data', JSON.stringify(formData));
-      localStorage.setItem('questionnaire_form_step', currentStep.toString());
-      localStorage.setItem('questionnaire_form_timestamp', Date.now().toString());
-    }
-  }, [formData, currentStep]);
 
   // Clear submit error when step changes (ensures it's cleared on navigation)
   useEffect(() => {
@@ -565,11 +515,6 @@ export function QuestionnaireForm() {
         currency: 'AUD',
       });
 
-      // Clear saved form data after successful submission
-      localStorage.removeItem('questionnaire_form_data');
-      localStorage.removeItem('questionnaire_form_step');
-      localStorage.removeItem('questionnaire_form_timestamp');
-
       // Redirect to confirmation page with response ID
       if (result.responseId) {
         window.location.href = `/confirmation?id=${result.responseId}`;
@@ -868,30 +813,6 @@ export function QuestionnaireForm() {
           />
         </div>
       </div>
-
-      {/* Resume Banner */}
-      {hasSavedData && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
-          <p className="text-sm text-blue-800">
-            ✓ We found your saved progress. You can continue where you left off.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              localStorage.removeItem('questionnaire_form_data');
-              localStorage.removeItem('questionnaire_form_step');
-              localStorage.removeItem('questionnaire_form_timestamp');
-              setFormData({});
-              setCurrentStep(0);
-              setHasSavedData(false);
-              setErrors({});
-            }}
-            className="text-xs text-blue-600 hover:text-blue-800 underline ml-2"
-          >
-            Start Fresh
-          </button>
-        </div>
-      )}
 
       {/* Question */}
       <div className="space-y-4">

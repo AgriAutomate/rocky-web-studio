@@ -182,9 +182,10 @@ export async function POST(req: NextRequest) {
       ? buildCQAdvantageSection(sectorDefinition)
       : null;
 
-    // Build complete form responses object - use rawBodyForExtraction which contains all original question IDs
-    // The rawBodyForExtraction preserves the exact data structure sent from the form (q1, q2, q3, q23, q24, q21, q22, sector, etc.)
-    const allFormResponses: Record<string, any> = { ...rawBodyForExtraction };
+    // Build complete form responses object - use formResponses from body if provided, otherwise fall back to rawBodyForExtraction
+    // The formResponses field contains the raw formData with all question IDs (q1, q2, q3, q23, q24, q21, q22, sector, etc.)
+    // This is sent from the frontend specifically for PDF generation
+    const allFormResponses: Record<string, any> = body.formResponses || rawBodyForExtraction;
 
     // Log allFormResponses for debugging
     await logger.info("All form responses for PDF generation", {

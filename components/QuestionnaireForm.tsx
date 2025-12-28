@@ -94,7 +94,22 @@ export function QuestionnaireForm() {
     if (selectedSector) {
       const sectorStep = currentStep - trunkQuestions.length;
       if (sectorStep >= 0 && sectorStep < filteredSectorQuestions.length) {
-        return filteredSectorQuestions[sectorStep] || null;
+        const question = filteredSectorQuestions[sectorStep] || null;
+        // Debug logging for sector questions
+        if (question && (question.id.startsWith('h') || question.id.startsWith('t') || 
+            question.id.startsWith('r') || question.id.startsWith('p') || 
+            question.id.startsWith('e'))) {
+          console.log('[QuestionnaireForm] Displaying sector question:', {
+            questionId: question.id,
+            questionLabel: question.label,
+            currentStep,
+            sectorStep,
+            selectedSector,
+            filteredSectorQuestionsCount: filteredSectorQuestions.length,
+            filteredSectorQuestionIds: filteredSectorQuestions.map(q => q.id),
+          });
+        }
+        return question;
       }
     }
     
@@ -137,6 +152,26 @@ export function QuestionnaireForm() {
       sector: 'none',
     });
   }, []);
+
+  // Debug: Log formData changes for sector-specific questions (always enabled for debugging)
+  useEffect(() => {
+    const sectorKeys = Object.keys(formData).filter(key => 
+      key.startsWith('h') || key.startsWith('t') || key.startsWith('r') || 
+      key.startsWith('p') || key.startsWith('e')
+    );
+    if (sectorKeys.length > 0) {
+      console.log('[QuestionnaireForm] formData state updated with sector questions:', {
+        sectorKeys,
+        sectorValues: sectorKeys.reduce((acc, key) => {
+          acc[key] = formData[key];
+          return acc;
+        }, {} as Record<string, any>),
+        allFormDataKeys: Object.keys(formData),
+        selectedSector,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }, [formData, selectedSector]);
 
   // Clear submit error when step changes (ensures it's cleared on navigation)
   useEffect(() => {
@@ -205,6 +240,18 @@ export function QuestionnaireForm() {
     // Clear submit error when user makes changes
     setSubmitError(null);
     
+    // Debug logging for sector-specific questions (always enabled for debugging)
+    if (questionId.startsWith('h') || questionId.startsWith('t') || 
+        questionId.startsWith('r') || questionId.startsWith('p') || 
+        questionId.startsWith('e')) {
+      console.log('[QuestionnaireForm] handleAnswer called for sector question:', {
+        questionId,
+        value,
+        currentFormDataKeys: Object.keys(formData),
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
     const updatedData = { ...formData, [questionId]: value };
 
     // Handle sector selection from the first question
@@ -241,6 +288,20 @@ export function QuestionnaireForm() {
           delete updatedData[qId];
         });
       }
+    }
+    
+    // Debug logging after state update for sector-specific questions (always enabled for debugging)
+    if (questionId.startsWith('h') || questionId.startsWith('t') || 
+        questionId.startsWith('r') || questionId.startsWith('p') || 
+        questionId.startsWith('e')) {
+      console.log('[QuestionnaireForm] Updated formData with sector question:', {
+        questionId,
+        value,
+        updatedDataKeys: Object.keys(updatedData),
+        hasQuestionId: questionId in updatedData,
+        questionValue: updatedData[questionId],
+        timestamp: new Date().toISOString(),
+      });
     }
     
     setFormData(updatedData);
@@ -443,7 +504,27 @@ export function QuestionnaireForm() {
         // Consent (not collected, defaulting to true for now)
         agreeToContact: formData.agreeToContact ?? true,
         subscribeToNewsletter: formData.subscribeToNewsletter ?? false,
+        
+        // Include raw form data with question IDs for PDF generation
+        formResponses: formData, // This contains all q1, q2, q3, q23, q24, q21, q22, sector, h6-h10, t6-t10, r6-r10, p6-p10, e6-e12, etc.
       };
+
+      // Debug logging to verify all form data is being sent (always enabled for debugging)
+      console.log('[QuestionnaireForm] Submitting form data:', {
+        totalKeys: Object.keys(formData).length,
+        keys: Object.keys(formData),
+        hasSectorSpecific: Object.keys(formData).some(key => 
+          key.startsWith('h') || key.startsWith('t') || key.startsWith('r') || 
+          key.startsWith('p') || key.startsWith('e')
+        ),
+        sectorSpecificKeys: Object.keys(formData).filter(key => 
+          key.startsWith('h') || key.startsWith('t') || key.startsWith('r') || 
+          key.startsWith('p') || key.startsWith('e')
+        ),
+        selectedSector,
+        formDataSnapshot: { ...formData },
+        timestamp: new Date().toISOString(),
+      });
 
       const response = await fetch("/api/questionnaire/submit", {
         method: "POST",

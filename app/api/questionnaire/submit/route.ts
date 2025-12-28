@@ -182,6 +182,10 @@ export async function POST(req: NextRequest) {
       ? buildCQAdvantageSection(sectorDefinition)
       : null;
 
+    // Build complete form responses object - use rawBodyForExtraction which contains all original question IDs
+    // The rawBodyForExtraction preserves the exact data structure sent from the form (q1, q2, q3, q23, q24, q21, q22, sector, etc.)
+    const allFormResponses: Record<string, any> = { ...rawBodyForExtraction };
+
     const reportData = {
       clientName: (rawBodyForExtraction.q1 as string) || formData.businessName || "Client",
       businessName: formData.businessName,
@@ -191,7 +195,7 @@ export async function POST(req: NextRequest) {
       selectedPrimaryOffers: selectedPrimaryOffers, // All selected primary offers
       generatedDate: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
       cqAdvantage, // CQ Advantage section data
-      allFormResponses: rawBodyForExtraction, // Include ALL form responses for PDF
+      allFormResponses, // Include ALL form responses for PDF
     };
 
     // Validate sector exists

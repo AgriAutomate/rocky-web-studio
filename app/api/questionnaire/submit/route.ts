@@ -565,6 +565,25 @@ export async function POST(req: NextRequest) {
       }
     );
   } catch (error: unknown) {
+    const logger = await getLogger();
+    
+    // Check if this is a validation error from Zod (shouldn't happen, but handle gracefully)
+    if (error && typeof error === 'object' && 'issues' in error) {
+      const details = formatValidationErrors(error as any);
+      await logger.error("Questionnaire validation error (unexpected)", { details });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details,
+        },
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        }
+      );
+    }
+    
     // Extract error details
     const err =
       error instanceof Error
@@ -576,7 +595,6 @@ export async function POST(req: NextRequest) {
 
     // Try to log with logger, but don't let logging failure prevent JSON response
     try {
-      const logger = await getLogger();
       await logger.error("Unhandled questionnaire submission error", {
         error: err.message,
         errorStack: err.stack,
@@ -591,6 +609,7 @@ export async function POST(req: NextRequest) {
       {
         success: false,
         error: err.message ?? 'Internal Server Error',
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined,
       },
       { 
         status: 500,

@@ -268,17 +268,55 @@ export function QuestionnaireForm() {
   const validateCurrentQuestion = (): boolean => {
     if (!currentQuestion) return true;
 
+    // Skip validation if question should be hidden due to conditional logic
+    if (selectedSector === 'events-entertainment' && !shouldShowEquipmentQuestions) {
+      if (['e7', 'e8', 'e8b', 'e11', 'e12'].includes(currentQuestion.id)) {
+        return true; // Skip validation for hidden equipment questions
+      }
+    }
+
     const value = formData[currentQuestion.id];
 
+    // Check required fields
     if (currentQuestion.required && (!value || (Array.isArray(value) && value.length === 0))) {
-      setErrors({ ...errors, [currentQuestion.id]: "This field is required" });
+      const errorMessage = `${currentQuestion.label} is required`;
+      setErrors({ ...errors, [currentQuestion.id]: errorMessage });
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Validation] Required field missing: ${currentQuestion.id} (${currentQuestion.label})`);
+      }
       return false;
     }
 
+    // Skip validation if field is optional and empty
+    if (!currentQuestion.required && (!value || (typeof value === 'string' && value.trim().length === 0))) {
+      return true;
+    }
+
+    // Run custom validation if provided and value exists
     if (currentQuestion.validation && value) {
-      const isValid = currentQuestion.validation(value);
-      if (!isValid) {
-        setErrors({ ...errors, [currentQuestion.id]: "Invalid value" });
+      try {
+        const isValid = currentQuestion.validation(value);
+        if (!isValid) {
+          // Provide field-specific error messages based on question type
+          let errorMessage = "Invalid value";
+          if (currentQuestion.id === "q23") {
+            errorMessage = "Please enter a valid email address";
+          } else if (currentQuestion.id === "q24") {
+            errorMessage = "Please enter a valid phone number (optional field)";
+          } else if (currentQuestion.type === "checkbox" && Array.isArray(value) && value.length === 0) {
+            errorMessage = "Please select at least one option";
+          } else {
+            errorMessage = `Please enter a valid ${currentQuestion.label.toLowerCase()}`;
+          }
+          setErrors({ ...errors, [currentQuestion.id]: errorMessage });
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`[Validation] Validation failed: ${currentQuestion.id} (${currentQuestion.label})`, { value });
+          }
+          return false;
+        }
+      } catch (error) {
+        console.error(`[Validation] Validation error for question ${currentQuestion.id}:`, error);
+        setErrors({ ...errors, [currentQuestion.id]: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}` });
         return false;
       }
     }
@@ -310,6 +348,8 @@ export function QuestionnaireForm() {
       return;
     }
 
+    // Clear previous errors at start of submission
+    setErrors({});
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -381,7 +421,10 @@ export function QuestionnaireForm() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || result.details || "Failed to submit questionnaire");
+        // Include validation details in error message if available
+        const errorMsg = result.error || "Failed to submit questionnaire";
+        const details = result.details ? ` (${result.details})` : "";
+        throw new Error(`${errorMsg}${details}`);
       }
 
       // Track form completion
@@ -413,11 +456,19 @@ export function QuestionnaireForm() {
       }
     } catch (error) {
       console.error("Form submission error:", error);
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Failed to submit questionnaire. Please try again."
-      );
+      
+      // Extract more detailed error information if available
+      let errorMessage = "Failed to submit questionnaire. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Try to extract validation details from error message
+        if (error.message.includes("Validation failed") || error.message.includes("details")) {
+          errorMessage = "Validation failed. Please check all required fields are completed correctly.";
+        }
+      }
+      
+      setSubmitError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -743,6 +794,13 @@ export function QuestionnaireForm() {
             )}
           </div>
         ) : null}
+
+        {/* Submit error display - moved above navigation buttons */}
+        {submitError && (
+          <div className="mt-4 rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+            {submitError}
+          </div>
+        )}
       </div>
 
       {/* Navigation buttons */}
@@ -776,11 +834,6 @@ export function QuestionnaireForm() {
             </Button>
           )}
         </div>
-        {submitError && (
-          <div className="mt-4 rounded-md bg-destructive/10 p-4 text-sm text-destructive">
-            {submitError}
-          </div>
-        )}
       </div>
     </div>
   );

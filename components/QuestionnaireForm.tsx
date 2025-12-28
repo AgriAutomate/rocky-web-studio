@@ -87,7 +87,18 @@ export function QuestionnaireForm() {
   const getCurrentQuestion = (): QuestionConfig | null => {
     // Show trunk questions first
     if (currentStep < trunkQuestions.length) {
-      return trunkQuestions[currentStep] || null;
+      const question = trunkQuestions[currentStep] || null;
+      // Debug logging for trunk questions to track display
+      if (question && (question.id === 'q1' || question.id === 'q2' || question.id === 'q3' || question.id === 'q4' || question.id === 'sector')) {
+        console.log('[QuestionnaireForm] Displaying trunk question:', {
+          questionId: question.id,
+          questionLabel: question.label,
+          currentStep,
+          totalTrunkQuestions: trunkQuestions.length,
+          trunkQuestionIds: trunkQuestions.map(q => q.id),
+        });
+      }
+      return question;
     }
     
     // Show sector-specific questions after sector is selected (using filtered list)
@@ -240,11 +251,20 @@ export function QuestionnaireForm() {
     // Clear submit error when user makes changes
     setSubmitError(null);
     
-    // Debug logging for sector-specific questions (always enabled for debugging)
+    // Debug logging for ALL questions (always enabled for debugging)
+    // Log sector-specific questions with more detail, but log all questions
     if (questionId.startsWith('h') || questionId.startsWith('t') || 
         questionId.startsWith('r') || questionId.startsWith('p') || 
         questionId.startsWith('e')) {
       console.log('[QuestionnaireForm] handleAnswer called for sector question:', {
+        questionId,
+        value,
+        currentFormDataKeys: Object.keys(formData),
+        timestamp: new Date().toISOString(),
+      });
+    } else if (questionId === 'q1' || questionId === 'q2' || questionId === 'q3' || questionId === 'q4' || questionId === 'sector') {
+      // Log trunk questions (q1-q4, sector) to debug missing data issue
+      console.log('[QuestionnaireForm] handleAnswer called for trunk question:', {
         questionId,
         value,
         currentFormDataKeys: Object.keys(formData),
@@ -290,11 +310,21 @@ export function QuestionnaireForm() {
       }
     }
     
-    // Debug logging after state update for sector-specific questions (always enabled for debugging)
+    // Debug logging after state update for ALL questions (always enabled for debugging)
+    // Log sector-specific questions and trunk questions to debug missing data issue
     if (questionId.startsWith('h') || questionId.startsWith('t') || 
         questionId.startsWith('r') || questionId.startsWith('p') || 
         questionId.startsWith('e')) {
       console.log('[QuestionnaireForm] Updated formData with sector question:', {
+        questionId,
+        value,
+        updatedDataKeys: Object.keys(updatedData),
+        hasQuestionId: questionId in updatedData,
+        questionValue: updatedData[questionId],
+        timestamp: new Date().toISOString(),
+      });
+    } else if (questionId === 'q1' || questionId === 'q2' || questionId === 'q3' || questionId === 'q4' || questionId === 'sector') {
+      console.log('[QuestionnaireForm] Updated formData with trunk question:', {
         questionId,
         value,
         updatedDataKeys: Object.keys(updatedData),

@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import type { ConsciousnessJourney, Database } from "@/types/consciousness";
 import { createSsrSupabaseClient } from "@/lib/supabase/ssr";
+import {
+  executeWithRateLimit,
+  checkRateLimit,
+} from "@/lib/utils/perplexity-rate-limiter";
+import { checkAndSendAlerts, getTodayUsageStats } from "@/lib/utils/perplexity-usage-tracker";
 
 export const runtime = "nodejs";
 
@@ -185,35 +190,80 @@ Optional context: ${context?.trim() ? context.trim() : "N/A"}
     const trace = perplexitySpaceId ? `Perplexity Space ID (trace): ${perplexitySpaceId}` : "";
     const promptSent = `${spacePrompt}\n\n${trace}\n\n${outputContract}\n\n${userPrompt}`.trim();
 
-    const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${perplexityApiKey}`,
-      },
-      body: JSON.stringify({
-        model: perplexityModel,
-        messages: [
-          { role: "system", content: promptSent },
-          {
-            role: "user",
-            content: "Generate the consciousness journey analysis and Suno prompt now.",
-          },
-        ],
-        temperature: 0.2,
-      }),
-    });
-
-    if (!perplexityResponse.ok) {
-      const text = await perplexityResponse.text().catch(() => "");
-      console.error("Perplexity API error:", perplexityResponse.status, text);
+    // Check rate limit before making Perplexity request
+    const rateLimitCheck = await checkRateLimit("medium", "consciousness-journey");
+    
+    if (!rateLimitCheck.allowed) {
+      const stats = await getTodayUsageStats();
+      console.warn("Perplexity rate limit exceeded:", rateLimitCheck.reason);
+      
+      // Send alerts if in critical zone
+      await checkAndSendAlerts(stats);
+      
       return NextResponse.json(
-        { error: "Perplexity request failed", status: perplexityResponse.status },
+        {
+          error: "Perplexity API rate limit exceeded",
+          reason: rateLimitCheck.reason,
+          stats: rateLimitCheck.stats,
+          estimatedWaitTime: rateLimitCheck.estimatedWaitTime,
+        },
+        { status: 429 }
+      );
+    }
+
+    // Execute Perplexity request with rate limiting and usage tracking
+    const perplexityResult = await executeWithRateLimit(
+      async () => {
+        const response = await fetch("https://api.perplexity.ai/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${perplexityApiKey}`,
+          },
+          body: JSON.stringify({
+            model: perplexityModel,
+            messages: [
+              { role: "system", content: promptSent },
+              {
+                role: "user",
+                content: "Generate the consciousness journey analysis and Suno prompt now.",
+              },
+            ],
+            temperature: 0.2,
+          }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          console.error("Perplexity API error:", response.status, text);
+          throw new Error(`Perplexity request failed: ${response.status} - ${text}`);
+        }
+
+        return (await response.json()) as PerplexityChatCompletion;
+      },
+      "medium",
+      "consciousness-journey"
+    );
+
+    if (!perplexityResult.success) {
+      const stats = await getTodayUsageStats();
+      await checkAndSendAlerts(stats);
+      
+      return NextResponse.json(
+        {
+          error: perplexityResult.error || "Perplexity request failed",
+          stats: perplexityResult.stats,
+        },
         { status: 502 }
       );
     }
 
-    const perplexityJson = (await perplexityResponse.json()) as PerplexityChatCompletion;
+    const perplexityJson = perplexityResult.result!;
+    
+    // Check and send alerts after successful request
+    if (perplexityResult.stats) {
+      await checkAndSendAlerts(perplexityResult.stats);
+    }
     const content = perplexityJson.choices?.[0]?.message?.content ?? "";
 
     const parsed = content ? safeJsonParse(content) : null;

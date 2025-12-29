@@ -46,6 +46,13 @@ export function formatResponseValue(questionId: string, value: any): string {
     if (value.length === 0) {
       return 'None selected';
     }
+    
+    // Special formatting for goals (q3) and challenges (q4) - each on new line
+    if (questionId === 'q3' || questionId === 'q4') {
+      return value.map(v => getOptionLabel(questionId, v)).join('\n');
+    }
+    
+    // Default: comma-separated for other arrays
     return value.map(v => getOptionLabel(questionId, v)).join(', ');
   }
 

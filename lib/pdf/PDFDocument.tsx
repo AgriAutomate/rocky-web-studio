@@ -435,14 +435,58 @@ export const QuestionnairePDFDocument: React.FC<PDFDocumentProps> = ({
                 const value = allFormResponses[question.id];
                 const formattedValue = formatResponseValue(question.id, value);
                 
+                // Special formatting for goals (q3) and challenges (q4) - split by newline and make headings bold
+                const isGoalsOrChallenges = question.id === 'q3' || question.id === 'q4';
+                const items = isGoalsOrChallenges && typeof formattedValue === 'string' 
+                  ? formattedValue.split('\n').filter(item => item.trim().length > 0)
+                  : null;
+                
                 return (
                   <View key={question.id || index} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: '0.5 solid #e0d9d0' }}>
                     <Text style={[styles.challengeLabel, { marginBottom: 4 }]}>
                       {getQuestionLabel(question.id)}:
                     </Text>
-                    <Text style={styles.challengeText}>
-                      {formattedValue}
-                    </Text>
+                    {isGoalsOrChallenges && items ? (
+                      <View style={{ marginTop: 4 }}>
+                        {items.map((item, itemIndex) => {
+                          // Split heading (before em dash) and description (after dash)
+                          // Labels use format: "2. Heading — Description" (em dash U+2014)
+                          // Try multiple patterns: " — " (space em dash space), "—" (em dash), " – " (space en dash space)
+                          let dashIndex = item.indexOf(' — '); // space em dash space
+                          let dashLength = 3;
+                          if (dashIndex === -1) {
+                            dashIndex = item.indexOf('—'); // em dash only
+                            dashLength = 1;
+                          }
+                          if (dashIndex === -1) {
+                            dashIndex = item.indexOf(' – '); // space en dash space
+                            dashLength = 3;
+                          }
+                          if (dashIndex === -1) {
+                            dashIndex = item.indexOf('–'); // en dash only
+                            dashLength = 1;
+                          }
+                          
+                          const heading = dashIndex !== -1 ? item.substring(0, dashIndex).trim() : item;
+                          const description = dashIndex !== -1 ? item.substring(dashIndex + dashLength).trim() : null;
+                          
+                          return (
+                            <View key={itemIndex} style={{ marginBottom: 8 }}>
+                              <Text style={styles.challengeText}>
+                                <Text style={{ fontWeight: 'bold' }}>{heading}</Text>
+                                {description && (
+                                  <Text> — {description}</Text>
+                                )}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ) : (
+                      <Text style={styles.challengeText}>
+                        {formattedValue}
+                      </Text>
+                    )}
                   </View>
                 );
               });

@@ -13,8 +13,10 @@ import { calculateRoiSnapshot } from "@/lib/services/roi-calculator";
 import type { ProposalData, HealthScorecard, ProjectScope, Investment, RoiSnapshot, CurrentStateAnalysis, ProposedSolution } from "@/lib/types/proposal";
 import type { WebsiteAuditResult } from "@/lib/types/audit";
 import type { DiscoveryTree, BusinessProfile } from "@/lib/types/discovery";
-import type { Sector } from "@/lib/types/questionnaire";
+import type { Sector, PainPoint } from "@/lib/types/questionnaire";
 import { logger } from "@/lib/utils/logger";
+import { getRecommendedModules, resolveModuleDependencies } from "@/lib/data/product-modules";
+import { painPointsToChallengeIds } from "@/lib/utils/pain-point-to-challenge";
 
 /**
  * Fetch complete questionnaire response record
@@ -517,44 +519,89 @@ function shapeCurrentStateAnalysis(
 }
 
 /**
- * Shape proposed solution
+ * Shape proposed solution using product modules
  */
 function shapeProposedSolution(
-  projectScope: ProjectScope,
-  investment: Investment
+  investment: Investment,
+  challengeIds: number[],
+  sector: Sector,
+  painPoints: PainPoint[]
 ): ProposedSolution {
-  // Generate overview
-  const featureCount = projectScope.mustHaveFeatures.length + projectScope.niceToHaveFeatures.length;
-  const overview = `This proposal outlines a comprehensive digital solution for your business, including ${featureCount} key features designed to address your specific needs and goals.`;
+  // Get recommended modules based on challenges and sector
+  const moduleRecommendations = getRecommendedModules(challengeIds, sector, 10);
+  
+  // Resolve dependencies and get top modules
+  const topModuleIds = moduleRecommendations.slice(0, 7).map(rec => rec.module.id);
+  const resolvedModules = resolveModuleDependencies(topModuleIds);
+  
+  // Generate overview from modules
+  const moduleCount = resolvedModules.length;
+  const painPointsFormatted = painPoints.length > 0 
+    ? painPoints.map(p => p.replace(/-/g, " ")).join(", ")
+    : "your business needs";
+  const overview = `This proposal outlines a comprehensive digital solution for your business, including ${moduleCount} key product offerings designed to address your specific challenges: ${painPointsFormatted}.`;
 
-  // Key features (from must-have)
-  const keyFeatures = projectScope.mustHaveFeatures.slice(0, 7);
+  // Key features from modules (use module names and short descriptions)
+  const keyFeatures = resolvedModules.slice(0, 7).map(module => {
+    return module.shortDescription || module.name;
+  });
 
-  // Expected outcomes (generic - can be enhanced)
-  const expectedOutcomes = [
-    "Improved operational efficiency",
-    "Enhanced customer experience",
-    "Increased online visibility and engagement",
-    "Streamlined business processes",
-    "Better data insights and reporting",
-  ];
+  // Expected outcomes from modules (aggregate from all modules)
+  const expectedOutcomesSet = new Set<string>();
+  resolvedModules.forEach(module => {
+    if (module.expectedOutcomes) {
+      module.expectedOutcomes.forEach(outcome => expectedOutcomesSet.add(outcome));
+    }
+  });
+  
+  // If no module outcomes, use generic ones
+  const expectedOutcomes = expectedOutcomesSet.size > 0 
+    ? Array.from(expectedOutcomesSet).slice(0, 5)
+    : [
+        "Improved operational efficiency",
+        "Enhanced customer experience",
+        "Increased online visibility and engagement",
+        "Streamlined business processes",
+        "Better data insights and reporting",
+      ];
 
-  // Timeline phases (simplified)
+  // Timeline phases from modules (aggregate implementation timelines)
+  // Use the longest implementation timeline as baseline
+  const longestTimeline = resolvedModules.reduce((max, module) => {
+    const timelineMatch = module.implementation.timeline.match(/(\d+)/);
+    const weeks = timelineMatch && timelineMatch[1] ? parseInt(timelineMatch[1], 10) : 0;
+    return Math.max(max, weeks);
+  }, 6); // Default to 6 weeks minimum
+
   const phases = [
     {
       phase: "Planning & Design",
       duration: "2-3 weeks",
-      deliverables: ["Project plan", "Design mockups", "Technical specifications"],
+      deliverables: [
+        "Business requirements analysis",
+        "Module selection and configuration",
+        "Technical specifications",
+      ],
     },
     {
-      phase: "Development",
-      duration: `${Math.max(1, Math.ceil(investment.totalWeeks * 0.6))} weeks`,
-      deliverables: ["Core features", "Integrations", "Testing"],
+      phase: "Implementation",
+      duration: `${Math.max(longestTimeline, Math.ceil(investment.totalWeeks * 0.6))} weeks`,
+      deliverables: [
+        "Module implementation and integration",
+        "System configuration",
+        "Data migration",
+        "Testing and quality assurance",
+      ],
     },
     {
       phase: "Launch & Support",
       duration: "1-2 weeks",
-      deliverables: ["Deployment", "Training", "Documentation"],
+      deliverables: [
+        "Deployment and go-live",
+        "Staff training",
+        "Documentation",
+        "90-day post-launch support included",
+      ],
     },
   ];
 
@@ -686,8 +733,19 @@ export async function getProposalData(
     // Shape current state analysis
     const currentStateAnalysis = shapeCurrentStateAnalysis(responseData, auditResults);
 
-    // Shape proposed solution
-    const proposedSolution = shapeProposedSolution(projectScope, investment);
+    // Extract pain points and map to challenge IDs
+    const painPoints = Array.isArray(responseData.pain_points)
+      ? (responseData.pain_points as PainPoint[])
+      : [];
+    const challengeIds = painPointsToChallengeIds(painPoints, 10); // Get up to 10 challenges
+
+    // Shape proposed solution using product modules
+    const proposedSolution = shapeProposedSolution(
+      investment,
+      challengeIds,
+      sector,
+      painPoints
+    );
 
     // Build complete proposal data
     const proposalData: ProposalData = {

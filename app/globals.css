@@ -90,6 +90,17 @@
   --brand-to: #059669;
   --brand-soft: #ccfbf1;
   --brand-foreground: #ffffff;
+
+  /* Campaign landing page colors */
+  --teal: #0d9488;
+  --teal-light: #5eead4;
+  --teal-dark: #0f766e;
+  --cream: #fff7ed;
+  --cream-dark: #fed7aa;
+  --orange: #f97316;
+  --orange-light: #fb923c;
+  --yellow: #eab308;
+  --coral: #f87171;
 }
 
 .dark {
@@ -168,5 +179,77 @@
     clip: auto;
     white-space: normal;
     z-index: 9999;
+  }
+
+  /* Campaign landing page utilities */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--teal) 0%, var(--teal-light) 50%, var(--primary) 100%);
+  }
+
+  .section-padding {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  .container-narrow {
+    @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-wide {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, 0.3) 50%, transparent 75%);
+    transform: translateX(-100%);
+    animation: shimmer 3s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .animate-bounce-subtle {
+    animation: bounceSubtle 2s ease-in-out infinite;
+  }
+
+  @keyframes bounceSubtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* Orange color utilities for campaign */
+  .bg-orange\/10 {
+    background-color: rgba(249, 115, 22, 0.1);
+  }
+  
+  .bg-orange\/20 {
+    background-color: rgba(249, 115, 22, 0.2);
+  }
+  
+  .bg-yellow\/20 {
+    background-color: rgba(234, 179, 8, 0.2);
+  }
+  
+  .text-orange {
+    color: #f97316;
+  }
+  
+  .border-orange\/30 {
+    border-color: rgba(249, 115, 22, 0.3);
   }
 }

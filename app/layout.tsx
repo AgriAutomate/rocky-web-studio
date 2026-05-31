@@ -4,7 +4,6 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import { BackButton } from "@/components/ui/back-button";
 import { ConditionalNavigation } from "@/components/ConditionalNavigation";
 import { AIAssistantWidget } from "@/components/AIAssistantWidget";
-import { VoiceWidget } from "@/components/VoiceWidget";
 import { Toaster } from "@/components/ui/toaster";
 import SentryInit from "./sentry-init";
 import "./globals.css";
@@ -106,7 +105,6 @@ export default function RootLayout({
         {children}
         {gaMeasurementId && <GoogleAnalytics gaId={gaMeasurementId} />}
         <AIAssistantWidget />
-        <VoiceWidget />
         <Toaster />
       </body>
     </html>

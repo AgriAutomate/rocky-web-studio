@@ -58,3 +58,5 @@ yarn-error.log*
 
 # Credentials
 .carroll-db-pass.txt
+# IDE config
+.cursor/

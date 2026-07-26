@@ -47,7 +47,7 @@
     "date-fns": "^4.1.0",
     "libphonenumber-js": "^1.12.26",
     "lucide-react": "^0.554.0",
-    "next": "^16.0.10",
+    "next": "^16.2.12",
     "next-auth": "^5.0.0-beta.30",
     "react": "^19.2.1",
     "react-day-picker": "^9.11.1",
